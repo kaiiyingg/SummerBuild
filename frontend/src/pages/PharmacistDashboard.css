@@ -474,3 +474,25 @@
     animation: none;
   }
 }
+
+.pd-control-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.reset-demo-btn {
+  border: none;
+  background: #ef4444;
+  color: white;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 10px 16px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.reset-demo-btn:hover {
+  background: #dc2626;
+}

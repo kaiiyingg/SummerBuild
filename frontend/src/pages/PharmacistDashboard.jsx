@@ -32,6 +32,7 @@ const TABS = [
   { key: "pending", label: "Pending Packing" },
   { key: "on_hold", label: "On Hold" },
   { key: "ready", label: "Ready for Collection" },
+  { key: "collected", label: "Collected" },
 ];
 
 const SORTS = [
@@ -63,11 +64,43 @@ function PharmacistDashboard() {
 
   const badgeCount = 3;
 
+  const resetDemoData = () => {
+    Object.keys(localStorage).forEach((key) => {
+      if (
+        key.startsWith("patient-status-") ||
+        key.startsWith("verified-meds-") ||
+        key.startsWith("hold-reason-")
+      ) {
+        localStorage.removeItem(key);
+      }
+    });
+
+    window.location.reload();
+  };
+
+  const patientsWithSavedStatus = PATIENTS.map((p) => ({
+    ...p,
+    status: localStorage.getItem(`patient-status-${p.id}`) || p.status,
+  }));
+
+  const statusCounts = patientsWithSavedStatus.reduce(
+    (acc, patient) => {
+      acc[patient.status] = (acc[patient.status] || 0) + 1;
+      return acc;
+    },
+    { pending: 0, on_hold: 0, ready: 0, collected: 0 }
+  );
+
   const visiblePatients = useMemo(() => {
-    const filtered =
-      activeTab === "all"
-        ? PATIENTS
-        : PATIENTS.filter((p) => p.status === activeTab);
+    const patientsWithSavedStatus = PATIENTS.map((p) => ({
+      ...p,
+      status: localStorage.getItem(`patient-status-${p.id}`) || p.status,
+    }));
+
+  const filtered =
+    activeTab === "all"
+      ? patientsWithSavedStatus
+      : patientsWithSavedStatus.filter((p) => p.status === activeTab);
 
     const sorted = [...filtered];
     switch (sort) {
@@ -140,15 +173,15 @@ function PharmacistDashboard() {
       <div className="pd-stats">
         <span className="pd-chip">
           <span className="dot" style={{ background: "#F59E0B" }} />
-          <b>12</b>&nbsp;Pending Packing
+          <b>{statusCounts.pending}</b>&nbsp;Pending Packing
         </span>
         <span className="pd-chip">
           <span className="dot" style={{ background: "#EF4444" }} />
-          <b>3</b>&nbsp;On Hold
+          <b>{statusCounts.on_hold}</b>&nbsp;On Hold
         </span>
         <span className="pd-chip">
           <span className="dot" style={{ background: "#22C55E" }} />
-          <b>5</b>&nbsp;Ready for Collection
+          <b>{statusCounts.ready}</b>&nbsp;Ready for Collection
         </span>
       </div>
 
@@ -171,6 +204,15 @@ function PharmacistDashboard() {
             ))}
           </div>
 
+          <div className="pd-control-right">
+          <button
+            type="button"
+            className="reset-demo-btn"
+            onClick={resetDemoData}
+          >
+            Reset Demo Data
+          </button>
+
           <label className="pd-sort">
             Sort by:
             <select value={sort} onChange={(e) => setSort(e.target.value)}>
@@ -181,6 +223,7 @@ function PharmacistDashboard() {
               ))}
             </select>
           </label>
+          </div>
         </div>
 
         {/* Patient cards */}
