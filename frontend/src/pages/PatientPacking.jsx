@@ -49,12 +49,8 @@ function PatientPacking() {
 
   return (
     <div className="pack-page">
-      <header className="pack-navbar">
-        <span className="pack-logo">Pilly</span>
-        <h1 className="pack-title">Medication Packing</h1>
-      </header>
-
       <main className="pack-content">
+        <h1 className="pack-page-title">Medication Packing</h1>
         <section className="pack-patient-card">
           <div>
             <p className="pack-label">Patient Details</p>

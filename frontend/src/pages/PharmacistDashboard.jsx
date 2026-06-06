@@ -1,202 +1,153 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { FaBell, FaChevronRight, FaTimes } from "react-icons/fa";
+import { FaChevronRight } from "react-icons/fa";
 import "./PharmacistDashboard.css";
 
-/* ---------- Dummy data ---------- */
+/* ── Dummy data ── */
 const PATIENTS = [
-  { id: "P001", name: "Tan Wei Ming", urgency: "A", meds: 4, status: "pending", time: "8 min ago" },
-  { id: "P002", name: "Siti Rahmah", urgency: "B", meds: 2, status: "on_hold", time: "15 min ago" },
-  { id: "P003", name: "David Lim", urgency: "A", meds: 6, status: "ready", time: "22 min ago" },
-  { id: "P004", name: "Priya Nair", urgency: "C", meds: 1, status: "pending", time: "31 min ago" },
-  { id: "P005", name: "Mohammad Faiz", urgency: "B", meds: 3, status: "collected", time: "45 min ago" },
-  { id: "P006", name: "Chen Li Hua", urgency: "A", meds: 5, status: "pending", time: "52 min ago" },
-  { id: "P007", name: "Kavitha Raj", urgency: "C", meds: 2, status: "on_hold", time: "1 hr ago" },
-  { id: "P008", name: "James Tan", urgency: "B", meds: 3, status: "ready", time: "1.5 hr ago" },
+  { id: "P001", name: "Tan Wei Ming",  urgency: "A", meds: 4, status: "pending",   waitMin: 8,  time: "8 min ago"  },
+  { id: "P002", name: "Siti Rahmah",   urgency: "B", meds: 2, status: "on_hold",   waitMin: 15, time: "15 min ago" },
+  { id: "P003", name: "David Lim",     urgency: "A", meds: 6, status: "ready",     waitMin: 22, time: "22 min ago" },
+  { id: "P004", name: "Priya Nair",    urgency: "C", meds: 1, status: "pending",   waitMin: 31, time: "31 min ago" },
+  { id: "P005", name: "Mohammad Faiz", urgency: "B", meds: 3, status: "collected", waitMin: 45, time: "45 min ago" },
+  { id: "P006", name: "Chen Li Hua",   urgency: "A", meds: 5, status: "pending",   waitMin: 52, time: "52 min ago" },
+  { id: "P007", name: "Kavitha Raj",   urgency: "C", meds: 2, status: "on_hold",   waitMin: 68, time: "1 hr ago"   },
+  { id: "P008", name: "James Tan",     urgency: "B", meds: 3, status: "ready",     waitMin: 90, time: "1.5 hr ago" },
 ];
 
-/* Status pill styling + labels */
 const STATUS = {
-  pending: { label: "Pending Packing", bg: "#FEF3C7", color: "#92400E" },
-  on_hold: { label: "On Hold", bg: "#FEE2E2", color: "#991B1B" },
-  ready: { label: "Ready", bg: "#DCFCE7", color: "#166534" },
-  collected: { label: "Collected", bg: "#F3F4F6", color: "#6B7280" },
+  pending:   { label: "Pending Packing", bg: "#FEF3C7", color: "#92400E" },
+  on_hold:   { label: "On Hold",         bg: "#FEE2E2", color: "#991B1B" },
+  ready:     { label: "Ready",           bg: "#DCFCE7", color: "#166534" },
+  collected: { label: "Collected",       bg: "#F3F4F6", color: "#6B7280" },
 };
 
-/* Urgency badge colours (A = most urgent) */
 const URGENCY_COLOR = { A: "#EF4444", B: "#F59E0B", C: "#3B82F6" };
-const URGENCY_RANK = { A: 0, B: 1, C: 2 };
+const URGENCY_RANK  = { A: 0, B: 1, C: 2 };
 
 const TABS = [
-  { key: "all", label: "All" },
+  { key: "all",     label: "All" },
   { key: "pending", label: "Pending Packing" },
   { key: "on_hold", label: "On Hold" },
-  { key: "ready", label: "Ready for Collection" },
-  { key: "collected", label: "Collected" },
+  { key: "ready",   label: "Ready for Collection" },
 ];
 
 const SORTS = [
   { key: "urgency_ac", label: "Urgency (A→C)" },
   { key: "urgency_ca", label: "Urgency (C→A)" },
-  { key: "newest", label: "Newest First" },
-  { key: "oldest", label: "Oldest First" },
+  { key: "newest",     label: "Newest First" },
+  { key: "oldest",     label: "Oldest First" },
 ];
 
-const NOTIFS = [
-  { id: 1, icon: "🔴", color: "#EF4444", text: "Patient P002 query: Drug interaction question", time: "5 min ago" },
-  { id: 2, icon: "🟡", color: "#F59E0B", text: "Low stock alert: Metformin 500mg — 8 units left", time: "20 min ago" },
-  { id: 3, icon: "🔵", color: "#3B82F6", text: "Patient P007 placed on hold — awaiting stock", time: "1 hr ago" },
-];
-
-/* "8 min ago" -> 8, "1.5 hr ago" -> 90 */
-function ageMinutes(time) {
-  const n = parseFloat(time);
-  return time.includes("hr") ? n * 60 : n;
+/* Return the email exactly as entered (or the local part before @).
+   Never substitutes a generic fallback — if no email is stored the
+   greeting just omits the name entirely. */
+function getDisplayName(email) {
+  if (!email) return "";
+  return email; // show the full email the user logged in with
 }
 
-function PharmacistDashboard() {
+function getGreeting() {
+  const h = new Date().getHours();
+  if (h >= 5  && h < 12) return "Good morning";
+  if (h >= 12 && h < 18) return "Good afternoon";
+  return "Good evening";
+}
+
+function getFormattedDate() {
+  return new Date().toLocaleDateString("en-GB", {
+    weekday: "long", day: "numeric", month: "long", year: "numeric",
+  });
+}
+
+function getProgressInfo(waitMin) {
+  if (waitMin < 20) return { pct: 25,  color: "#F59E0B" };
+  if (waitMin < 40) return { pct: 50,  color: "#F59E0B" };
+  if (waitMin < 60) return { pct: 75,  color: "#F59E0B" };
+  return               { pct: 100, color: "#EF4444" };
+}
+
+
+export default function PharmacistDashboard() {
   const navigate = useNavigate();
 
   const [activeTab, setActiveTab] = useState("all");
-  const [sort, setSort] = useState("urgency_ac");
-  const [lang, setLang] = useState("EN");
-  const [notifOpen, setNotifOpen] = useState(false);
+  const [sort,      setSort]      = useState("urgency_ac");
 
-  const badgeCount = 3;
-
-  const resetDemoData = () => {
-    Object.keys(localStorage).forEach((key) => {
-      if (
-        key.startsWith("patient-status-") ||
-        key.startsWith("verified-meds-") ||
-        key.startsWith("hold-reason-")
-      ) {
-        localStorage.removeItem(key);
-      }
-    });
-
-    window.location.reload();
-  };
-
-  const patientsWithSavedStatus = PATIENTS.map((p) => ({
+  /* Merge any localStorage status overrides from the packing flow */
+  const livePatients = PATIENTS.map((p) => ({
     ...p,
-    status: localStorage.getItem(`patient-status-${p.id}`) || p.status,
+    status: localStorage.getItem(`patient-status-${p.id}`) ?? p.status,
   }));
 
-  const statusCounts = patientsWithSavedStatus.reduce(
-    (acc, patient) => {
-      acc[patient.status] = (acc[patient.status] || 0) + 1;
-      return acc;
-    },
+  const statusCounts = livePatients.reduce(
+    (acc, p) => { acc[p.status] = (acc[p.status] || 0) + 1; return acc; },
     { pending: 0, on_hold: 0, ready: 0, collected: 0 }
   );
 
   const visiblePatients = useMemo(() => {
-    const patientsWithSavedStatus = PATIENTS.map((p) => ({
+    const base = PATIENTS.map((p) => ({
       ...p,
-      status: localStorage.getItem(`patient-status-${p.id}`) || p.status,
+      status: localStorage.getItem(`patient-status-${p.id}`) ?? p.status,
     }));
-
-  const filtered =
-    activeTab === "all"
-      ? patientsWithSavedStatus
-      : patientsWithSavedStatus.filter((p) => p.status === activeTab);
-
-    const sorted = [...filtered];
-    switch (sort) {
-      case "urgency_ac":
-        sorted.sort((a, b) => URGENCY_RANK[a.urgency] - URGENCY_RANK[b.urgency]);
-        break;
-      case "urgency_ca":
-        sorted.sort((a, b) => URGENCY_RANK[b.urgency] - URGENCY_RANK[a.urgency]);
-        break;
-      case "newest":
-        sorted.sort((a, b) => ageMinutes(a.time) - ageMinutes(b.time));
-        break;
-      case "oldest":
-        sorted.sort((a, b) => ageMinutes(b.time) - ageMinutes(a.time));
-        break;
-      default:
-        break;
-    }
-    return sorted;
+    const filtered = activeTab === "all" ? base : base.filter((p) => p.status === activeTab);
+    return [...filtered].sort((a, b) => {
+      switch (sort) {
+        case "urgency_ac": return URGENCY_RANK[a.urgency] - URGENCY_RANK[b.urgency];
+        case "urgency_ca": return URGENCY_RANK[b.urgency] - URGENCY_RANK[a.urgency];
+        case "newest":     return a.waitMin - b.waitMin;
+        case "oldest":     return b.waitMin - a.waitMin;
+        default:           return 0;
+      }
+    });
   }, [activeTab, sort]);
 
-  const openPatient = (id) => {
-    console.log("Open packing for patient:", id);
-    navigate(`/pharmacist/pack/${id}`);
-  };
+  const displayName = getDisplayName(localStorage.getItem("pilly-user-email"));
 
   return (
     <div className="pharm-dash">
-      {/* ---------------- Navbar ---------------- */}
-      <header className="pd-navbar">
-        <span className="pd-logo">Pilly</span>
-        <h1 className="pd-title">Dashboard</h1>
 
-        <div className="pd-nav-right">
-          <div className="pd-lang" role="group" aria-label="Language">
-            <button
-              type="button"
-              className={lang === "EN" ? "active" : ""}
-              aria-pressed={lang === "EN"}
-              onClick={() => setLang("EN")}
-            >
-              EN
-            </button>
-            <span className="sep" aria-hidden="true">
-              |
-            </span>
-            <button
-              type="button"
-              className={lang === "中文" ? "active" : ""}
-              aria-pressed={lang === "中文"}
-              onClick={() => setLang("中文")}
-            >
-              中文
-            </button>
+      {/* ── Hero greeting ── */}
+      <section className="pd-hero">
+        <h1 className="pd-greeting">
+          {getGreeting()}{displayName ? `, ${displayName}` : ""}
+        </h1>
+        <p className="pd-date">{getFormattedDate()}</p>
+      </section>
+
+      {/* ── Compact stats strip (sticky below header) ── */}
+      <div className="pd-stats" aria-label="Status summary">
+        <div className="pd-stats-inner">
+          <div className="pd-stat-item">
+            <span className="ps-num">{statusCounts.pending}</span>
+            <span className="ps-label">PENDING PACKING</span>
           </div>
-
-          <button
-            type="button"
-            className={`pd-bell ${badgeCount > 0 ? "has-badge" : ""}`}
-            onClick={() => setNotifOpen(true)}
-            aria-label={`Notifications (${badgeCount} unread)`}
-          >
-            <FaBell />
-            {badgeCount > 0 && <span className="pd-badge">{badgeCount}</span>}
-          </button>
+          <div className="pd-stat-sep" aria-hidden="true" />
+          <div className="pd-stat-item">
+            <span className="ps-num">{statusCounts.on_hold}</span>
+            <span className="ps-label">ON HOLD</span>
+          </div>
+          <div className="pd-stat-sep" aria-hidden="true" />
+          <div className="pd-stat-item">
+            <span className="ps-num">{statusCounts.ready}</span>
+            <span className="ps-label">READY FOR COLLECTION</span>
+          </div>
         </div>
-      </header>
-
-      {/* ---------------- Quick stats ---------------- */}
-      <div className="pd-stats">
-        <span className="pd-chip">
-          <span className="dot" style={{ background: "#F59E0B" }} />
-          <b>{statusCounts.pending}</b>&nbsp;Pending Packing
-        </span>
-        <span className="pd-chip">
-          <span className="dot" style={{ background: "#EF4444" }} />
-          <b>{statusCounts.on_hold}</b>&nbsp;On Hold
-        </span>
-        <span className="pd-chip">
-          <span className="dot" style={{ background: "#22C55E" }} />
-          <b>{statusCounts.ready}</b>&nbsp;Ready for Collection
-        </span>
       </div>
 
-      {/* ---------------- Content ---------------- */}
+      {/* ── Main content ── */}
       <main className="pd-content">
-        {/* Filter + sort */}
+
+        {/* Filter + sort row */}
         <div className="pd-controls">
-          <div className="pd-tabs" role="tablist" aria-label="Filter patients">
+          <div className="pd-tabs" role="tablist" aria-label="Filter by status">
             {TABS.map((t) => (
               <button
                 key={t.key}
                 type="button"
                 role="tab"
                 aria-selected={activeTab === t.key}
-                className={`pd-tab ${activeTab === t.key ? "active" : ""}`}
+                className={`pd-tab${activeTab === t.key ? " active" : ""}`}
                 onClick={() => setActiveTab(t.key)}
               >
                 {t.label}
@@ -204,122 +155,89 @@ function PharmacistDashboard() {
             ))}
           </div>
 
-          <div className="pd-control-right">
-          <button
-            type="button"
-            className="reset-demo-btn"
-            onClick={resetDemoData}
-          >
-            Reset Demo Data
-          </button>
-
           <label className="pd-sort">
-            Sort by:
+            <span>Sort by:</span>
             <select value={sort} onChange={(e) => setSort(e.target.value)}>
               {SORTS.map((s) => (
-                <option key={s.key} value={s.key}>
-                  {s.label}
-                </option>
+                <option key={s.key} value={s.key}>{s.label}</option>
               ))}
             </select>
           </label>
-          </div>
         </div>
 
-        {/* Patient cards */}
+        {/* Patient card list */}
         <div className="pd-list">
-          {visiblePatients.map((p) => {
-            const status = STATUS[p.status];
-            return (
-              <button
-                key={p.id}
-                type="button"
-                className="pd-card"
-                onClick={() => openPatient(p.id)}
-                aria-label={`${p.name}, urgency ${p.urgency}, ${status.label}`}
+          {visiblePatients.length === 0 ? (
+            <div className="pd-empty">
+              <svg
+                className="pd-empty-pill"
+                viewBox="0 0 80 40"
+                xmlns="http://www.w3.org/2000/svg"
+                aria-hidden="true"
               >
-                <span
-                  className="pd-urgency"
-                  style={{ background: URGENCY_COLOR[p.urgency] }}
-                  aria-hidden="true"
+                <rect x="0" y="0" width="80" height="40" rx="20" fill="#E2E8F0"/>
+                <rect x="0" y="0" width="40" height="40" rx="20" fill="#40E0D0"/>
+                <line x1="40" y1="3" x2="40" y2="37" stroke="#fff" strokeWidth="2.5"/>
+              </svg>
+              <p className="pd-empty-title">All clear here!</p>
+              <p className="pd-empty-sub">No patients in this category right now</p>
+            </div>
+          ) : (
+            visiblePatients.map((p, i) => {
+              const st = STATUS[p.status];
+              const stripeColor = URGENCY_COLOR[p.urgency];
+              const prog = p.status === "pending" ? getProgressInfo(p.waitMin) : null;
+
+              return (
+                <button
+                  key={p.id}
+                  type="button"
+                  className="pd-card"
+                  style={{ "--stripe": stripeColor, "--delay": `${i * 60}ms` }}
+                  onClick={() => { console.log(p.id); navigate(`/pharmacist/pack/${p.id}`); }}
+                  aria-label={`${p.name}, urgency ${p.urgency}, ${st.label}`}
                 >
-                  {p.urgency}
-                </span>
+                  <span className="pd-stripe" aria-hidden="true" />
 
-                <div className="pd-info">
-                  <div className="pd-name-row">
-                    <span className="pd-name">{p.name}</span>
-                    <span className="pd-pid">{p.id}</span>
-                  </div>
-                  <div className="pd-meds">💊 {p.meds} medications</div>
-                  <div className="pd-time">{p.time}</div>
-                </div>
-
-                <div className="pd-right">
-                  <span
-                    className="pd-status"
-                    style={{ background: status.bg, color: status.color }}
-                  >
-                    {status.label}
+                  <span className="pd-urgency" style={{ background: stripeColor }} aria-hidden="true">
+                    {p.urgency}
                   </span>
+
+                  <div className="pd-info">
+                    <div className="pd-name-row">
+                      <span className="pd-name">{p.name}</span>
+                      <span className="pd-pid">{p.id}</span>
+                    </div>
+                    <div className="pd-meds">x{p.meds} meds</div>
+                    {prog && (
+                      <div className="pd-progress-wrap">
+                        <div className="pd-progress-bar">
+                          <div
+                            className="pd-progress-fill"
+                            style={{ width: `${prog.pct}%`, background: prog.color }}
+                          />
+                        </div>
+                        <span className="pd-progress-label">Waiting {p.waitMin} min</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="pd-right">
+                    <span className="pd-status" style={{ background: st.bg, color: st.color }}>
+                      {st.label}
+                    </span>
+                    <span className="pd-time">{p.time}</span>
+                  </div>
+
                   <span className="pd-chevron" aria-hidden="true">
                     <FaChevronRight />
                   </span>
-                </div>
-              </button>
-            );
-          })}
-
-          {visiblePatients.length === 0 && (
-            <p className="pd-empty">No patients in this category.</p>
+                </button>
+              );
+            })
           )}
         </div>
       </main>
-
-      {/* ---------------- Notification drawer ---------------- */}
-      <div
-        className={`pd-overlay ${notifOpen ? "open" : ""}`}
-        onClick={() => setNotifOpen(false)}
-        aria-hidden="true"
-      />
-      <aside
-        className={`pd-drawer ${notifOpen ? "open" : ""}`}
-        role="dialog"
-        aria-label="Notifications"
-        aria-hidden={!notifOpen}
-      >
-        <div className="pd-drawer-head">
-          <h2>Notifications</h2>
-          <button
-            type="button"
-            className="pd-drawer-close"
-            onClick={() => setNotifOpen(false)}
-            aria-label="Close notifications"
-          >
-            <FaTimes />
-          </button>
-        </div>
-
-        <ul className="pd-notif-list">
-          {NOTIFS.map((n) => (
-            <li
-              key={n.id}
-              className="pd-notif"
-              style={{ borderLeftColor: n.color }}
-            >
-              <span className="icon" aria-hidden="true">
-                {n.icon}
-              </span>
-              <span className="body">
-                {n.text}
-                <span className="when">{n.time}</span>
-              </span>
-            </li>
-          ))}
-        </ul>
-      </aside>
     </div>
   );
 }
-
-export default PharmacistDashboard;

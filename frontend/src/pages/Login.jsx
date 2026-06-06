@@ -19,6 +19,9 @@ function Login() {
   const [regPassword, setRegPassword] = useState("");
   const [regConfirm, setRegConfirm] = useState("");
 
+  // Login email (controlled so we can persist it on submit)
+  const [loginEmail, setLoginEmail] = useState("");
+
   // Language toggle (non-functional placeholder)
   const [lang, setLang] = useState("EN");
 
@@ -28,7 +31,7 @@ function Login() {
 
   const handleLoginSubmit = (e) => {
     e.preventDefault();
-    // No real auth yet — go straight to the pharmacist dashboard.
+    localStorage.setItem("pilly-user-email", loginEmail);
     navigate("/pharmacist/dashboard");
   };
 
@@ -99,6 +102,8 @@ function Login() {
                   name="email"
                   autoComplete="email"
                   placeholder="you@pharmacy.com"
+                  value={loginEmail}
+                  onChange={(e) => setLoginEmail(e.target.value)}
                   required
                   tabIndex={isRegister ? -1 : 0}
                 />
