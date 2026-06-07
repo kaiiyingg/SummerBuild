@@ -122,14 +122,19 @@ function PillyMark({ size = 40 }: { size?: number }) {
   );
 }
 
-function PillLogo() {
+function PillLogo({ onClick }: { onClick: () => void }) {
   return (
-    <a href="/" className="flex items-center gap-2 shrink-0">
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex items-center gap-2 shrink-0"
+      aria-label="Go to Queue"
+    >
       <PillyLogoSmall />
       <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "20px", fontWeight: 700, color: C.textPrimary }}>
         Pilly
       </span>
-    </a>
+    </button>
   );
 }
 
@@ -348,7 +353,7 @@ export default function App() {
       <header className="shrink-0 bg-white" style={{ height: "60px", borderBottom: `1px solid ${C.border}` }}>
         <div className="flex items-center justify-between h-full px-4 md:px-8 max-w-screen-xl mx-auto">
 
-          <PillLogo />
+          <PillLogo onClick={() => setActiveTab("home")} />
 
           <div className="hidden sm:flex flex-col items-center">
             <span style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "12px", color: C.textSecond }}>Welcome back,</span>

@@ -19,7 +19,6 @@ const C = {
 };
 
 type QueueStatus   = "waiting" | "almost" | "now" | "done";
-type UrgencyLetter = "A" | "B" | "C";
 
 // ── Header status badge (white pill on teal/green header) ──
 function HeaderBadge({ status }: { status: QueueStatus }) {
@@ -32,19 +31,6 @@ function HeaderBadge({ status }: { status: QueueStatus }) {
   if (status === "almost")   return <span className="animate-pulse" style={{ ...base, background: C.amber, border: "none" }}>Almost Your Turn</span>;
   if (status === "done")     return <span style={{ ...base, background: "rgba(255,255,255,0.3)", border: "1px solid rgba(255,255,255,0.5)" }}>Completed</span>;
   return <span style={{ ...base, background: C.green, border: "none" }}>Now Serving</span>;
-}
-
-function UrgencyBadge({ letter }: { letter: UrgencyLetter }) {
-  const bg = { A: C.green, B: C.amber, C: C.red }[letter];
-  return (
-    <div style={{
-      background: bg, color: "white", width: "36px", height: "36px", borderRadius: "50%",
-      display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-      fontFamily: "'DM Sans', sans-serif", fontSize: "16px", fontWeight: 700,
-    }}>
-      {letter}
-    </div>
-  );
 }
 
 function QueueStrip({ myNumber, servingNumber }: { myNumber: number; servingNumber: number }) {
@@ -353,7 +339,7 @@ export function HomeScreen({ onTabChange }: { onTabChange: (tab: string) => void
 
   const regQueue = {
     number: 47, label: "B047", serving: "B041", servingNum: 41,
-    urgency: "B" as UrgencyLetter, waitTime: "12–15 min", ahead: 6,
+    waitTime: "12–15 min", ahead: 6,
     status: "waiting" as QueueStatus, counter: "Level 1, Pharmacy A", date: "Tuesday, 3 June 2026",
     completedAt: "9:15 AM",
   };
@@ -436,11 +422,6 @@ export function HomeScreen({ onTabChange }: { onTabChange: (tab: string) => void
                   Now calling: <strong style={{ color: C.textPrimary }}>{regQueue.serving}</strong>
                 </p>
               </div>
-
-              <div className="flex items-center gap-3 mb-4">
-                <UrgencyBadge letter={regQueue.urgency} />
-              </div>
-
               <div className="mb-4">
                 <QueueStrip myNumber={regQueue.number} servingNumber={regQueue.servingNum} />
               </div>
