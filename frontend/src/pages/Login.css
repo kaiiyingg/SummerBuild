@@ -238,6 +238,36 @@
   color: #334155;
 }
 
+.role-toggle {
+  display: inline-flex;
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #ffffff;
+  padding: 4px;
+  box-sizing: border-box;
+  gap: 4px;
+}
+
+.role-toggle button {
+  flex: 1;
+  border: none;
+  background: transparent;
+  border-radius: 9px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--muted);
+  padding: 9px 8px;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.role-toggle button.active {
+  background: rgba(64, 224, 208, 0.2);
+  color: var(--turquoise-darker);
+}
+
 .input-wrap {
   position: relative;
   display: flex;

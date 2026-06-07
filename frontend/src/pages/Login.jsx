@@ -4,6 +4,31 @@ import { FaEye, FaEyeSlash } from "react-icons/fa";
 import PillyLogo from "../components/PillyLogo";
 import "./Login.css";
 
+const USER_ROLE_KEY = "pilly-user-roles";
+
+function normalizeEmail(email) {
+  return email.trim().toLowerCase();
+}
+
+function getStoredRoles() {
+  try {
+    return JSON.parse(localStorage.getItem(USER_ROLE_KEY) || "{}");
+  } catch {
+    return {};
+  }
+}
+
+function setStoredRole(email, role) {
+  const roles = getStoredRoles();
+  roles[normalizeEmail(email)] = role;
+  localStorage.setItem(USER_ROLE_KEY, JSON.stringify(roles));
+}
+
+function getStoredRole(email) {
+  const roles = getStoredRoles();
+  return roles[normalizeEmail(email)] || null;
+}
+
 function Login() {
   const navigate = useNavigate();
 
@@ -16,11 +41,14 @@ function Login() {
   const [showRegConfirm, setShowRegConfirm] = useState(false);
 
   // Register form fields (controlled for real-time match validation)
+  const [regEmail, setRegEmail] = useState("");
   const [regPassword, setRegPassword] = useState("");
   const [regConfirm, setRegConfirm] = useState("");
+  const [regRole, setRegRole] = useState("pharmacist");
 
   // Login email (controlled so we can persist it on submit)
   const [loginEmail, setLoginEmail] = useState("");
+  const [loginRole, setLoginRole] = useState("pharmacist");
 
   // Language toggle (non-functional placeholder)
   const [lang, setLang] = useState("EN");
@@ -31,14 +59,25 @@ function Login() {
 
   const handleLoginSubmit = (e) => {
     e.preventDefault();
-    localStorage.setItem("pilly-user-email", loginEmail);
-    navigate("/pharmacist/dashboard");
+    const cleanEmail = loginEmail.trim();
+    const role = getStoredRole(cleanEmail) ?? loginRole;
+
+    localStorage.setItem("pilly-user-email", cleanEmail);
+    localStorage.setItem("pilly-user-role", role);
+
+    navigate(role === "patient" ? "/patient/app" : "/pharmacist/dashboard");
   };
 
   const handleRegisterSubmit = (e) => {
     e.preventDefault();
     if (!canRegister) return;
-    // Hook up account creation here.
+
+    const cleanEmail = regEmail.trim();
+    setStoredRole(cleanEmail, regRole);
+    localStorage.setItem("pilly-user-email", cleanEmail);
+    localStorage.setItem("pilly-user-role", regRole);
+
+    navigate(regRole === "patient" ? "/patient/app" : "/pharmacist/dashboard");
   };
 
   return (
@@ -92,6 +131,31 @@ function Login() {
               <span className="brand-title">Pilly</span>
             </div>
             <p className="form-subtitle">Pharmacist Portal</p>
+            <div className="field">
+              <label>User Type</label>
+              <div className="role-toggle" role="radiogroup" aria-label="Login user type">
+                <button
+                  type="button"
+                  className={loginRole === "pharmacist" ? "active" : ""}
+                  onClick={() => setLoginRole("pharmacist")}
+                  role="radio"
+                  aria-checked={loginRole === "pharmacist"}
+                  tabIndex={isRegister ? -1 : 0}
+                >
+                  Pharmacist
+                </button>
+                <button
+                  type="button"
+                  className={loginRole === "patient" ? "active" : ""}
+                  onClick={() => setLoginRole("patient")}
+                  role="radio"
+                  aria-checked={loginRole === "patient"}
+                  tabIndex={isRegister ? -1 : 0}
+                >
+                  Patient
+                </button>
+              </div>
+            </div>
 
             <div className="field">
               <label htmlFor="login-email">Email Address</label>
@@ -169,7 +233,33 @@ function Login() {
               <PillyLogo size={56} showName={false} />
               <h2 className="form-heading">Create Account</h2>
             </div>
-            <p className="form-subtitle">Set up your pharmacist account</p>
+            <p className="form-subtitle">Set up your account</p>
+
+            <div className="field">
+              <label>User Type</label>
+              <div className="role-toggle" role="radiogroup" aria-label="Registration user type">
+                <button
+                  type="button"
+                  className={regRole === "pharmacist" ? "active" : ""}
+                  onClick={() => setRegRole("pharmacist")}
+                  role="radio"
+                  aria-checked={regRole === "pharmacist"}
+                  tabIndex={isRegister ? 0 : -1}
+                >
+                  Pharmacist
+                </button>
+                <button
+                  type="button"
+                  className={regRole === "patient" ? "active" : ""}
+                  onClick={() => setRegRole("patient")}
+                  role="radio"
+                  aria-checked={regRole === "patient"}
+                  tabIndex={isRegister ? 0 : -1}
+                >
+                  Patient
+                </button>
+              </div>
+            </div>
 
             <div className="field">
               <label htmlFor="reg-email">Email Address</label>
@@ -179,7 +269,9 @@ function Login() {
                   type="email"
                   name="email"
                   autoComplete="email"
-                  placeholder="you@pharmacy.com"
+                  placeholder={regRole === "patient" ? "you@email.com" : "you@pharmacy.com"}
+                  value={regEmail}
+                  onChange={(e) => setRegEmail(e.target.value)}
                   required
                   tabIndex={isRegister ? 0 : -1}
                 />

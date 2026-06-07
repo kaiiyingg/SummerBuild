@@ -1,0 +1,439 @@
+import { useState, useRef, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { Bell, LogOut, Users, Pill, ScanLine, AlarmClock, User, ChevronDown, Check, Globe, MessageCircle } from "lucide-react";
+import "./PatientApp.css";
+import PillyLogoSmall from "../components/PillyLogoSmall";
+import { HomeScreen } from "../components/patient/HomeScreen";
+import { MedicationsScreen } from "../components/patient/MedicationsScreen";
+import { ScanScreen } from "../components/patient/ScanScreen";
+import { RemindersScreen } from "../components/patient/RemindersScreen";
+import { AskPillyScreen } from "../components/patient/AskPillyScreen";
+import { ProfileScreen } from "../components/patient/ProfileScreen";
+
+// ── palette ────────────────────────────────────────────────────
+const C = {
+  teal:        "#45C5BC",
+  tealDark:    "#38B2A9",
+  tealLight:   "#F0FDFA",
+  bg:          "#F8FAFC",
+  card:        "#FFFFFF",
+  textPrimary: "#1E293B",
+  textSecond:  "#64748B",
+  textDisabled:"#94A3B8",
+  border:      "#E2E8F0",
+  red:         "#EF4444",
+  redLight:    "#FEF2F2",
+  amber:       "#F59E0B",
+  amberLight:  "#FFFBEB",
+  amberText:   "#92400E",
+  green:       "#10B981",
+  greenLight:  "#ECFDF5",
+};
+
+type Tab      = "home" | "medications" | "scan" | "reminders" | "askpilly" | "profile";
+type Language = "English" | "中文" | "தமிழ்" | "Melayu";
+
+const LANG_OPTIONS: { code: Language; short: string; label: string }[] = [
+  { code: "English", short: "EN",    label: "English" },
+  { code: "中文",    short: "中文",  label: "中文" },
+  { code: "தமிழ்", short: "தமிழ்", label: "தமிழ்" },
+  { code: "Melayu",  short: "BM",    label: "Bahasa Melayu" },
+];
+
+const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
+  { id: "home",        label: "Queue",     icon: <Users size={22} /> },
+  { id: "medications", label: "My Meds",   icon: <Pill size={22} /> },
+  { id: "scan",        label: "Scan",      icon: <ScanLine size={22} /> },
+  { id: "reminders",   label: "Reminders", icon: <AlarmClock size={22} /> },
+  { id: "profile",     label: "Profile",   icon: <User size={22} /> },
+];
+
+const NOTIFICATIONS = [
+  { id: 1, dot: C.green, title: "Medication ready for collection", subtitle: "Your queue: B047",     time: "2 min ago", read: false },
+  { id: 2, dot: C.amber, title: "Queue B041 now serving",          subtitle: "You are 6 ahead",      time: "5 min ago", read: false },
+  { id: 3, dot: "#3B82F6", title: "Reminder: Take Metformin",      subtitle: "Scheduled for 8:00 PM",time: "1 hr ago",  read: true  },
+];
+
+// ── sub-components ─────────────────────────────────────────────
+
+function PillyMark({ size = 40 }: { size?: number }) {
+  const dotSize    = size * 0.18;
+  const dotColor   = "#45C5BC";
+  const orbitX     = size * 0.46;
+  const orbitY     = size * 0.32;
+
+  return (
+    <div style={{ position: "relative", width: size, height: size, display: "inline-flex", flexShrink: 0 }}>
+      <style>{`
+        @keyframes pilly-cw {
+          from { transform: rotate(0deg)   translateX(${orbitX}px) translateY(${-orbitY}px); }
+          to   { transform: rotate(360deg) translateX(${orbitX}px) translateY(${-orbitY}px); }
+        }
+        @keyframes pilly-ccw {
+          from { transform: rotate(180deg)   translateX(${orbitX}px) translateY(${-orbitY}px); }
+          to   { transform: rotate(-180deg)  translateX(${orbitX}px) translateY(${-orbitY}px); }
+        }
+      `}</style>
+
+      {/* Capsule SVG — diagonal, two-tone */}
+      <svg width={size} height={size} viewBox="0 0 40 40" fill="none" style={{ position: "absolute", top: 0, left: 0 }}>
+        <defs>
+          <linearGradient id="pill-half" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="50%" stopColor="#45C5BC" />
+            <stop offset="50%" stopColor="#C8F4F1" />
+          </linearGradient>
+          <clipPath id="pill-clip">
+            <rect x="6" y="15" width="28" height="10" rx="5" transform="rotate(-40 20 20)" />
+          </clipPath>
+        </defs>
+        {/* Capsule body */}
+        <rect x="6" y="15" width="28" height="10" rx="5"
+          fill="url(#pill-half)"
+          transform="rotate(-40 20 20)"
+        />
+        {/* Dividing line */}
+        <line x1="20" y1="11" x2="20" y2="29"
+          stroke="white" strokeWidth="1.2" opacity="0.6"
+          clipPath="url(#pill-clip)"
+          transform="rotate(-40 20 20)"
+        />
+      </svg>
+
+      {/* Orbiting dots */}
+      <div style={{ position: "absolute", top: "50%", left: "50%", width: 0, height: 0 }}>
+        <div style={{
+          position: "absolute",
+          width: dotSize, height: dotSize,
+          marginLeft: -dotSize / 2, marginTop: -dotSize / 2,
+          borderRadius: "50%", background: dotColor,
+          boxShadow: `0 0 ${size * 0.18}px ${dotColor}`,
+          animation: "pilly-cw 3s linear infinite",
+        }} />
+        <div style={{
+          position: "absolute",
+          width: dotSize, height: dotSize,
+          marginLeft: -dotSize / 2, marginTop: -dotSize / 2,
+          borderRadius: "50%", background: dotColor,
+          boxShadow: `0 0 ${size * 0.18}px ${dotColor}`,
+          animation: "pilly-ccw 3s linear infinite",
+        }} />
+      </div>
+    </div>
+  );
+}
+
+function PillLogo() {
+  return (
+    <a href="/" className="flex items-center gap-2 shrink-0">
+      <PillyLogoSmall />
+      <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "20px", fontWeight: 700, color: C.textPrimary }}>
+        Pilly
+      </span>
+    </a>
+  );
+}
+
+function LanguageDropdown({ language, onChange, onClose }: {
+  language: Language; onChange: (l: Language) => void; onClose: () => void;
+}) {
+  return (
+    <>
+      <div className="fixed inset-0 z-40" onClick={onClose} />
+      <div
+        className="absolute right-0 top-full mt-2 z-50 bg-white rounded-2xl overflow-hidden"
+        style={{ minWidth: "190px", boxShadow: "0 4px 24px rgba(0,0,0,0.10)", border: `1px solid ${C.border}` }}
+      >
+        {LANG_OPTIONS.map((opt) => {
+          const active = language === opt.code;
+          return (
+            <button
+              key={opt.code}
+              onClick={() => { onChange(opt.code); onClose(); }}
+              className="w-full flex items-center gap-3 px-4 py-3 transition-colors"
+              style={{ background: active ? C.tealLight : "white" }}
+              onMouseEnter={(e) => { if (!active) (e.currentTarget as HTMLButtonElement).style.background = C.bg; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = active ? C.tealLight : "white"; }}
+            >
+              <span style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "14px", color: C.textPrimary, flex: 1, textAlign: "left" }}>
+                {opt.label}
+              </span>
+              {active && <Check size={14} color={C.teal} />}
+            </button>
+          );
+        })}
+      </div>
+    </>
+  );
+}
+
+function NotificationDropdown({ notifications, onClose, onMarkAllRead }: {
+  notifications: typeof NOTIFICATIONS; onClose: () => void; onMarkAllRead: () => void;
+}) {
+  return (
+    <>
+      <div className="fixed inset-0 z-40" onClick={onClose} />
+      <div
+        className="absolute right-0 top-full mt-2 z-50 bg-white rounded-2xl overflow-hidden"
+        style={{ width: "320px", boxShadow: "0 4px 24px rgba(0,0,0,0.10)", border: `1px solid ${C.border}` }}
+      >
+        <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: `1px solid ${C.border}` }}>
+          <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "16px", fontWeight: 700, color: C.textPrimary }}>Notifications</span>
+          <button onClick={onMarkAllRead} style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "13px", color: C.teal }}>Mark all read</button>
+        </div>
+        {notifications.map((n) => (
+          <div
+            key={n.id}
+            className="flex items-start gap-3 px-4 py-3"
+            style={{
+              background: n.read ? "white" : "#F8FAFC",
+              borderLeft: n.read ? `3px solid transparent` : `3px solid ${C.teal}`,
+              borderBottom: `1px solid ${C.border}`,
+            }}
+          >
+            <div className="w-2 h-2 rounded-full mt-1.5 shrink-0" style={{ background: n.dot }} />
+            <div className="flex-1">
+              <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "14px", fontWeight: 600, color: C.textPrimary }}>{n.title}</p>
+              <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "13px", color: C.textSecond }}>{n.subtitle}</p>
+            </div>
+            <span style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "12px", color: C.textDisabled, whiteSpace: "nowrap" }}>{n.time}</span>
+          </div>
+        ))}
+      </div>
+    </>
+  );
+}
+
+function LogoutModal({ onConfirm, onCancel }: { onConfirm: () => void; onCancel: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center px-6" style={{ background: "rgba(15,23,42,0.45)" }}>
+      <div className="bg-white rounded-2xl p-6 w-full max-w-sm" style={{ boxShadow: "0 8px 40px rgba(0,0,0,0.12)" }}>
+        <h2 className="mb-2" style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "20px", fontWeight: 700, color: C.textPrimary }}>
+          Log out of Pilly?
+        </h2>
+        <p className="mb-6" style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "15px", color: C.textSecond }}>
+          You will need to log in again to check your queue status.
+        </p>
+        <div className="flex gap-3">
+          <button onClick={onCancel} className="flex-1 py-3 rounded-xl hover:opacity-80 transition-opacity"
+            style={{ border: `1.5px solid ${C.border}`, color: C.textPrimary, fontFamily: "'DM Sans', sans-serif", fontSize: "15px", fontWeight: 600 }}>
+            Cancel
+          </button>
+          <button onClick={onConfirm} className="flex-1 py-3 rounded-xl text-white hover:opacity-80 transition-opacity"
+            style={{ background: C.teal, fontFamily: "'DM Sans', sans-serif", fontSize: "15px", fontWeight: 600 }}>
+            Log Out
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Draggable floating chat bubble ──
+function FloatingChatBubble({ onOpen }: { onOpen: () => void }) {
+  const [pos, setPos]   = useState({ x: 0, y: 0 });
+  const [ready, setReady] = useState(false);
+  const dragging = useRef(false);
+  const hasMoved = useRef(false);
+  const offset   = useRef({ x: 0, y: 0 });
+
+  const BUBBLE_SIZE = 52;
+
+  const clamp = (x: number, y: number) => ({
+    x: Math.min(Math.max(x, 0), window.innerWidth  - BUBBLE_SIZE),
+    y: Math.min(Math.max(y, 0), window.innerHeight - BUBBLE_SIZE),
+  });
+
+  useEffect(() => {
+    setPos(clamp(window.innerWidth - 80, window.innerHeight - 180));
+    setReady(true);
+  }, []);
+
+  useEffect(() => {
+    const onResize = () => setPos((p) => clamp(p.x, p.y));
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
+  useEffect(() => {
+    const onMove = (e: MouseEvent) => {
+      if (!dragging.current) return;
+      hasMoved.current = true;
+      setPos(clamp(e.clientX - offset.current.x, e.clientY - offset.current.y));
+    };
+    const onTouchMove = (e: TouchEvent) => {
+      if (!dragging.current) return;
+      hasMoved.current = true;
+      const t = e.touches[0];
+      setPos(clamp(t.clientX - offset.current.x, t.clientY - offset.current.y));
+    };
+    const onUp = () => { dragging.current = false; };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+    window.addEventListener("touchmove", onTouchMove, { passive: true });
+    window.addEventListener("touchend", onUp);
+    return () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+      window.removeEventListener("touchmove", onTouchMove);
+      window.removeEventListener("touchend", onUp);
+    };
+  }, []);
+
+  const startDrag = (clientX: number, clientY: number) => {
+    dragging.current = true;
+    hasMoved.current = false;
+    offset.current   = { x: clientX - pos.x, y: clientY - pos.y };
+  };
+
+  const handleClick = () => { if (!hasMoved.current) onOpen(); };
+
+  if (!ready) return null;
+
+  return (
+    <div
+      style={{ position: "fixed", left: pos.x, top: pos.y, zIndex: 200, userSelect: "none", touchAction: "none" }}
+      onMouseDown={(e) => startDrag(e.clientX, e.clientY)}
+      onTouchStart={(e) => { const t = e.touches[0]; startDrag(t.clientX, t.clientY); }}
+      onClick={handleClick}
+    >
+      <div style={{
+        width: 52, height: 52, borderRadius: "50%", background: C.teal, cursor: "grab",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        boxShadow: "0 4px 16px rgba(69,197,188,0.45)",
+      }}>
+        <MessageCircle size={24} color="white" />
+      </div>
+    </div>
+  );
+}
+
+// ── main ───────────────────────────────────────────────────────
+
+export default function App() {
+  const navigate = useNavigate();
+  const [activeTab,          setActiveTab]          = useState<Tab>("home");
+  const [language,           setLanguage]           = useState<Language>("English");
+  const [showNotifications,  setShowNotifications]  = useState(false);
+  const [showLangDropdown,   setShowLangDropdown]   = useState(false);
+  const [showLogoutModal,    setShowLogoutModal]    = useState(false);
+  const [notifications,      setNotifications]      = useState(NOTIFICATIONS);
+
+  const unreadCount  = notifications.filter((n) => !n.read).length;
+  const currentLang  = LANG_OPTIONS.find((o) => o.code === language)!;
+  const markAllRead  = () => setNotifications((n) => n.map((x) => ({ ...x, read: true })));
+  const handleLogout = () => {
+    localStorage.removeItem("pilly-user-email");
+    localStorage.removeItem("pilly-user-role");
+    setShowLogoutModal(false);
+    navigate("/");
+  };
+
+  const renderScreen = () => {
+    switch (activeTab) {
+      case "home":        return <HomeScreen onTabChange={(t) => setActiveTab(t as Tab)} />;
+      case "medications": return <MedicationsScreen onTabChange={(t) => setActiveTab(t as Tab)} />;
+      case "scan":        return <ScanScreen />;
+      case "reminders":   return <RemindersScreen />;
+      case "askpilly":    return <AskPillyScreen language={language} />;
+      case "profile":     return (
+        <ProfileScreen language={language} onLanguageChange={(l) => setLanguage(l as Language)} onLogout={() => setShowLogoutModal(true)} />
+      );
+    }
+  };
+
+  return (
+    <div className="w-full flex flex-col" style={{ height: "100svh", background: C.bg }}>
+
+      {/* Header */}
+      <header className="shrink-0 bg-white" style={{ height: "60px", borderBottom: `1px solid ${C.border}` }}>
+        <div className="flex items-center justify-between h-full px-4 md:px-8 max-w-screen-xl mx-auto">
+
+          <PillLogo />
+
+          <div className="hidden sm:flex flex-col items-center">
+            <span style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "12px", color: C.textSecond }}>Welcome back,</span>
+            <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "15px", fontWeight: 600, color: C.textPrimary }}>Mdm. Tan Mei Ling</span>
+          </div>
+
+          <div className="flex items-center gap-1">
+
+            {/* Language */}
+            <div className="relative">
+              <button
+                onClick={() => { setShowLangDropdown(!showLangDropdown); setShowNotifications(false); }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-colors hover:bg-[#F1F5F9]"
+                aria-label="Change language"
+              >
+                <Globe size={17} color={C.textSecond} />
+                <span style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "13px", fontWeight: 600, color: C.textPrimary }}>
+                  {currentLang.short}
+                </span>
+                <ChevronDown size={13} color={C.textSecond} />
+              </button>
+              {showLangDropdown && (
+                <LanguageDropdown language={language} onChange={setLanguage} onClose={() => setShowLangDropdown(false)} />
+              )}
+            </div>
+
+            {/* Bell */}
+            <div className="relative">
+              <button
+                onClick={() => { setShowNotifications(!showNotifications); setShowLangDropdown(false); }}
+                className="relative p-2 rounded-xl transition-colors hover:bg-[#F1F5F9]"
+                aria-label="Notifications"
+              >
+                <Bell size={21} color={C.textSecond} />
+                {unreadCount > 0 && (
+                  <span className="absolute top-1.5 right-1.5 w-3.5 h-3.5 rounded-full flex items-center justify-center text-white"
+                    style={{ background: C.red, fontSize: "9px", fontWeight: 700 }}>
+                    {unreadCount}
+                  </span>
+                )}
+              </button>
+              {showNotifications && (
+                <NotificationDropdown notifications={notifications} onClose={() => setShowNotifications(false)} onMarkAllRead={markAllRead} />
+              )}
+            </div>
+
+            {/* Logout */}
+            <button onClick={() => setShowLogoutModal(true)} className="p-2 rounded-xl transition-colors hover:bg-[#F1F5F9]" aria-label="Log out">
+              <LogOut size={21} color={C.textSecond} />
+            </button>
+
+          </div>
+        </div>
+      </header>
+
+      {/* Screen */}
+      <main className="flex-1 overflow-hidden" style={{ minHeight: 0 }}>
+        {renderScreen()}
+      </main>
+
+      {/* Bottom nav */}
+      <nav className="shrink-0 bg-white" style={{ height: "64px", borderTop: `1px solid ${C.border}` }}>
+        <div className="flex items-center h-full max-w-screen-xl mx-auto px-2 md:px-8">
+          {TABS.map((tab) => {
+            const active = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className="flex-1 flex flex-col items-center justify-center gap-0.5 h-full transition-colors"
+                style={{ color: active ? C.teal : C.textSecond }}
+              >
+                {tab.icon}
+                <span style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "10px", fontWeight: 500 }}>
+                  {tab.label}
+                </span>
+                {active && <div className="w-1.5 h-1.5 rounded-full" style={{ background: C.teal }} />}
+              </button>
+            );
+          })}
+        </div>
+      </nav>
+
+      {showLogoutModal && <LogoutModal onConfirm={handleLogout} onCancel={() => setShowLogoutModal(false)} />}
+      {activeTab !== "askpilly" && <FloatingChatBubble onOpen={() => setActiveTab("askpilly")} />}
+    </div>
+  );
+}
