@@ -1,7 +1,15 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { FaBell, FaTimes } from "react-icons/fa";
 import PillyLogoSmall from "./PillyLogoSmall";
+import { BasicToast } from "./ui/Toast";
 import "./Header.css";
+
+
+const URGENCY_LEGEND = [
+  { level: "A", color: "#DC2626", label: "High Priority",   desc: "Immediate attention required" },
+  { level: "B", color: "#D97706", label: "Medium Priority", desc: "Attend within 30 minutes" },
+  { level: "C", color: "#2563EB", label: "Routine",         desc: "Standard processing time" },
+];
 
 const NOTIFS = [
   { id: 1, color: "#EF4444", text: "Patient P002: Drug interaction question",   time: "5 min ago"  },
@@ -12,8 +20,16 @@ const NOTIFS = [
 const BADGE_COUNT = 3;
 
 export default function Header() {
-  const [lang,      setLang]      = useState("EN");
-  const [notifOpen, setNotifOpen] = useState(false);
+  const [notifOpen,    setNotifOpen]    = useState(false);
+  const [showUrgency,  setShowUrgency]  = useState(true);
+  const urgencyTimerRef = useRef(null);
+
+  function handleUrgencyClose() {
+    setShowUrgency(false);
+    urgencyTimerRef.current = setTimeout(() => setShowUrgency(true), 10 * 60 * 1000);
+  }
+
+  useEffect(() => () => clearTimeout(urgencyTimerRef.current), []);
 
   return (
     <>
@@ -24,22 +40,6 @@ export default function Header() {
         </div>
 
         <div className="ah-right">
-          <div className="ah-lang" role="group" aria-label="Language">
-            <button
-              type="button"
-              className={lang === "EN" ? "active" : ""}
-              aria-pressed={lang === "EN"}
-              onClick={() => setLang("EN")}
-            >EN</button>
-            <span className="ah-sep" aria-hidden="true">|</span>
-            <button
-              type="button"
-              className={lang === "中文" ? "active" : ""}
-              aria-pressed={lang === "中文"}
-              onClick={() => setLang("中文")}
-            >中文</button>
-          </div>
-
           <button
             type="button"
             className={`ah-bell${BADGE_COUNT > 0 ? " has-badge" : ""}`}
@@ -89,6 +89,15 @@ export default function Header() {
           ))}
         </ul>
       </aside>
+
+      {/* Urgency legend reminder — appears on load, then every 10 min */}
+      <BasicToast
+        message="A · High Priority: Immediate attention  |  B · Medium Priority: Within 30 min  |  C · Routine: Standard processing"
+        type="info"
+        duration={8000}
+        isVisible={showUrgency}
+        onClose={handleUrgencyClose}
+      />
     </>
   );
 }

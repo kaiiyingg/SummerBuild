@@ -1,9 +1,44 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { FaChevronRight } from "react-icons/fa";
+import { motion, AnimatePresence } from "framer-motion";
 import "./PharmacistDashboard.css";
 
-/* ── Dummy data ── */
+function useCountUp(target, duration = 700) {
+  const [count, setCount] = useState(0);
+  useEffect(() => {
+    if (target === 0) { setCount(0); return; }
+    const start = performance.now();
+    let raf;
+    function tick(now) {
+      const t = Math.min((now - start) / duration, 1);
+      setCount(Math.round(t * target));
+      if (t < 1) raf = requestAnimationFrame(tick);
+    }
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [target, duration]);
+  return count;
+}
+
+function StatCard({ cfg, count, isActive, onClick }) {
+  const display = useCountUp(count);
+  return (
+    <button
+      type="button"
+      className={`pd-stat-card${isActive ? " active" : ""}`}
+      style={{ "--stat-accent": cfg.accent }}
+      onClick={onClick}
+      aria-pressed={isActive}
+      aria-label={`${cfg.label}: ${count}`}
+    >
+      <span className="ps-num">{display}</span>
+      <span className="ps-label">{cfg.label}</span>
+    </button>
+  );
+}
+
+/* ── Static data ── */
 const PATIENTS = [
   { id: "P001", name: "Tan Wei Ming",  urgency: "A", meds: 4, status: "pending",   waitMin: 8,  time: "8 min ago"  },
   { id: "P002", name: "Siti Rahmah",   urgency: "B", meds: 2, status: "on_hold",   waitMin: 15, time: "15 min ago" },
@@ -16,14 +51,18 @@ const PATIENTS = [
 ];
 
 const STATUS = {
-  pending:   { label: "Pending Packing", bg: "#FEF3C7", color: "#92400E" },
-  on_hold:   { label: "On Hold",         bg: "#FEE2E2", color: "#991B1B" },
-  ready:     { label: "Ready",           bg: "#DCFCE7", color: "#166534" },
-  collected: { label: "Collected",       bg: "#F3F4F6", color: "#6B7280" },
+  pending:   { label: "Pending Packing", bg: "#FFFBEB", color: "#92400E", border: "#FDE68A" },
+  on_hold:   { label: "On Hold",         bg: "#FEF2F2", color: "#991B1B", border: "#FECACA" },
+  ready:     { label: "Ready",           bg: "#F0FDF4", color: "#166534", border: "#BBF7D0" },
+  collected: { label: "Collected",       bg: "#F9FAFB", color: "#6B7280", border: "#E5E7EB" },
 };
 
-const URGENCY_COLOR = { A: "#EF4444", B: "#F59E0B", C: "#3B82F6" };
-const URGENCY_RANK  = { A: 0, B: 1, C: 2 };
+const URGENCY_COLOR = { A: "#DC2626", B: "#D97706", C: "#2563EB" };
+const URGENCY_BG = {
+  A: "radial-gradient(circle at 35% 35%, #F87171, #DC2626)",
+  B: "radial-gradient(circle at 35% 35%, #FBBF24, #D97706)",
+  C: "radial-gradient(circle at 35% 35%, #60A5FA, #2563EB)",
+};
 
 const TABS = [
   { key: "all",     label: "All" },
@@ -39,12 +78,11 @@ const SORTS = [
   { key: "oldest",     label: "Oldest First" },
 ];
 
-/* Return the email exactly as entered (or the local part before @).
-   Never substitutes a generic fallback — if no email is stored the
-   greeting just omits the name entirely. */
+const URGENCY_RANK = { A: 0, B: 1, C: 2 };
+
 function getDisplayName(email) {
   if (!email) return "";
-  return email; // show the full email the user logged in with
+  return email;
 }
 
 function getGreeting() {
@@ -61,20 +99,32 @@ function getFormattedDate() {
 }
 
 function getProgressInfo(waitMin) {
-  if (waitMin < 20) return { pct: 25,  color: "#F59E0B" };
+  if (waitMin < 20) return { pct: 25,  color: "#22C55E" };
   if (waitMin < 40) return { pct: 50,  color: "#F59E0B" };
-  if (waitMin < 60) return { pct: 75,  color: "#F59E0B" };
+  if (waitMin < 60) return { pct: 75,  color: "#F97316" };
   return               { pct: 100, color: "#EF4444" };
 }
+
+/* Sidebar stat cards */
+const STAT_CONFIG = {
+  pending: { label: "Pending Packing", accent: "#D97706", tab: "pending" },
+  on_hold: { label: "On Hold",         accent: "#DC2626", tab: "on_hold" },
+  ready:   { label: "Ready",           accent: "#16A34A", tab: "ready"   },
+};
+
+/* Urgency legend */
+const URGENCY_LEGEND = [
+  { level: "A", color: "#DC2626", label: "High Priority",   desc: "Immediate attention required" },
+  { level: "B", color: "#D97706", label: "Medium Priority", desc: "Attend within 30 minutes" },
+  { level: "C", color: "#2563EB", label: "Routine",         desc: "Standard processing time" },
+];
 
 
 export default function PharmacistDashboard() {
   const navigate = useNavigate();
-
   const [activeTab, setActiveTab] = useState("all");
   const [sort,      setSort]      = useState("urgency_ac");
 
-  /* Merge any localStorage status overrides from the packing flow */
   const livePatients = PATIENTS.map((p) => ({
     ...p,
     status: localStorage.getItem(`patient-status-${p.id}`) ?? p.status,
@@ -106,138 +156,157 @@ export default function PharmacistDashboard() {
 
   return (
     <div className="pharm-dash">
+      <div className="pd-layout">
 
-      {/* ── Hero greeting ── */}
-      <section className="pd-hero">
-        <h1 className="pd-greeting">
-          {getGreeting()}{displayName ? `, ${displayName}` : ""}
-        </h1>
-        <p className="pd-date">{getFormattedDate()}</p>
-      </section>
+        {/* ── Left sidebar ── */}
+        <aside className="pd-sidebar" aria-label="Queue overview">
 
-      {/* ── Compact stats strip (sticky below header) ── */}
-      <div className="pd-stats" aria-label="Status summary">
-        <div className="pd-stats-inner">
-          <div className="pd-stat-item">
-            <span className="ps-num">{statusCounts.pending}</span>
-            <span className="ps-label">PENDING PACKING</span>
+          {/* Greeting */}
+          <div className="pd-greeting-block">
+            <h1 className="pd-greeting">
+              {getGreeting()}{displayName ? "," : ""}<br />
+              {displayName || "Pharmacist"}
+            </h1>
+            <p className="pd-date">{getFormattedDate()}</p>
           </div>
-          <div className="pd-stat-sep" aria-hidden="true" />
-          <div className="pd-stat-item">
-            <span className="ps-num">{statusCounts.on_hold}</span>
-            <span className="ps-label">ON HOLD</span>
-          </div>
-          <div className="pd-stat-sep" aria-hidden="true" />
-          <div className="pd-stat-item">
-            <span className="ps-num">{statusCounts.ready}</span>
-            <span className="ps-label">READY FOR COLLECTION</span>
-          </div>
-        </div>
-      </div>
 
-      {/* ── Main content ── */}
-      <main className="pd-content">
-
-        {/* Filter + sort row */}
-        <div className="pd-controls">
-          <div className="pd-tabs" role="tablist" aria-label="Filter by status">
-            {TABS.map((t) => (
-              <button
-                key={t.key}
-                type="button"
-                role="tab"
-                aria-selected={activeTab === t.key}
-                className={`pd-tab${activeTab === t.key ? " active" : ""}`}
-                onClick={() => setActiveTab(t.key)}
-              >
-                {t.label}
-              </button>
+          {/* Queue status counts */}
+          <p className="pd-sidebar-label">Queue Status</p>
+          <div className="pd-stat-cards">
+            {Object.entries(STAT_CONFIG).map(([key, cfg]) => (
+              <StatCard
+                key={key}
+                cfg={cfg}
+                count={statusCounts[key]}
+                isActive={activeTab === cfg.tab}
+                onClick={() => setActiveTab(activeTab === cfg.tab ? "all" : cfg.tab)}
+              />
             ))}
           </div>
 
-          <label className="pd-sort">
-            <span>Sort by:</span>
-            <select value={sort} onChange={(e) => setSort(e.target.value)}>
-              {SORTS.map((s) => (
-                <option key={s.key} value={s.key}>{s.label}</option>
-              ))}
-            </select>
-          </label>
-        </div>
 
-        {/* Patient card list */}
-        <div className="pd-list">
-          {visiblePatients.length === 0 ? (
-            <div className="pd-empty">
-              <svg
-                className="pd-empty-pill"
-                viewBox="0 0 80 40"
-                xmlns="http://www.w3.org/2000/svg"
-                aria-hidden="true"
-              >
-                <rect x="0" y="0" width="80" height="40" rx="20" fill="#E2E8F0"/>
-                <rect x="0" y="0" width="40" height="40" rx="20" fill="#40E0D0"/>
-                <line x1="40" y1="3" x2="40" y2="37" stroke="#fff" strokeWidth="2.5"/>
-              </svg>
-              <p className="pd-empty-title">All clear here!</p>
-              <p className="pd-empty-sub">No patients in this category right now</p>
-            </div>
-          ) : (
-            visiblePatients.map((p, i) => {
-              const st = STATUS[p.status];
-              const stripeColor = URGENCY_COLOR[p.urgency];
-              const prog = p.status === "pending" ? getProgressInfo(p.waitMin) : null;
+        </aside>
 
-              return (
+        {/* ── Right: queue list ── */}
+        <main className="pd-main">
+
+          {/* Filter + sort */}
+          <div className="pd-controls">
+            <div className="pd-tabs" role="tablist" aria-label="Filter by status">
+              {TABS.map((t) => (
                 <button
-                  key={p.id}
+                  key={t.key}
                   type="button"
-                  className="pd-card"
-                  style={{ "--stripe": stripeColor, "--delay": `${i * 60}ms` }}
-                  onClick={() => { console.log(p.id); navigate(`/pharmacist/pack/${p.id}`); }}
-                  aria-label={`${p.name}, urgency ${p.urgency}, ${st.label}`}
+                  role="tab"
+                  aria-selected={activeTab === t.key}
+                  className={`pd-tab${activeTab === t.key ? " active" : ""}`}
+                  onClick={() => setActiveTab(t.key)}
                 >
-                  <span className="pd-stripe" aria-hidden="true" />
-
-                  <span className="pd-urgency" style={{ background: stripeColor }} aria-hidden="true">
-                    {p.urgency}
-                  </span>
-
-                  <div className="pd-info">
-                    <div className="pd-name-row">
-                      <span className="pd-name">{p.name}</span>
-                      <span className="pd-pid">{p.id}</span>
-                    </div>
-                    <div className="pd-meds">x{p.meds} meds</div>
-                    {prog && (
-                      <div className="pd-progress-wrap">
-                        <div className="pd-progress-bar">
-                          <div
-                            className="pd-progress-fill"
-                            style={{ width: `${prog.pct}%`, background: prog.color }}
-                          />
-                        </div>
-                        <span className="pd-progress-label">Waiting {p.waitMin} min</span>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="pd-right">
-                    <span className="pd-status" style={{ background: st.bg, color: st.color }}>
-                      {st.label}
-                    </span>
-                    <span className="pd-time">{p.time}</span>
-                  </div>
-
-                  <span className="pd-chevron" aria-hidden="true">
-                    <FaChevronRight />
-                  </span>
+                  {t.label}
                 </button>
-              );
-            })
-          )}
-        </div>
-      </main>
+              ))}
+            </div>
+
+            <label className="pd-sort">
+              <span>Sort by:</span>
+              <select value={sort} onChange={(e) => setSort(e.target.value)}>
+                {SORTS.map((s) => (
+                  <option key={s.key} value={s.key}>{s.label}</option>
+                ))}
+              </select>
+            </label>
+          </div>
+
+          {/* Patient list */}
+          <AnimatePresence mode="wait">
+          <motion.div
+            key={activeTab + sort}
+            className="pd-list"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.18 }}
+          >
+            {visiblePatients.length === 0 ? (
+              <div className="pd-empty">
+                <svg
+                  className="pd-empty-pill"
+                  viewBox="0 0 80 40"
+                  xmlns="http://www.w3.org/2000/svg"
+                  aria-hidden="true"
+                >
+                  <rect x="0" y="0" width="80" height="40" rx="20" fill="#E2E8F0"/>
+                  <rect x="0" y="0" width="40" height="40" rx="20" fill="#2DD4C8" opacity="0.4"/>
+                  <line x1="40" y1="3" x2="40" y2="37" stroke="#fff" strokeWidth="2.5"/>
+                </svg>
+                <p className="pd-empty-title">All clear here!</p>
+                <p className="pd-empty-sub">No patients in this category right now</p>
+              </div>
+            ) : (
+              visiblePatients.map((p, i) => {
+                const st   = STATUS[p.status];
+                const prog = p.status === "pending" ? getProgressInfo(p.waitMin) : null;
+
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    className="pd-card"
+                    style={{ "--delay": `${i * 55}ms` }}
+                    onClick={() => navigate(`/pharmacist/pack/${p.id}`)}
+                    aria-label={`${p.name}, urgency ${p.urgency}, ${st.label}`}
+                  >
+                    <span
+                      className={`pd-urgency pd-urgency-${p.urgency}`}
+                      style={{ background: URGENCY_BG[p.urgency] }}
+                      aria-hidden="true"
+                    >
+                      {p.urgency}
+                    </span>
+
+                    <div className="pd-info">
+                      <div className="pd-name-row">
+                        <span className="pd-name">{p.name}</span>
+                        <span className="pd-pid">{p.id}</span>
+                      </div>
+                      <div className="pd-meds">{p.meds} medication{p.meds !== 1 ? "s" : ""}</div>
+                      {prog && (
+                        <div className="pd-progress-wrap">
+                          <div className="pd-progress-bar">
+                            <motion.div
+                              className="pd-progress-fill"
+                              style={{ background: prog.color }}
+                              initial={{ width: 0 }}
+                              animate={{ width: `${prog.pct}%` }}
+                              transition={{ duration: 0.7, ease: "easeOut", delay: i * 0.05 }}
+                            />
+                          </div>
+                          <span className="pd-progress-label">Waiting {p.waitMin} min</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="pd-right">
+                      <span
+                        className="pd-status"
+                        style={{ background: st.bg, color: st.color, borderColor: st.border }}
+                      >
+                        {st.label}
+                      </span>
+                      <span className="pd-time">{p.time}</span>
+                    </div>
+
+                    <span className="pd-chevron" aria-hidden="true">
+                      <FaChevronRight />
+                    </span>
+                  </button>
+                );
+              })
+            )}
+          </motion.div>
+          </AnimatePresence>
+        </main>
+      </div>
     </div>
   );
 }

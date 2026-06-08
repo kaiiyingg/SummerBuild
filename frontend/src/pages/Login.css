@@ -292,24 +292,26 @@
   color: #9aa6b2;
 }
 
-.field input:focus {
+.field input:focus,
+.field input:focus-visible {
   background: #ffffff;
   border-color: var(--turquoise);
   box-shadow: 0 0 0 4px rgba(64, 224, 208, 0.18);
+  outline: none;
 }
 
 .input-wrap.has-toggle input {
-  padding-right: 46px;
+  padding-right: 52px;
 }
 
 .toggle-eye {
   position: absolute;
-  right: 8px;
+  right: 4px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 44px;
+  height: 44px;
   border: none;
   background: transparent;
   color: var(--muted);
@@ -321,6 +323,11 @@
 .toggle-eye:hover {
   color: var(--turquoise-dark);
   background: rgba(64, 224, 208, 0.12);
+}
+
+.toggle-eye:focus-visible {
+  outline: 3px solid var(--turquoise);
+  outline-offset: 2px;
 }
 
 /* Mismatch state */
@@ -379,6 +386,11 @@
 
 .btn-primary:active {
   transform: translateY(0);
+}
+
+.btn-primary:focus-visible {
+  outline: 3px solid var(--turquoise-darker);
+  outline-offset: 3px;
 }
 
 .btn-primary:disabled {
