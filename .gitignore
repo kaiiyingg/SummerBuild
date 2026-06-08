@@ -10,3 +10,10 @@ dist/
 
 # logs
 *.log
+
+# Python virtual environment
+venv/
+
+# Python cache
+__pycache__/
+*.pyc
