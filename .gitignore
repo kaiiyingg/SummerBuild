@@ -1,19 +1,74 @@
 # env files
 .env
+.env.*
+!.env.example
 **/.env
+**/.env.*
+**/!.env.example
 
-# dependencies
+# node dependencies and package manager caches
 node_modules/
+.pnpm-store/
+.npm/
+.yarn/
+.yarn/cache/
+.yarn/unplugged/
+.yarn/build-state.yml
+.yarn/install-state.gz
 
-# build output
+# frontend build output
 dist/
+build/
+.vite/
+coverage/
 
 # logs
 *.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
 
-# Python virtual environment
+# python virtual environments
 venv/
+.venv/
+ENV/
+env/
 
-# Python cache
+# python cache / tooling
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
+*.py,cover
+.python-version
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.hypothesis/
+.pyre/
+.tox/
+.nox/
+.coverage
+.coverage.*
+htmlcov/
+
+# python packaging/build
+.eggs/
+*.egg
+*.egg-info/
+pip-wheel-metadata/
+site/
+
+# jupyter
+.ipynb_checkpoints/
+
+# editors / IDE
+.vscode/
+.idea/
+*.iml
+
+# OS files
+.DS_Store
+Thumbs.db
+Desktop.ini
