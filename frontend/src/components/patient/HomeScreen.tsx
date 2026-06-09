@@ -33,53 +33,112 @@ function HeaderBadge({ status }: { status: QueueStatus }) {
   return <span style={{ ...base, background: C.green, border: "none" }}>Now Serving</span>;
 }
 
-function QueueStrip({ myNumber, servingNumber }: { myNumber: number; servingNumber: number }) {
+const RING_R    = 20;
+const RING_CIRC = 2 * Math.PI * RING_R; // ≈ 125.66
+
+function QueueStrip({ myNumber, servingNumber, secPerTurn = 120 }: {
+  myNumber: number;
+  servingNumber: number;
+  secPerTurn?: number;
+}) {
   const start = Math.max(1, servingNumber - 2);
   const end   = myNumber + 3;
   const range: number[] = [];
   for (let i = start; i <= end; i++) range.push(i);
 
   return (
-    <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
-      {range.map((n) => {
-        const isPast    = n < servingNumber;
-        const isServing = n === servingNumber;
-        const isAhead   = n > servingNumber && n < myNumber;
-        const isMe      = n === myNumber;
-
-        let circleBg: string, circleText: string, circleBorder: string | undefined, topLabel: string | null = null;
-
-        if (isPast) {
-          circleBg   = "#EEF2F7"; circleText = "#A8B5C3";
-        } else if (isServing) {
-          circleBg = "#10B981"; circleText = "white"; topLabel = "NOW";
-        } else if (isAhead) {
-          circleBg = "#F1F5F9"; circleText = "#64748B"; circleBorder = "1px solid #CBD5E1";
-        } else if (isMe) {
-          circleBg = "#3B82F6"; circleText = "white"; topLabel = "YOU";
-        } else {
-          circleBg = "#F8FAFC"; circleText = "#C4CFD9"; circleBorder = "1px solid #E2E8F0";
+    <>
+      <style>{`
+        @keyframes qs-ring-fill {
+          0%   { stroke-dashoffset: ${RING_CIRC.toFixed(2)}; }
+          100% { stroke-dashoffset: 0; }
         }
+        @keyframes qs-now-blink {
+          0%, 100% { opacity: 1;   }
+          50%      { opacity: 0.4; }
+        }
+      `}</style>
 
-        return (
-          <div key={n} className="shrink-0 flex flex-col items-center" style={{ gap: "4px" }}>
-            <span style={{
-              fontFamily: "'Open Sans', sans-serif", fontSize: "10px", fontWeight: 800,
-              color: isServing ? "#10B981" : isMe ? "#3B82F6" : "transparent",
-              letterSpacing: "0.5px", height: "14px",
-            }}>
-              {topLabel ?? "·"}
-            </span>
-            <div className="w-10 h-10 rounded-full flex items-center justify-center"
-              style={{ background: circleBg, border: circleBorder }}>
-              <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "13px", fontWeight: 700, color: circleText }}>
-                {n}
+      <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
+        {range.map((n) => {
+          const isPast    = n < servingNumber;
+          const isServing = n === servingNumber;
+          const isAhead   = n > servingNumber && n < myNumber;
+          const isMe      = n === myNumber;
+
+          let circleBg: string, circleText: string, circleBorder: string | undefined, topLabel: string | null = null;
+
+          if (isPast) {
+            circleBg = "#EEF2F7"; circleText = "#A8B5C3";
+          } else if (isServing) {
+            circleBg = "#10B981"; circleText = "white"; topLabel = "NOW";
+          } else if (isAhead) {
+            circleBg = "#F1F5F9"; circleText = "#64748B"; circleBorder = "1px solid #CBD5E1";
+          } else if (isMe) {
+            circleBg = "#3B82F6"; circleText = "white"; topLabel = "YOU";
+          } else {
+            circleBg = "#F8FAFC"; circleText = "#C4CFD9"; circleBorder = "1px solid #E2E8F0";
+          }
+
+          return (
+            <div key={n} className="shrink-0 flex flex-col items-center" style={{ gap: "4px" }}>
+              <span style={{
+                fontFamily: "'Open Sans', sans-serif", fontSize: "10px", fontWeight: 800,
+                color: isServing ? "#10B981" : isMe ? "#3B82F6" : "transparent",
+                letterSpacing: "0.5px", height: "14px",
+              }}>
+                {topLabel ?? "·"}
               </span>
+
+              {/* Circle wrapper — relative so SVG ring can overlay */}
+              <div style={{ position: "relative", width: 40, height: 40 }}>
+
+                {/* Base filled circle */}
+                <div
+                  style={{
+                    width: 40, height: 40, borderRadius: "50%",
+                    background: circleBg, border: circleBorder,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    animation: isServing ? "qs-now-blink 1s ease-in-out infinite" : undefined,
+                  }}
+                >
+                  <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "13px", fontWeight: 700, color: circleText }}>
+                    {n}
+                  </span>
+                </div>
+
+                {/* Progress ring overlay for NOW — fills clockwise from top over secPerTurn */}
+                {isServing && (
+                  <svg
+                    width={48} height={48}
+                    viewBox="0 0 44 44"
+                    style={{ position: "absolute", top: -4, left: -4, transform: "rotate(-90deg)", pointerEvents: "none" }}
+                  >
+                    {/* Faint track */}
+                    <circle cx={22} cy={22} r={RING_R}
+                      fill="none"
+                      stroke="rgba(255,255,255,0.25)"
+                      strokeWidth={3}
+                    />
+                    {/* Animated fill */}
+                    <circle cx={22} cy={22} r={RING_R}
+                      fill="none"
+                      stroke="rgba(255,255,255,0.85)"
+                      strokeWidth={3}
+                      strokeLinecap="round"
+                      strokeDasharray={RING_CIRC}
+                      strokeDashoffset={RING_CIRC}
+                      style={{ animation: `qs-ring-fill ${secPerTurn}s linear infinite` }}
+                    />
+                  </svg>
+                )}
+
+              </div>
             </div>
-          </div>
-        );
-      })}
-    </div>
+          );
+        })}
+      </div>
+    </>
   );
 }
 
@@ -423,7 +482,7 @@ export function HomeScreen({ onTabChange }: { onTabChange: (tab: string) => void
                 </p>
               </div>
               <div className="mb-4">
-                <QueueStrip myNumber={regQueue.number} servingNumber={regQueue.servingNum} />
+                <QueueStrip myNumber={regQueue.number} servingNumber={regQueue.servingNum} secPerTurn={135} />
               </div>
 
               <div className="flex gap-2 flex-wrap mb-4">
@@ -478,7 +537,7 @@ export function HomeScreen({ onTabChange }: { onTabChange: (tab: string) => void
             </div>
 
             <div className="mb-4">
-              <QueueStrip myNumber={colQueue.number} servingNumber={colQueue.servingNum} />
+              <QueueStrip myNumber={colQueue.number} servingNumber={colQueue.servingNum} secPerTurn={150} />
             </div>
 
             <div className="flex gap-2 flex-wrap mb-4">
