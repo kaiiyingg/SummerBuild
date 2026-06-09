@@ -1,29 +1,7 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { FaRobot } from "react-icons/fa";
 import { PATIENT_DETAILS } from "../data/patientData";
-import PillyLogo from "../components/PillyLogo";
 import "./PatientPacking.css";
-
-/* Pilly-logo loading overlay shown during AI verification */
-function VerifyingOverlay() {
-  return (
-    <div className="verifying-overlay" role="status" aria-label="Verifying medication">
-      <div className="verifying-card">
-        <div className="verifying-logo-wrap">
-          <div className="verifying-ring-outer" aria-hidden="true" />
-          <div className="verifying-ring" aria-hidden="true" />
-          <div className="verifying-logo-inner" aria-hidden="true">
-            <PillyLogo size={88} showName={false} />
-          </div>
-        </div>
-        <p className="verifying-text">
-          Verifying<span className="verifying-dots" aria-hidden="true" />
-        </p>
-      </div>
-    </div>
-  );
-}
 
 function maskNric(nric) {
   return `${nric[0]}****${nric.slice(-4)}`;
@@ -37,7 +15,6 @@ function PatientPacking() {
   const [holdOpen,      setHoldOpen]      = useState(false);
   const [holdReason,    setHoldReason]    = useState("");
   const [incompleteOpen,setIncompleteOpen]= useState(false);
-  const [verifying,     setVerifying]     = useState(false);
   const [verifiedMeds, setVerifiedMeds] = useState(() => {
     const saved = localStorage.getItem(`verified-meds-${patientId}`);
 
@@ -126,7 +103,6 @@ function PatientPacking() {
                             setScannerOpen(true);
                         }}
                         >
-                        <FaRobot />
                         Verify
                         </button>
                     )}
@@ -198,8 +174,8 @@ function PatientPacking() {
                 </div>
 
                 <div>
-                    <span className="scanner-label">Patient ID</span>
-                    <strong>{patient.id}</strong>
+                    <span className="scanner-label">Queue Number</span>
+                    <strong>{patient.queueNo}</strong>
                 </div>
 
                 <div>
@@ -238,34 +214,33 @@ function PatientPacking() {
                 </label>
 
                 <button
-                  className="scanner-confirm"
-                  disabled={verifying}
-                  onClick={() => {
-                    setScannerOpen(false);
-                    setVerifying(true);
-
-                    setTimeout(() => {
-                      const updatedVerifiedMeds = {
+                    className="scanner-confirm"
+                    onClick={() => {
+                        const updatedVerifiedMeds = {
                         ...verifiedMeds,
                         [selectedMed.id]: true,
-                      };
-                      setVerifiedMeds(updatedVerifiedMeds);
-                      localStorage.setItem(
+                        };
+
+                        setVerifiedMeds(updatedVerifiedMeds);
+
+                        localStorage.setItem(
                         `verified-meds-${patient.id}`,
                         JSON.stringify(updatedVerifiedMeds)
-                      );
-                      const allVerified = patient.medications.every(
+                        );
+
+                        const allVerified = patient.medications.every(
                         (med) => updatedVerifiedMeds[med.id]
-                      );
-                      if (allVerified) {
+                        );
+
+                        if (allVerified) {
                         localStorage.setItem(`patient-status-${patient.id}`, "ready");
-                      }
-                      setVerifying(false);
-                    }, 1800);
-                  }}
-                >
-                  Verify Medication
-                </button>
+                        }
+
+                        setScannerOpen(false);
+                    }}
+                    >
+                    Verify Medication
+                    </button>
           </div>
         </div>
       )}
@@ -336,8 +311,6 @@ function PatientPacking() {
             </div>
         </div>
         )}
-      {/* ── Pilly logo verifying overlay ── */}
-      {verifying && <VerifyingOverlay />}
     </div>
   );
 }
