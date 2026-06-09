@@ -1,4 +1,7 @@
-
+/* ============================================================
+   Pilly — Pharmacist Packing / Verification Page
+   White clinical theme with animated buttons.
+   ============================================================ */
 
 .pack-page {
   --accent:    #2DD4C8;
@@ -25,7 +28,7 @@
 
 /* ── Layout ── */
 .pack-content {
-  max-width: 1040px;
+  max-width: 900px;
   margin: 0 auto;
   padding: 28px 24px 72px;
 }
@@ -41,7 +44,7 @@
 .pack-med-card {
   background: var(--white);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 16px;
   box-shadow: var(--shadow-sm);
 }
 .pack-patient-card {
@@ -126,19 +129,17 @@
   gap: 16px;
 }
 
-
+/* ── Table ── */
 .pack-table {
   width: 100%;
   border-collapse: collapse;
 }
-
 .pack-table th,
 .pack-table td {
   padding: 13px 14px;
   text-align: left;
   border-bottom: 1px solid var(--border);
 }
-
 .pack-table th {
   color: var(--subtle);
   font-size: 10px;
@@ -147,23 +148,12 @@
   letter-spacing: 0.08em;
   background: #F8FAFC;
 }
-
-.pack-table td {
-  font-weight: 500;
-  color: var(--ink);
-}
-
-.pack-table tr:last-child td {
-  border-bottom: none;
-}
-
+.pack-table td { font-weight: 500; }
+.pack-table tr:last-child td { border-bottom: none; }
 .pack-table tbody tr {
   transition: background 150ms ease;
 }
-
-.pack-table tbody tr:hover td {
-  background: #F8FAFC;
-}
+.pack-table tbody tr:hover td { background: #F8FAFC; }
 
 /* ── Verify row button — animated ── */
 .pack-ai-row-btn {
@@ -174,7 +164,7 @@
   font-size: 13px;
   font-weight: 700;
   padding: 9px 16px;
-  border-radius: 8px;
+  border-radius: 999px;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -254,7 +244,7 @@
   font-weight: 700;
   font-size: 14px;
   padding: 12px 24px;
-  border-radius: 8px;
+  border-radius: 12px;
   cursor: pointer;
   transition: transform 150ms ease, box-shadow 150ms ease, background 150ms ease, border-color 150ms ease;
   position: relative;
@@ -332,7 +322,7 @@
 }
 
 .scanner-modal {
-  width: min(900px, 95vw);
+  width: min(560px, 92vw);
   border-top: 4px solid var(--accent);
 }
 .scanner-modal h2,
@@ -384,9 +374,9 @@
 .scanner-details {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 16px;
+  gap: 12px;
   margin-top: 16px;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 }
 .scanner-details div {
   background: #F8FAFC;
@@ -406,7 +396,7 @@
 
 /* Camera preview */
 .scanner-preview {
-  height: 360px;
+  height: 240px;
   margin: 18px 0;
   border: 2px dashed #CBD5E1;
   border-radius: 14px;
@@ -575,7 +565,98 @@
   outline-offset: 3px;
 }
 
+/* ══════════════════════════════════════════════
+   VERIFYING OVERLAY — Pilly logo loading screen
+   ══════════════════════════════════════════════ */
+.verifying-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(248, 250, 252, 0.88);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 400;
+  animation: overlay-in 0.2s ease;
+}
 
+.verifying-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 22px;
+  padding: 44px 52px;
+  background: var(--white);
+  border-radius: 24px;
+  border: 1px solid var(--border);
+  box-shadow: 0 24px 64px rgba(15,23,42,0.12), 0 4px 16px rgba(15,23,42,0.06);
+  animation: modal-in 0.3s ease;
+}
+
+/* Spinning ring around the logo */
+.verifying-logo-wrap {
+  position: relative;
+  width: 88px;
+  height: 88px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.verifying-ring {
+  position: absolute;
+  inset: -10px;
+  border-radius: 50%;
+  border: 3px solid #E2E8F0;
+  border-top-color: var(--accent);
+  animation: spin 1s linear infinite;
+}
+
+/* Outer slow pulse ring */
+.verifying-ring-outer {
+  position: absolute;
+  inset: -18px;
+  border-radius: 50%;
+  border: 2px solid rgba(45,212,200,0.2);
+  animation: spin 2.4s linear infinite reverse;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Subtle logo pulse */
+.verifying-logo-inner {
+  animation: logo-pulse 1.6s ease-in-out infinite;
+}
+@keyframes logo-pulse {
+  0%, 100% { transform: scale(1);    opacity: 1; }
+  50%       { transform: scale(0.94); opacity: 0.8; }
+}
+
+.verifying-text {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--muted);
+  margin: 0;
+  letter-spacing: 0.01em;
+}
+
+/* Animated ellipsis on "Verifying…" */
+.verifying-dots::after {
+  content: "";
+  animation: dots 1.4s steps(4, end) infinite;
+}
+@keyframes dots {
+  0%   { content: ""; }
+  25%  { content: "."; }
+  50%  { content: ".."; }
+  75%  { content: "..."; }
+  100% { content: ""; }
+}
+
+/* ── Responsive ── */
 @media (max-width: 768px) {
   .pack-content { padding: 20px 16px 48px; }
   .pack-section-head,
