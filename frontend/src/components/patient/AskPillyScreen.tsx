@@ -177,7 +177,7 @@ export function AskPillyScreen({ language }: { language: string }) {
           Ask Pilly
         </h1>
         <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "14px", color: C.textSecond }}>
-          Powered by Reka AI - Responding in {language}
+          Powered by Reka AI
         </p>
       </div>
 
