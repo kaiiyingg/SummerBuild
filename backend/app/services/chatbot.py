@@ -1,114 +1,12 @@
+import json
+from pathlib import Path
+from typing import Any
+
 from openai import AsyncOpenAI
 
 from app.core.config import settings
 
-# Lane 1: Public FAQ intents that do not require patient account data.
-FAQ_RESPONSES: list[tuple[set[str], str]] = [
-    (
-        {"opening hours", "operating hours", "what time", "closing time", "open today"},
-        "The pharmacy is open Monday to Friday, 8am to 6pm, and Saturday 8am to 1pm.",
-    ),
-    (
-        {"location", "where", "counter", "how to find", "which level", "which floor"},
-        "The pharmacy counter is located at Level 2, Counter 3.",
-    ),
-    (
-        {"queue", "wait time", "how long", "queue status"},
-        "Please check your real time queue status in the Queue tab.",
-    ),
-    (
-        {"out of stock", "not available", "delay", "delayed", "shortage"},
-        "If your medication is out of stock, you will receive an automatic notification with rescheduling options.",
-    ),
-    (
-        {"contact", "phone number", "hotline", "call pharmacy"},
-        "You can contact the pharmacy at +65 6123 4567 during operating hours.",
-    ),
-]
-
-RESTOCK_REPLY = (
-    "Your medication is currently being prepared or restocked. "
-    "You will receive a notification once it is ready for collection. "
-    "If you cannot wait, go to the Queue tab and tap Reschedule Collection to choose another day."
-)
-
-# Lane 2: Patient specific queries should redirect to the correct product area.
-REDIRECT_TRIGGERS: list[tuple[set[str], str]] = [
-    (
-        {
-            "missed my queue",
-            "i missed my queue",
-            "missed queue number",
-            "my queue expired",
-            "queue expired",
-            "missed registration queue",
-            "what if i miss my queue",
-        },
-        "If you missed your registration queue number, open the Patient App Queue tab and tap Re-register to get a new queue number.",
-    ),
-    (
-        {
-            "my medication list",
-            "what medication am i on",
-            "my medications",
-            "medications i am taking",
-            "my drugs",
-            "my prescription list",
-            "my meds",
-            "my medicine",
-        },
-        "Go to the My Meds tab to view your current medication list.",
-    ),
-    (
-        {
-            "my queue number",
-            "what is my queue",
-            "my queue status",
-            "my turn",
-            "my number",
-            "check my queue",
-        },
-        "Go to the Queue tab to view your current number and waiting status.",
-    ),
-    (
-        {
-            "my reminder",
-            "my reminders",
-            "set reminder",
-            "medication reminder",
-            "remind me",
-        },
-        "Go to the Reminders tab to view or set medication reminders.",
-    ),
-    (
-        {
-            "my record",
-            "my medical record",
-            "my history",
-            "past visits",
-            "my profile",
-            "my details",
-        },
-        "Go to the Profile tab, then Past Visits, to view your visit and medication history.",
-    ),
-    (
-        {
-            "appointment",
-            "my appointment",
-            "booking",
-            "reschedule appointment",
-            "cancel appointment",
-        },
-        "For doctor appointment requests, please contact the clinic at +65 6123 4567. "
-        "For medication collection timing, use the Queue tab and tap Reschedule Collection.",
-    ),
-    (
-        {"prescription", "my prescription", "what was prescribed", "doctor prescribed"},
-        "Go to the My Meds tab to review your active prescription.",
-    ),
-]
-
-SYSTEM_PROMPT = """You are Pilly, a clinic pharmacy assistant.
+SYSTEM_PROMPT = """You are Pilly, a hospital pharmacy assistant.
 
 Goal:
 - Give accurate, concise, patient-friendly answers on medicines and pharmacy basics:
@@ -126,67 +24,92 @@ Style:
 - Avoid jargon; use simple language.
 """
 
+DEFAULT_LOCALE = "en"
+SUPPORTED_LOCALES = {"en", "zh", "ta", "ms"}
+LOCALE_DIR = Path(__file__).resolve().parent / "locale"
+
 client = AsyncOpenAI(api_key=settings.REKA_API_KEY, base_url="https://api.reka.ai/v1")
 
 
-def _contains_any(text: str, keywords: set[str]) -> bool:
+def _load_locale(locale_code: str) -> dict[str, Any]:
+    locale_path = LOCALE_DIR / f"chatbot_{locale_code}.json"
+    with locale_path.open("r", encoding="utf-8") as file:
+        return json.load(file)
+
+
+LOCALES: dict[str, dict[str, Any]] = {code: _load_locale(code) for code in SUPPORTED_LOCALES}
+
+LANGUAGE_TO_LOCALE: dict[str, str] = {}
+for code, data in LOCALES.items():
+    LANGUAGE_TO_LOCALE[code] = code
+    for alias in data.get("language_aliases", []):
+        normalized_alias = str(alias).strip().lower()
+        if normalized_alias:
+            LANGUAGE_TO_LOCALE[normalized_alias] = code
+
+
+def _normalize_locale(language: str | None) -> str:
+    if not language:
+        return DEFAULT_LOCALE
+    normalized = language.strip().lower()
+    return LANGUAGE_TO_LOCALE.get(normalized, DEFAULT_LOCALE)
+
+
+def _contains_any(text: str, keywords: list[str]) -> bool:
     return any(keyword in text for keyword in keywords)
 
 
-def _is_restock_eta_query(user_text: str) -> bool:
-    readiness_phrases = {
-        "when will my",
-        "when is my",
-        "be ready",
-        "ready for collection",
-        "ready to collect",
-        "ready yet",
-        "restock",
-        "restocked",
-        "restocking",
-        "out of stock",
-    }
-    medication_terms = {"medication", "medicine", "med", "prescription", "drug", "tablet", "capsule"}
+def _is_restock_eta_query(user_text: str, locale_data: dict[str, Any]) -> bool:
+    restock_data = locale_data["restock"]
+    readiness_phrases = restock_data["readiness_phrases"]
+    medication_terms = restock_data["medication_terms"]
 
     has_readiness_intent = _contains_any(user_text, readiness_phrases)
     has_medication_context = _contains_any(user_text, medication_terms) or "my " in user_text
     return has_readiness_intent and has_medication_context
 
 
-def _redirect_match(user_text: str) -> str | None:
-    for keywords, reply in REDIRECT_TRIGGERS:
-        if _contains_any(user_text, keywords):
-            return reply
+def _redirect_match(user_text: str, locale_data: dict[str, Any]) -> str | None:
+    for entry in locale_data["redirect_triggers"]:
+        if _contains_any(user_text, entry["keywords"]):
+            return entry["reply"]
     return None
 
 
-def _faq_match(user_text: str) -> str | None:
-    for keywords, reply in FAQ_RESPONSES:
-        if _contains_any(user_text, keywords):
-            return reply
+def _faq_match(user_text: str, locale_data: dict[str, Any]) -> str | None:
+    for entry in locale_data["faq_responses"]:
+        if _contains_any(user_text, entry["keywords"]):
+            return entry["reply"]
     return None
 
 
-async def route_query(message: str, history: list[dict]) -> tuple[str, str]:
+def _system_prompt_for_locale(locale_data: dict[str, Any]) -> str:
+    language_instruction = locale_data.get("assistant_language_instruction", "")
+    return SYSTEM_PROMPT if not language_instruction else f"{SYSTEM_PROMPT}\n\n{language_instruction}"
+
+
+async def route_query(message: str, history: list[dict], language: str | None = None) -> tuple[str, str]:
+    locale_code = _normalize_locale(language)
+    locale_data = LOCALES[locale_code]
     user_text = message.strip().lower()
 
     # Check redirect first so personal requests are not answered by generic FAQ.
-    redirect_reply = _redirect_match(user_text)
+    redirect_reply = _redirect_match(user_text, locale_data)
     if redirect_reply:
         return redirect_reply, "redirect"
 
     # Fast lane for public FAQ questions.
-    if _is_restock_eta_query(user_text):
-        return RESTOCK_REPLY, "faq"
+    if _is_restock_eta_query(user_text, locale_data):
+        return locale_data["restock"]["reply"], "faq"
 
-    faq_reply = _faq_match(user_text)
+    faq_reply = _faq_match(user_text, locale_data)
     if faq_reply:
         return faq_reply, "faq"
 
     # Complex lane for open ended questions.
     # Intentionally ignore history so the provider answers only the latest user input.
     _ = history
-    messages: list[dict] = [{"role": "system", "content": SYSTEM_PROMPT}]
+    messages: list[dict[str, str]] = [{"role": "system", "content": _system_prompt_for_locale(locale_data)}]
     messages.append({"role": "user", "content": message})
 
     try:
@@ -197,14 +120,10 @@ async def route_query(message: str, history: list[dict]) -> tuple[str, str]:
             max_tokens=500,
         )
     except Exception:
-        return (
-            "I could not reach the AI assistant right now. Please try again in a moment. "
-            "If this keeps happening, contact the pharmacy.",
-            "reka",
-        )
+        return locale_data["fallbacks"]["ai_unavailable"], "reka"
 
     reply = (response.choices[0].message.content or "").strip()
     if not reply:
-        reply = "I could not generate a response right now. Please try again or contact the pharmacy."
+        reply = locale_data["fallbacks"]["empty_reply"]
 
     return reply, "reka"
