@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import chatbot
+from app.routers import chatbot, medication_verification
 
 
 app = FastAPI(title="Pilly Chatbot API")
@@ -15,3 +15,4 @@ app.add_middleware(
 )
 
 app.include_router(chatbot.router, prefix="/api", tags=["chatbot"])
+app.include_router(medication_verification.router, prefix="/api", tags=["medication-verification"])

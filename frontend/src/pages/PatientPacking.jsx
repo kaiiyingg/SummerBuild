@@ -1,10 +1,36 @@
-import { useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { PATIENT_DETAILS } from "../data/patientData";
 import "./PatientPacking.css";
 
+/* Pilly-logo loading overlay shown during AI verification */
+function VerifyingOverlay() {
+  return (
+    <div className="verifying-overlay" role="status" aria-label="Verifying medication">
+      <div className="verifying-card">
+        <div className="verifying-logo-wrap">
+          <div className="verifying-ring-outer" aria-hidden="true" />
+          <div className="verifying-ring" aria-hidden="true" />
+          <div className="verifying-logo-inner" aria-hidden="true">
+            <PillyLogo size={88} showName={false} />
+          </div>
+        </div>
+        <p className="verifying-text">
+          Verifying<span className="verifying-dots" aria-hidden="true" />
+        </p>
+      </div>
+    </div>
+  );
+}
+
 function maskNric(nric) {
   return `${nric[0]}****${nric.slice(-4)}`;
+}
+
+function formatImageType(type) {
+  if (type === "packaged") return "Packaged medication";
+  if (type === "loose") return "Loose pills";
+  return "Unclear image";
 }
 
 function PatientPacking() {
@@ -15,6 +41,7 @@ function PatientPacking() {
   const [holdOpen,      setHoldOpen]      = useState(false);
   const [holdReason,    setHoldReason]    = useState("");
   const [incompleteOpen,setIncompleteOpen]= useState(false);
+  const [verifying,     setVerifying]     = useState(false);
   const [verifiedMeds, setVerifiedMeds] = useState(() => {
     const saved = localStorage.getItem(`verified-meds-${patientId}`);
 
@@ -35,6 +62,217 @@ function PatientPacking() {
     });
 
   const patient = PATIENT_DETAILS.find((p) => p.id === patientId);
+  const identityPreviewUrl = useMemo(
+    () => (identityImage ? URL.createObjectURL(identityImage) : ""),
+    [identityImage]
+  );
+  const quantityPreviewUrl = useMemo(
+    () => (quantityImage ? URL.createObjectURL(quantityImage) : ""),
+    [quantityImage]
+  );
+
+  useEffect(() => {
+    return () => {
+      if (identityPreviewUrl) {
+        URL.revokeObjectURL(identityPreviewUrl);
+      }
+    };
+  }, [identityPreviewUrl]);
+
+  useEffect(() => {
+    return () => {
+      if (quantityPreviewUrl) {
+        URL.revokeObjectURL(quantityPreviewUrl);
+      }
+    };
+  }, [quantityPreviewUrl]);
+
+  useEffect(() => {
+    if (cameraVideoRef.current && cameraStream) {
+      cameraVideoRef.current.srcObject = cameraStream;
+    }
+  }, [cameraStream]);
+
+  useEffect(() => {
+    return () => {
+      cameraStream?.getTracks().forEach((track) => track.stop());
+    };
+  }, [cameraStream]);
+
+  const resetScanner = () => {
+    closeCamera();
+    setScannerOpen(false);
+    setIdentityImage(null);
+    setQuantityImage(null);
+    setVerificationResult(null);
+    setVerificationError("");
+    setVerifying(false);
+  };
+
+  const openScanner = (med) => {
+    setSelectedMed(med);
+    setIdentityImage(null);
+    setQuantityImage(null);
+    setVerificationResult(null);
+    setVerificationError("");
+    setScannerOpen(true);
+  };
+
+  const closeCamera = () => {
+    cameraStream?.getTracks().forEach((track) => track.stop());
+    setCameraStream(null);
+    setCameraTarget(null);
+    setCameraError("");
+  };
+
+  const openCamera = async (target) => {
+    setCameraError("");
+    setVerificationResult(null);
+    setVerificationError("");
+
+    try {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        throw new Error("Camera access is not available in this browser.");
+      }
+
+      cameraStream?.getTracks().forEach((track) => track.stop());
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "environment" },
+        audio: false,
+      });
+      setCameraTarget(target);
+      setCameraStream(stream);
+    } catch (error) {
+      setCameraError(
+        error instanceof Error
+          ? error.message
+          : "Unable to open the camera. Please allow camera access and try again."
+      );
+    }
+  };
+
+  const captureCameraImage = () => {
+    const video = cameraVideoRef.current;
+    if (!video || !cameraTarget) return;
+
+    const canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth || 1280;
+    canvas.height = video.videoHeight || 720;
+
+    const context = canvas.getContext("2d");
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    canvas.toBlob((blob) => {
+      if (!blob) {
+        setCameraError("Unable to capture a camera image. Please try again.");
+        return;
+      }
+
+      const filename =
+        cameraTarget === "identity"
+          ? "identity-camera-capture.jpg"
+          : "quantity-camera-capture.jpg";
+      const file = new File([blob], filename, { type: "image/jpeg" });
+
+      if (cameraTarget === "identity") {
+        setIdentityImage(file);
+      } else {
+        setQuantityImage(file);
+      }
+
+      setVerificationResult(null);
+      setVerificationError("");
+      closeCamera();
+    }, "image/jpeg", 0.92);
+  };
+
+  const handleImageChange = (event, setter) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+
+    if (!file) return;
+
+    setter(file);
+    setVerificationResult(null);
+    setVerificationError("");
+  };
+
+  const useIdentityImageForQuantity = () => {
+    if (!identityImage) return;
+    setQuantityImage(identityImage);
+    setVerificationResult(null);
+    setVerificationError("");
+  };
+
+  const analyzeMedicationImage = async () => {
+    if (!quantityImage || !selectedMed) return;
+
+    setVerifying(true);
+    setVerificationError("");
+    setVerificationResult(null);
+
+    const formData = new FormData();
+    formData.append("image", quantityImage);
+    if (identityImage) {
+      formData.append("identity_image", identityImage);
+    }
+    formData.append("expected_medication", selectedMed.name);
+    formData.append("expected_quantity", String(selectedMed.quantity));
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/verify-medication-image`, {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        let detail = "";
+        try {
+          const errorData = await response.json();
+          detail = errorData.detail || "";
+        } catch {
+          // Fall back to the status message below.
+        }
+        throw new Error(detail || `Verification failed with status ${response.status}`);
+      }
+
+      const data = await response.json();
+      setVerificationResult(data);
+    } catch (error) {
+      setVerificationError(
+        error instanceof Error
+          ? error.message
+          : "Unable to verify this medication image right now."
+      );
+    } finally {
+      setVerifying(false);
+    }
+  };
+
+  const confirmMedicationVerification = () => {
+    if (!selectedMed || !patient) return;
+
+    const updatedVerifiedMeds = {
+      ...verifiedMeds,
+      [selectedMed.id]: true,
+    };
+
+    setVerifiedMeds(updatedVerifiedMeds);
+    localStorage.setItem(
+      `verified-meds-${patient.id}`,
+      JSON.stringify(updatedVerifiedMeds)
+    );
+
+    const allVerified = patient.medications.every(
+      (med) => updatedVerifiedMeds[med.id]
+    );
+
+    if (allVerified) {
+      localStorage.setItem(`patient-status-${patient.id}`, "ready");
+    }
+
+    resetScanner();
+  };
 
   if (!patient) {
     return (
@@ -98,10 +336,7 @@ function PatientPacking() {
                     ) : (
                         <button
                         className="pack-ai-row-btn"
-                        onClick={() => {
-                            setSelectedMed(med);
-                            setScannerOpen(true);
-                        }}
+                        onClick={() => openScanner(med)}
                         >
                         Verify
                         </button>
@@ -155,12 +390,12 @@ function PatientPacking() {
       {scannerOpen && (
         <div
           className="scanner-modal-overlay"
-          onClick={() => setScannerOpen(false)}
+          onClick={resetScanner}
         >
           <div className="scanner-modal" onClick={(e) => e.stopPropagation()}>
             <button
               className="scanner-close"
-              onClick={() => setScannerOpen(false)}
+              onClick={resetScanner}
             >
               ×
             </button>
@@ -189,13 +424,217 @@ function PatientPacking() {
                 </div>
                 </div>
 
-                <div className="scanner-preview">
-                Camera Preview
+                <p className="scanner-instruction">
+                Verify medication label and count quantity.
+                </p>
+
+                <div className="verification-capture-grid">
+                <section className="verification-capture-card">
+                    <div>
+                    <span className="scanner-label">Pill Label</span>
+                    </div>
+                    <div className={`scanner-preview compact ${identityPreviewUrl ? "has-image" : ""}`}>
+                    {identityPreviewUrl ? (
+                        <img src={identityPreviewUrl} alt="Medication identity evidence preview" />
+                    ) : (
+                        <span>Label Photo</span>
+                    )}
+                    </div>
+                    <div className="scanner-upload-actions">
+                    <button
+                        type="button"
+                        className="scanner-upload-btn"
+                        onClick={() => openCamera("identity")}
+                    >
+                        Camera
+                    </button>
+                    <label className="scanner-upload-btn secondary">
+                        Upload
+                        <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(event) => handleImageChange(event, setIdentityImage)}
+                        />
+                    </label>
+                    </div>
+                </section>
+
+                <section className="verification-capture-card">
+                    <div>
+                    <span className="scanner-label">Quantity Count</span>
+                    </div>
+                    <div className={`scanner-preview compact ${quantityPreviewUrl ? "has-image" : ""}`}>
+                    {quantityPreviewUrl ? (
+                        <img src={quantityPreviewUrl} alt="Medication quantity preview" />
+                    ) : (
+                        <span>Quantity Photo</span>
+                    )}
+                    </div>
+                    <div className="scanner-upload-actions">
+                    <button
+                        type="button"
+                        className="scanner-upload-btn"
+                        onClick={() => openCamera("quantity")}
+                    >
+                        Camera
+                    </button>
+                    <label className="scanner-upload-btn secondary">
+                        Upload
+                        <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(event) => handleImageChange(event, setQuantityImage)}
+                        />
+                    </label>
+                    </div>
+                    <button
+                    type="button"
+                    className="use-same-photo-btn"
+                    disabled={!identityImage}
+                    onClick={useIdentityImageForQuantity}
+                    >
+                    Reuse photo
+                    </button>
+                </section>
                 </div>
 
-                <p className="scanner-instruction">
-                Scan the medication packaging for AI verification.
-                </p>
+                {(cameraStream || cameraError) && (
+                <section className="camera-panel" aria-label="Camera capture">
+                    <div className="camera-panel-head">
+                    <div>
+                        <span className="scanner-label">Live Camera</span>
+                        <strong>
+                        {cameraTarget === "identity" ? "Pill Label" : "Quantity Count"}
+                        </strong>
+                    </div>
+                    <button type="button" onClick={closeCamera}>
+                        Close
+                    </button>
+                    </div>
+
+                    {cameraError ? (
+                    <div className="verification-error" role="alert">
+                        {cameraError}
+                    </div>
+                    ) : (
+                    <>
+                        <video
+                        ref={cameraVideoRef}
+                        className="camera-video"
+                        autoPlay
+                        playsInline
+                        muted
+                        />
+                        <button
+                        type="button"
+                        className="scanner-confirm camera-capture-btn"
+                        onClick={captureCameraImage}
+                        >
+                        Capture Photo
+                        </button>
+                    </>
+                    )}
+                </section>
+                )}
+
+                {verificationError && (
+                <div className="verification-error" role="alert">
+                    {verificationError}
+                </div>
+                )}
+
+                {verificationResult && (
+                <section className="verification-result" aria-label="AI verification result">
+                    <div className="verification-result-head">
+                    <div>
+                        <span className="scanner-label">Reka AI Result</span>
+                        <strong>{formatImageType(verificationResult.image_type)}</strong>
+                    </div>
+                      <span
+                        className={
+                        verificationResult.medication_match && verificationResult.quantity_match
+                            ? "verification-status match"
+                            : "verification-status review"
+                        }
+                    >
+                        {verificationResult.medication_match && verificationResult.quantity_match
+                        ? "Match"
+                        : "Needs review"}
+                    </span>
+                    </div>
+
+                    <div className="verification-grid">
+                    <div>
+                        <span className="scanner-label">Identity Check</span>
+                        <strong>
+                        {verificationResult.medication_match ? "Verified" : "Not verified"}
+                        </strong>
+                    </div>
+                    <div>
+                        <span className="scanner-label">Quantity Check</span>
+                        <strong>
+                        {verificationResult.quantity_match ? "Matches" : "Mismatch / unclear"}
+                        </strong>
+                    </div>
+                    <div>
+                        <span className="scanner-label">Detected Medication</span>
+                        <strong>{verificationResult.detected_medication || "Not detected"}</strong>
+                    </div>
+                    <div>
+                        <span className="scanner-label">Strength</span>
+                        <strong>{verificationResult.detected_strength || "Not visible"}</strong>
+                    </div>
+                    <div>
+                        <span className="scanner-label">Detected Quantity</span>
+                        <strong>{verificationResult.detected_quantity ?? "Unclear"}</strong>
+                    </div>
+                    <div>
+                        <span className="scanner-label">Count Confidence</span>
+                        <strong>{Math.round((verificationResult.quantity_confidence ?? 0) * 100)}%</strong>
+                    </div>
+                    </div>
+
+                    {(verificationResult.identity_evidence || verificationResult.quantity_evidence) && (
+                    <div className="verification-evidence">
+                        {verificationResult.identity_evidence && (
+                        <p>
+                            <span>Identity evidence:</span> {verificationResult.identity_evidence}
+                        </p>
+                        )}
+                        {verificationResult.quantity_evidence && (
+                        <p>
+                            <span>Quantity evidence:</span> {verificationResult.quantity_evidence}
+                        </p>
+                        )}
+                    </div>
+                    )}
+
+                    {verificationResult.notes && (
+                    <p className="verification-notes">{verificationResult.notes}</p>
+                    )}
+                </section>
+                )}
+
+                <button
+                  className="scanner-confirm"
+                  disabled={verifying || !quantityImage}
+                  onClick={analyzeMedicationImage}
+                >
+                  {verifying ? "Analyzing Image..." : "Analyze with Reka AI"}
+                </button>
+
+                {verificationResult && (
+                <button
+                    className="scanner-confirm pharmacist-confirm"
+                    disabled={
+                    !verificationResult.medication_match ||
+                    !verificationResult.quantity_match
+                    }
+                    onClick={confirmMedicationVerification}
+                >
+                    Confirm Verification
+                </button>
+                )}
 
                 <label className="manual-select-label">
                 Unable to perform AI verification?
@@ -214,33 +653,34 @@ function PatientPacking() {
                 </label>
 
                 <button
-                    className="scanner-confirm"
-                    onClick={() => {
-                        const updatedVerifiedMeds = {
+                  className="scanner-confirm"
+                  disabled={verifying}
+                  onClick={() => {
+                    setScannerOpen(false);
+                    setVerifying(true);
+
+                    setTimeout(() => {
+                      const updatedVerifiedMeds = {
                         ...verifiedMeds,
                         [selectedMed.id]: true,
-                        };
-
-                        setVerifiedMeds(updatedVerifiedMeds);
-
-                        localStorage.setItem(
+                      };
+                      setVerifiedMeds(updatedVerifiedMeds);
+                      localStorage.setItem(
                         `verified-meds-${patient.id}`,
                         JSON.stringify(updatedVerifiedMeds)
-                        );
-
-                        const allVerified = patient.medications.every(
+                      );
+                      const allVerified = patient.medications.every(
                         (med) => updatedVerifiedMeds[med.id]
-                        );
-
-                        if (allVerified) {
+                      );
+                      if (allVerified) {
                         localStorage.setItem(`patient-status-${patient.id}`, "ready");
-                        }
-
-                        setScannerOpen(false);
-                    }}
-                    >
-                    Verify Medication
-                    </button>
+                      }
+                      setVerifying(false);
+                    }, 1800);
+                  }}
+                >
+                  Verify Medication
+                </button>
           </div>
         </div>
       )}
