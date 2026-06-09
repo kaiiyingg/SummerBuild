@@ -1,6 +1,7 @@
 export const PATIENT_DETAILS = [
   {
     id: "P001",
+    queueNo: "A127",
     name: "Tan Wei Ming",
     nric: "S1234567A",
     urgency: "A",
@@ -12,8 +13,10 @@ export const PATIENT_DETAILS = [
       { id: 4, name: "Omeprazole 20mg", quantity: 7 },
     ],
   },
+
   {
     id: "P002",
+    queueNo: "B291",
     name: "Siti Rahmah",
     nric: "T2345678B",
     urgency: "B",
@@ -23,8 +26,10 @@ export const PATIENT_DETAILS = [
       { id: 2, name: "Amlodipine 5mg", quantity: 14 },
     ],
   },
+
   {
     id: "P003",
+    queueNo: "A342",
     name: "David Lim",
     nric: "S3456789C",
     urgency: "A",
@@ -38,8 +43,10 @@ export const PATIENT_DETAILS = [
       { id: 6, name: "Loratadine 10mg", quantity: 10 },
     ],
   },
+
   {
     id: "P004",
+    queueNo: "C103",
     name: "Priya Nair",
     nric: "T4567890D",
     urgency: "C",
@@ -48,8 +55,10 @@ export const PATIENT_DETAILS = [
       { id: 1, name: "Salbutamol Inhaler", quantity: 1 },
     ],
   },
+
   {
     id: "P005",
+    queueNo: "B667",
     name: "Mohammad Faiz",
     nric: "S5678901E",
     urgency: "B",
@@ -60,8 +69,10 @@ export const PATIENT_DETAILS = [
       { id: 3, name: "Pantoprazole 40mg", quantity: 14 },
     ],
   },
+
   {
     id: "P006",
+    queueNo: "A518",
     name: "Chen Li Hua",
     nric: "T6789012F",
     urgency: "A",
@@ -74,8 +85,10 @@ export const PATIENT_DETAILS = [
       { id: 5, name: "Famotidine 20mg", quantity: 10 },
     ],
   },
+
   {
     id: "P007",
+    queueNo: "C745",
     name: "Kavitha Raj",
     nric: "S7890123G",
     urgency: "C",
@@ -85,8 +98,10 @@ export const PATIENT_DETAILS = [
       { id: 2, name: "Melatonin 3mg", quantity: 10 },
     ],
   },
+
   {
     id: "P008",
+    queueNo: "B184",
     name: "James Tan",
     nric: "T8901234H",
     urgency: "B",
