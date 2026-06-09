@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { LogOut, ChevronDown, ChevronUp, Bell, BellRing, AlertTriangle } from "lucide-react";
+import { useTranslation, LANGUAGES } from "../../context/LanguageContext";
 
 const C = {
   teal:        "#45C5BC",
@@ -12,15 +13,6 @@ const C = {
   amber:       "#F59E0B",
   red:         "#EF4444",
 };
-
-type Language = "English" | "中文" | "தமிழ்" | "Melayu";
-
-const languageOptions: { code: Language; label: string }[] = [
-  { code: "English", label: "English" },
-  { code: "中文",    label: "中文" },
-  { code: "தமிழ்", label: "தமிழ்" },
-  { code: "Melayu",  label: "Bahasa Melayu" },
-];
 
 const pastVisits = [
   { id: 1, date: "28 May 2026", meds: ["Metformin 500mg", "Lisinopril 10mg", "Aspirin 100mg"] },
@@ -38,9 +30,8 @@ function Toggle({ on, onToggle }: { on: boolean; onToggle: () => void }) {
   );
 }
 
-export function ProfileScreen({ language, onLanguageChange, onLogout }: {
-  language: string; onLanguageChange: (lang: string) => void; onLogout: () => void;
-}) {
+export function ProfileScreen({ onLogout }: { onLogout: () => void }) {
+  const { language, setLanguage, t } = useTranslation();
   const [notifs,        setNotifs]        = useState({ queue: true, reminders: true, delays: false });
   const [expandedVisit, setExpandedVisit] = useState<number | null>(null);
   const toggleNotif = (key: keyof typeof notifs) => setNotifs((n) => ({ ...n, [key]: !n[key] }));
@@ -70,16 +61,16 @@ export function ProfileScreen({ language, onLanguageChange, onLogout }: {
 
       {/* Language preference */}
       <div className="bg-white rounded-2xl p-5" style={{ border: `1px solid ${C.border}` }}>
-        <SectionLabel text="Language Preference" />
+        <SectionLabel text={t('profile.languagePreference')} />
         <div className="space-y-1">
-          {languageOptions.map((opt) => {
+          {LANGUAGES.map((opt) => {
             const active = language === opt.code;
             return (
-              <button key={opt.code} onClick={() => onLanguageChange(opt.code)}
+              <button key={opt.code} onClick={() => setLanguage(opt.code)}
                 className="w-full flex items-center gap-3 px-3 py-3.5 rounded-xl transition-colors"
                 style={{ background: active ? C.tealLight : "transparent" }}>
                 <span style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "16px", color: C.textPrimary, flex: 1, textAlign: "left" }}>
-                  {opt.label}
+                  {opt.nativeLabel}
                 </span>
                 <div className="w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0"
                   style={{ borderColor: active ? C.teal : C.border }}>
@@ -93,12 +84,12 @@ export function ProfileScreen({ language, onLanguageChange, onLogout }: {
 
       {/* Notification settings */}
       <div className="bg-white rounded-2xl p-5" style={{ border: `1px solid ${C.border}` }}>
-        <SectionLabel text="Notification Settings" />
+        <SectionLabel text={t('profile.notifications')} />
         <div className="space-y-5">
           {[
-            { key: "queue"     as const, icon: <Bell size={18} color={C.teal} />,           label: "Queue updates",        desc: "When your number is called" },
-            { key: "reminders" as const, icon: <BellRing size={18} color={C.teal} />,       label: "Medication reminders", desc: "Daily dose reminders" },
-            { key: "delays"    as const, icon: <AlertTriangle size={18} color={C.amber} />, label: "Delays & alerts",      desc: "If your medication is delayed" },
+            { key: "queue"     as const, icon: <Bell size={18} color={C.teal} />,           label: t('profile.notifyQueueUpdates'),     desc: "When your number is called" },
+            { key: "reminders" as const, icon: <BellRing size={18} color={C.teal} />,       label: t('profile.notifyMedicationReminder'), desc: "Daily dose reminders" },
+            { key: "delays"    as const, icon: <AlertTriangle size={18} color={C.amber} />, label: "Delays & alerts",                   desc: "If your medication is delayed" },
           ].map((item) => (
             <div key={item.key} className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-full flex items-center justify-center shrink-0" style={{ background: C.bg }}>
@@ -145,7 +136,7 @@ export function ProfileScreen({ language, onLanguageChange, onLogout }: {
       <button onClick={onLogout}
         className="w-full flex items-center justify-center gap-2 py-3 rounded-xl hover:opacity-80 transition-opacity"
         style={{ border: `1.5px solid ${C.red}`, color: C.red, background: "white", fontFamily: "'DM Sans', sans-serif", fontSize: "16px", fontWeight: 600, height: "52px" }}>
-        <LogOut size={18} />Log Out
+        <LogOut size={18} />{t('profile.logout')}
       </button>
 
     </div>

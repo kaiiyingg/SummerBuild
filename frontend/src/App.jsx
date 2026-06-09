@@ -6,6 +6,7 @@ import Assistant from "./pages/Assistant";
 import PharmacistDashboard from "./pages/PharmacistDashboard";
 import PatientPacking from "./pages/PatientPacking";
 import PatientApp from "./pages/PatientApp";
+import { LanguageProvider } from "./context/LanguageContext";
 
 function WithHeader({ children }) {
   return (
@@ -21,7 +22,7 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Login />} />
-        <Route path="/patient/app" element={<PatientApp />} />
+        <Route path="/patient/app" element={<LanguageProvider><PatientApp /></LanguageProvider>} />
         <Route
           path="/pharmacist/dashboard"
           element={

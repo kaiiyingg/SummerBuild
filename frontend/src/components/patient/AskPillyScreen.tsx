@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Mic, Send, Pill } from "lucide-react";
+import { useTranslation } from "../../context/LanguageContext";
 
 const C = {
   teal: "#45C5BC",
@@ -16,32 +17,32 @@ type Message = { id: number; role: "bot" | "user"; text: string; time: string };
 type ChatApiResponse = { reply: string; source: "faq" | "redirect" | "reka" };
 
 const GREETING_REPLIES: Record<string, string> = {
-  English:
+  en:
     "Hello Mdm. Tan! I'm Pilly, your hospital pharmacy assistant. I can help with medication usage, dosage guidance, side effects, interactions, storage, and pharmacy services like queue, collection, and opening hours. How can I help you today?",
-  "中文":
+  zh:
     "您好，陈女士！我是 Pilly，您的医院药房助手。我可以协助您了解用药方式、剂量建议、副作用、药物相互作用、储存方式，以及排队、取药和营业时间等药房服务。请问今天我可以怎么帮助您？",
-  "தமிழ்":
+  ta:
     "வணக்கம் டான் மேடம்! நான் உங்கள் மருத்துவமனை மருந்தக உதவியாளர் Pilly. மருந்து பயன்படுத்தும் முறை, அளவு வழிகாட்டல், பக்கவிளைவுகள், மருந்துகள் இடையிலான தொடர்புகள், சேமிப்பு, மேலும் வரிசை, பெறுதல், திறப்பு நேரம் போன்ற சேவைகளில் உதவ முடியும். இன்று உங்களுக்கு என்ன உதவி வேண்டும்?",
-  Melayu:
+  ms:
     "Hai Puan Tan! Saya Pilly, pembantu farmasi hospital anda. Saya boleh bantu tentang penggunaan ubat, panduan dos, kesan sampingan, interaksi ubat, penyimpanan, serta perkhidmatan farmasi seperti giliran, pengambilan ubat, dan waktu operasi. Bagaimana saya boleh bantu anda hari ini?",
 };
 
 const GREETING_KEYWORDS: Record<string, string[]> = {
-  English: ["hi", "hello", "hey", "good morning", "good afternoon", "good evening"],
-  "中文": ["你好", "您好", "哈喽", "嗨", "早上好", "下午好", "晚上好"],
-  "தமிழ்": ["வணக்கம்", "ஹலோ", "ஹாய்", "காலை வணக்கம்", "மதிய வணக்கம்", "மாலை வணக்கம்"],
-  Melayu: ["hai", "helo", "hello", "selamat pagi", "selamat tengah hari", "selamat petang", "selamat malam"],
+  en: ["hi", "hello", "hey", "good morning", "good afternoon", "good evening"],
+  zh: ["你好", "您好", "哈喽", "嗨", "早上好", "下午好", "晚上好"],
+  ta: ["வணக்கம்", "ஹலோ", "ஹாய்", "காலை வணக்கம்", "மதிய வணக்கம்", "மாலை வணக்கம்"],
+  ms: ["hai", "helo", "hello", "selamat pagi", "selamat tengah hari", "selamat petang", "selamat malam"],
 };
 
 const ENDING_REPLIES: Record<string, string> = {
-  English: "You're welcome. Glad I could help. If you need support later, just message me anytime.",
-  "中文": "不客气。很高兴帮到您。如果之后还需要帮助，随时发消息给我。",
-  "தமிழ்": "பரவாயில்லை. உதவியதில் மகிழ்ச்சி. பிறகு உதவி தேவைப்பட்டால் எப்போது வேண்டுமானாலும் எனக்கு எழுதுங்கள்.",
-  Melayu: "Sama-sama. Gembira dapat membantu. Jika perlukan bantuan lagi nanti, mesej saya pada bila-bila masa.",
+  en: "You're welcome. Glad I could help. If you need support later, just message me anytime.",
+  zh: "不客气。很高兴帮到您。如果之后还需要帮助，随时发消息给我。",
+  ta: "பரவாயில்லை. உதவியதில் மகிழ்ச்சி. பிறகு உதவி தேவைப்பட்டால் எப்போது வேண்டுமானாலும் எனக்கு எழுதுங்கள்.",
+  ms: "Sama-sama. Gembira dapat membantu. Jika perlukan bantuan lagi nanti, mesej saya pada bila-bila masa.",
 };
 
 const ENDING_KEYWORDS: Record<string, string[]> = {
-  English: [
+  en: [
     "thanks",
     "thank you",
     "thx",
@@ -63,15 +64,23 @@ const ENDING_KEYWORDS: Record<string, string[]> = {
     "im done",
     "i'm done",
   ],
-  "中文": ["谢谢", "多谢", "感谢", "再见", "拜拜", "就这样", "没有了", "没问题了", "明白了", "知道了"],
-  "தமிழ்": ["நன்றி", "மிக்க நன்றி", "பை", "பிரியாவிடை", "அவ்வளவுதான்", "வேறு கேள்வி இல்லை", "புரிந்தது", "இப்போதைக்கு போதும்"],
-  Melayu: ["terima kasih", "bye", "selamat tinggal", "jumpa lagi", "itu sahaja", "tiada soalan lagi", "faham", "sudah cukup", "dah settle"],
+  zh: ["谢谢", "多谢", "感谢", "再见", "拜拜", "就这样", "没有了", "没问题了", "明白了", "知道了"],
+  ta: ["நன்றி", "மிக்க நன்றி", "பை", "பிரியாவிடை", "அவ்வளவுதான்", "வேறு கேள்வி இல்லை", "புரிந்தது", "இப்போதைக்கு போதும்"],
+  ms: ["terima kasih", "bye", "selamat tinggal", "jumpa lagi", "itu sahaja", "tiada soalan lagi", "faham", "sudah cukup", "dah settle"],
 };
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000";
-const DEFAULT_LANGUAGE = "English";
+const DEFAULT_LANGUAGE = "en";
 
-const faqChips = [
+const FAQ_CHIP_KEYS = [
+  "chat.suggestionOne",
+  "chat.suggestionTwo",
+  "chat.suggestionThree",
+  null,
+  null,
+] as const;
+
+const FAQ_CHIP_FALLBACKS = [
   "What is my queue status?",
   "Where can I see my medication list?",
   "How do I set medication reminders?",
@@ -139,7 +148,8 @@ function renderBotFormattedText(rawText: string) {
   );
 }
 
-export function AskPillyScreen({ language }: { language: string }) {
+export function AskPillyScreen() {
+  const { language, t } = useTranslation();
   const greetingForLanguage = GREETING_REPLIES[language] ?? GREETING_REPLIES[DEFAULT_LANGUAGE];
   const endingForLanguage = ENDING_REPLIES[language] ?? ENDING_REPLIES[DEFAULT_LANGUAGE];
 
@@ -241,7 +251,7 @@ export function AskPillyScreen({ language }: { language: string }) {
       `}</style>
       <div className="px-4 pt-5 pb-3 shrink-0">
         <h1 style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "22px", fontWeight: 700, color: C.textPrimary }}>
-          Ask Pilly
+          {t('chat.title')}
         </h1>
         <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "14px", color: C.textSecond }}>
           Powered by Reka AI
@@ -250,24 +260,27 @@ export function AskPillyScreen({ language }: { language: string }) {
 
       <div className="px-4 pb-3 shrink-0">
         <div className="flex gap-2 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
-          {faqChips.map((chip) => (
-            <button
-              key={chip}
-              onClick={() => sendMessage(chip)}
-              className="shrink-0 px-4 py-2 rounded-full hover:opacity-80 transition-opacity"
-              style={{
-                background: C.tealLight,
-                color: C.teal,
-                fontFamily: "'Open Sans', sans-serif",
-                fontSize: "14px",
-                fontWeight: 600,
-                whiteSpace: "nowrap",
-                border: `1px solid ${C.teal}25`,
-              }}
-            >
-              {chip}
-            </button>
-          ))}
+          {FAQ_CHIP_FALLBACKS.map((fallback, i) => {
+            const label = FAQ_CHIP_KEYS[i] ? t(FAQ_CHIP_KEYS[i] as string) : fallback;
+            return (
+              <button
+                key={i}
+                onClick={() => sendMessage(label)}
+                className="shrink-0 px-4 py-2 rounded-full hover:opacity-80 transition-opacity"
+                style={{
+                  background: C.tealLight,
+                  color: C.teal,
+                  fontFamily: "'Open Sans', sans-serif",
+                  fontSize: "14px",
+                  fontWeight: 600,
+                  whiteSpace: "nowrap",
+                  border: `1px solid ${C.teal}25`,
+                }}
+              >
+                {label}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -352,7 +365,7 @@ export function AskPillyScreen({ language }: { language: string }) {
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && sendMessage(inputText)}
-              placeholder="Ask about your medication..."
+              placeholder={t('chat.placeholder')}
               className="flex-1 bg-transparent outline-none"
               style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "15px", color: C.textPrimary }}
             />

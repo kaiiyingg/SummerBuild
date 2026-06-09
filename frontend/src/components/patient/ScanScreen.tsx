@@ -1,5 +1,6 @@
 import { useRef } from "react";
 import { Camera, Upload, Search, FileText, Volume2 } from "lucide-react";
+import { useTranslation } from "../../context/LanguageContext";
 
 const C = {
   teal:        "#45C5BC",
@@ -13,21 +14,22 @@ const C = {
   border:      "#E2E8F0",
 };
 
-const features = [
-  { icon: <Search size={20} color={C.teal} />,   title: "Identify Pills",               desc: "Snap a photo to identify any medication instantly" },
-  { icon: <FileText size={20} color={C.teal} />, title: "Translated Instructions",       desc: "Get instructions in your preferred language" },
-  { icon: <Volume2 size={20} color={C.teal} />,  title: "Text-to-Speech",               desc: "Have instructions read aloud to you" },
-];
-
 export function ScanScreen() {
+  const { t } = useTranslation();
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const uploadInputRef = useRef<HTMLInputElement>(null);
+
+  const features = [
+    { icon: <Search size={20} color={C.teal} />,   title: t('medications.featureIdentifyTitle'),   desc: t('medications.featureIdentifyDesc')   },
+    { icon: <FileText size={20} color={C.teal} />, title: t('medications.featureTranslateTitle'),  desc: t('medications.featureTranslateDesc')  },
+    { icon: <Volume2 size={20} color={C.teal} />,  title: t('medications.featureTtsTitle'),         desc: t('medications.featureTtsDesc')         },
+  ];
 
   return (
     <div className="p-4 md:p-6 space-y-5 overflow-y-auto h-full pb-6 max-w-2xl mx-auto w-full">
 
       <h1 style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "22px", fontWeight: 700, color: C.textPrimary }}>
-        Scan Medication
+        {t('medications.scanTitle')}
       </h1>
 
       {/* Hero scan card */}
@@ -36,10 +38,10 @@ export function ScanScreen() {
           <Camera size={36} color={C.teal} />
         </div>
         <h2 style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "20px", fontWeight: 700, color: C.textPrimary, marginBottom: "8px" }}>
-          Scan Medication Label
+          {t('medications.scanTitle')}
         </h2>
         <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "15px", color: C.textSecond, marginBottom: "24px" }}>
-          Tap to open camera or upload a photo
+          {t('medications.tapToScan')}
         </p>
 
         <div className="flex gap-3 w-full">
@@ -50,7 +52,7 @@ export function ScanScreen() {
             style={{ background: C.muted, border: `1.5px solid ${C.border}`, color: C.textPrimary, fontFamily: "'DM Sans', sans-serif", fontSize: "15px", fontWeight: 600 }}
           >
             <Camera size={18} color={C.textSecond} />
-            Open Camera
+            {t('medications.openCamera')}
           </button>
           <input
             ref={cameraInputRef}
@@ -67,7 +69,7 @@ export function ScanScreen() {
             style={{ background: C.muted, border: `1.5px solid ${C.border}`, color: C.textPrimary, fontFamily: "'DM Sans', sans-serif", fontSize: "15px", fontWeight: 600 }}
           >
             <Upload size={18} color={C.textSecond} />
-            Upload Photo
+            {t('medications.uploadPhoto')}
           </button>
           <input
             ref={uploadInputRef}
@@ -81,7 +83,7 @@ export function ScanScreen() {
       {/* Features */}
       <div>
         <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "12px", fontWeight: 700, color: C.textDisabled, letterSpacing: "1px", textTransform: "uppercase", marginBottom: "12px" }}>
-          What you can do
+          {t('medications.whatYouCanDo')}
         </p>
         <div className="space-y-3">
           {features.map((f) => (
@@ -108,14 +110,14 @@ export function ScanScreen() {
           <div className="flex items-center gap-2 mb-3">
             <Camera size={15} color={C.textSecond} />
             <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "15px", fontWeight: 600, color: C.textPrimary }}>
-              Tips for Open Camera
+              {t('medications.tipsCameraTitle')}
             </p>
           </div>
           {[
-            "Ensure good lighting when scanning",
-            "Hold camera steady over the label",
-            "Scan the full label including dosage information",
-            "Keep the label flat and free of folds or shadows",
+            t('medications.tipCamera1'),
+            t('medications.tipCamera2'),
+            t('medications.tipCamera3'),
+            t('medications.tipCamera4'),
           ].map((tip) => (
             <p key={tip} style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "14px", color: C.textSecond, marginBottom: "4px" }}>
               · {tip}
@@ -127,14 +129,14 @@ export function ScanScreen() {
           <div className="flex items-center gap-2 mb-3">
             <Upload size={15} color={C.textSecond} />
             <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "15px", fontWeight: 600, color: C.textPrimary }}>
-              Tips for Upload Photo
+              {t('medications.tipsUploadTitle')}
             </p>
           </div>
           {[
-            "Use a clear, well-lit photo taken close to the label",
-            "Ensure the full label is visible and not cropped",
-            "Avoid blurry or dark images for better accuracy",
-            "Supported formats: JPG, PNG (max 10MB)",
+            t('medications.tipUpload1'),
+            t('medications.tipUpload2'),
+            t('medications.tipUpload3'),
+            t('medications.tipUpload4'),
           ].map((tip) => (
             <p key={tip} style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "14px", color: C.textSecond, marginBottom: "4px" }}>
               · {tip}

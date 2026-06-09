@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Bell, Plus, X, Clock, ChevronDown, Check } from "lucide-react";
+import { useTranslation } from "../../context/LanguageContext";
 
 const C = {
   teal:        "#45C5BC",
@@ -288,6 +289,7 @@ function AddReminderSheet({ onClose, onAdd }: {
 }
 
 export function RemindersScreen() {
+  const { t } = useTranslation();
   const [reminders,    setReminders]    = useState(initialReminders);
   const [showAddSheet, setShowAddSheet] = useState(false);
 
@@ -304,7 +306,7 @@ export function RemindersScreen() {
 
       <div className="flex items-center justify-between">
         <h1 style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "22px", fontWeight: 700, color: C.textPrimary }}>
-          Reminders
+          {t('medications.reminderTitle')}
         </h1>
         <Bell size={20} color={C.teal} />
       </div>
@@ -338,7 +340,7 @@ export function RemindersScreen() {
             <button onClick={() => setShowAddSheet(true)}
               className="flex items-center gap-1.5 mx-auto hover:opacity-80 transition-opacity"
               style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "15px", color: C.teal, fontWeight: 600 }}>
-              <Plus size={16} />Add reminder
+              <Plus size={16} />{t('medications.addReminder')}
             </button>
           </div>
         </div>

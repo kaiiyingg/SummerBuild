@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Volume2, Camera, MessageCircle, Search, FileText, AlertTriangle, ChevronDown, ChevronUp } from "lucide-react";
+import { useTranslation } from "../../context/LanguageContext";
 
 const C = {
   teal:        "#45C5BC",
@@ -126,6 +127,7 @@ function MedCard({ med }: { med: typeof medications[number] }) {
 }
 
 export function MedicationsScreen({ onTabChange }: { onTabChange: (tab: string) => void }) {
+  const { t } = useTranslation();
   const overallStatus = getOverallStatus(medications);
   const cfg = OVERALL_STATUS_CONFIG[overallStatus];
 
@@ -171,7 +173,7 @@ export function MedicationsScreen({ onTabChange }: { onTabChange: (tab: string) 
             </div>
             <div className="flex-1">
               <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "16px", fontWeight: 700, color: "white", marginBottom: "6px" }}>
-                Scan Medication Label
+                {t('medications.scanTitle')}
               </p>
               <div className="space-y-1.5">
                 {[
@@ -203,7 +205,7 @@ export function MedicationsScreen({ onTabChange }: { onTabChange: (tab: string) 
             </div>
             <div className="flex-1">
               <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "16px", fontWeight: 700, color: C.textPrimary, marginBottom: "4px" }}>
-                Ask Pilly
+                {t('chat.title')}
               </p>
               <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "13px", color: C.textSecond, lineHeight: "1.6" }}>
                 Chat in your preferred language. Ask about your medications, side effects, dosage, upcoming appointments, or any health questions you have.

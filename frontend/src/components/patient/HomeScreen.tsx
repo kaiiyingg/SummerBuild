@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Clock, Users, Lock, AlertTriangle, X, Calendar, Bell, ChevronLeft, ChevronRight, Check, RefreshCw, MapPin, User, Hash } from "lucide-react";
+import { useTranslation } from "../../context/LanguageContext";
 
 const C = {
   teal:        "#45C5BC",
@@ -22,12 +23,13 @@ type QueueStatus   = "waiting" | "almost" | "now" | "done";
 
 // ── Header status badge (white pill on teal/green header) ──
 function HeaderBadge({ status }: { status: QueueStatus }) {
+  const { t } = useTranslation();
   const base: React.CSSProperties = {
     fontSize: "11px", fontWeight: 700, letterSpacing: "0.6px", textTransform: "uppercase",
     padding: "3px 12px", borderRadius: "999px", fontFamily: "'Open Sans', sans-serif",
     background: "rgba(255,255,255,0.25)", color: "white", border: "1px solid rgba(255,255,255,0.4)",
   };
-  if (status === "waiting")  return <span style={base}>Waiting</span>;
+  if (status === "waiting")  return <span style={base}>{t('queue.statusWaiting')}</span>;
   if (status === "almost")   return <span className="animate-pulse" style={{ ...base, background: C.amber, border: "none" }}>Almost Your Turn</span>;
   if (status === "done")     return <span style={{ ...base, background: "rgba(255,255,255,0.3)", border: "1px solid rgba(255,255,255,0.5)" }}>Completed</span>;
   return <span style={{ ...base, background: C.green, border: "none" }}>Now Serving</span>;
@@ -41,6 +43,7 @@ function QueueStrip({ myNumber, servingNumber, secPerTurn = 120 }: {
   servingNumber: number;
   secPerTurn?: number;
 }) {
+  const { t } = useTranslation();
   const start = Math.max(1, servingNumber - 2);
   const end   = myNumber + 3;
   const range: number[] = [];
@@ -71,7 +74,7 @@ function QueueStrip({ myNumber, servingNumber, secPerTurn = 120 }: {
           if (isPast) {
             circleBg = "#EEF2F7"; circleText = "#A8B5C3";
           } else if (isServing) {
-            circleBg = "#10B981"; circleText = "white"; topLabel = "NOW";
+            circleBg = "#10B981"; circleText = "white"; topLabel = t('common.now');
           } else if (isAhead) {
             circleBg = "#F1F5F9"; circleText = "#64748B"; circleBorder = "1px solid #CBD5E1";
           } else if (isMe) {
@@ -388,6 +391,7 @@ function ReRegisterSheet({ onClose }: { onClose: () => void }) {
 }
 
 export function HomeScreen({ onTabChange }: { onTabChange: (tab: string) => void }) {
+  const { t } = useTranslation();
   const [showMissedQueue,  setShowMissedQueue]  = useState(true);
   const [showReRegister,   setShowReRegister]   = useState(false);
   const [notifyToggle,     setNotifyToggle]     = useState(true);
@@ -421,7 +425,7 @@ export function HomeScreen({ onTabChange }: { onTabChange: (tab: string) => void
       {/* ── Page header ── */}
       <div className="flex items-center justify-between">
         <h1 style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "18px", fontWeight: 800, color: C.textPrimary, letterSpacing: "0.5px", textTransform: "uppercase" }}>
-          Live Queue Status
+          {t('home.yourQueueStatus')}
         </h1>
         <span style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "13px", color: C.textSecond }}>
           Updated {updatedTime}
@@ -450,7 +454,7 @@ export function HomeScreen({ onTabChange }: { onTabChange: (tab: string) => void
             ? C.green
             : `linear-gradient(90deg, ${C.teal} 0%, ${C.tealDark} 100%)` }}>
           <span style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "13px", fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase", color: "white" }}>
-            Registration Queue
+            {t('queue.registrationQueue')}
           </span>
           <HeaderBadge status={regQueue.status} />
         </div>
@@ -486,8 +490,8 @@ export function HomeScreen({ onTabChange }: { onTabChange: (tab: string) => void
               </div>
 
               <div className="flex gap-2 flex-wrap mb-4">
-                <InfoChip icon={<Clock size={15} color={C.textSecond} />} text={`Est. wait: ${regQueue.waitTime}`} />
-                <InfoChip icon={<Users size={15} color={C.textSecond} />} text={`${regQueue.ahead} people ahead`} />
+                <InfoChip icon={<Clock size={15} color={C.textSecond} />} text={`${t('queue.estimatedWait')}: ${regQueue.waitTime}`} />
+                <InfoChip icon={<Users size={15} color={C.textSecond} />} text={`${regQueue.ahead} ${t('queue.peopleAhead')}`} />
               </div>
 
               <div className="flex items-center justify-between pt-4" style={{ borderTop: `1px solid ${C.border}` }}>
@@ -519,7 +523,7 @@ export function HomeScreen({ onTabChange }: { onTabChange: (tab: string) => void
           {/* Teal header bar */}
           <div className="flex items-center justify-between px-5 py-3" style={{ background: `linear-gradient(90deg, ${C.teal} 0%, ${C.tealDark} 100%)` }}>
             <span style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "13px", fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase", color: "white" }}>
-              Medication Collection
+              {t('queue.collectionQueue')}
             </span>
             <HeaderBadge status={colQueue.status} />
           </div>
@@ -541,8 +545,8 @@ export function HomeScreen({ onTabChange }: { onTabChange: (tab: string) => void
             </div>
 
             <div className="flex gap-2 flex-wrap mb-4">
-              <InfoChip icon={<Clock size={15} color={C.textSecond} />} text={`Est. wait: ${colQueue.waitTime}`} />
-              <InfoChip icon={<Users size={15} color={C.textSecond} />} text={`${colQueue.ahead} people ahead`} />
+              <InfoChip icon={<Clock size={15} color={C.textSecond} />} text={`${t('queue.estimatedWait')}: ${colQueue.waitTime}`} />
+              <InfoChip icon={<Users size={15} color={C.textSecond} />} text={`${colQueue.ahead} ${t('queue.peopleAhead')}`} />
             </div>
 
             {colQueue.delayed && (
@@ -560,7 +564,7 @@ export function HomeScreen({ onTabChange }: { onTabChange: (tab: string) => void
 
             <button onClick={() => setShowReschedule(true)} className="w-full py-3 rounded-xl hover:opacity-80 transition-opacity"
               style={{ background: "white", border: `1.5px solid ${C.teal}`, color: C.teal, fontFamily: "'DM Sans', sans-serif", fontSize: "16px", fontWeight: 600, height: "52px" }}>
-              <span className="flex items-center justify-center gap-2"><Calendar size={17} />Reschedule Collection</span>
+              <span className="flex items-center justify-center gap-2"><Calendar size={17} />{t('queue.reschedule')}</span>
             </button>
           </div>
         </div>
