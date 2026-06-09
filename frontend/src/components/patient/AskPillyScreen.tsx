@@ -15,12 +15,61 @@ const C = {
 type Message = { id: number; role: "bot" | "user"; text: string; time: string };
 type ChatApiResponse = { reply: string; source: "faq" | "redirect" | "reka" };
 
-const GREETING_REPLY =
-  "Hello Mdm. Tan! I'm Pilly, your pharmacy assistant. I can help with medication usage, dosage guidance, side effects, interactions, storage, and pharmacy services like queue, collection, and opening hours. How can I help you today?";
+const GREETING_REPLIES: Record<string, string> = {
+  English:
+    "Hello Mdm. Tan! I'm Pilly, your hospital pharmacy assistant. I can help with medication usage, dosage guidance, side effects, interactions, storage, and pharmacy services like queue, collection, and opening hours. How can I help you today?",
+  "中文":
+    "您好，陈女士！我是 Pilly，您的医院药房助手。我可以协助您了解用药方式、剂量建议、副作用、药物相互作用、储存方式，以及排队、取药和营业时间等药房服务。请问今天我可以怎么帮助您？",
+  "தமிழ்":
+    "வணக்கம் டான் மேடம்! நான் உங்கள் மருத்துவமனை மருந்தக உதவியாளர் Pilly. மருந்து பயன்படுத்தும் முறை, அளவு வழிகாட்டல், பக்கவிளைவுகள், மருந்துகள் இடையிலான தொடர்புகள், சேமிப்பு, மேலும் வரிசை, பெறுதல், திறப்பு நேரம் போன்ற சேவைகளில் உதவ முடியும். இன்று உங்களுக்கு என்ன உதவி வேண்டும்?",
+  Melayu:
+    "Hai Puan Tan! Saya Pilly, pembantu farmasi hospital anda. Saya boleh bantu tentang penggunaan ubat, panduan dos, kesan sampingan, interaksi ubat, penyimpanan, serta perkhidmatan farmasi seperti giliran, pengambilan ubat, dan waktu operasi. Bagaimana saya boleh bantu anda hari ini?",
+};
+
+const GREETING_KEYWORDS: Record<string, string[]> = {
+  English: ["hi", "hello", "hey", "good morning", "good afternoon", "good evening"],
+  "中文": ["你好", "您好", "哈喽", "嗨", "早上好", "下午好", "晚上好"],
+  "தமிழ்": ["வணக்கம்", "ஹலோ", "ஹாய்", "காலை வணக்கம்", "மதிய வணக்கம்", "மாலை வணக்கம்"],
+  Melayu: ["hai", "helo", "hello", "selamat pagi", "selamat tengah hari", "selamat petang", "selamat malam"],
+};
+
+const ENDING_REPLIES: Record<string, string> = {
+  English: "You're welcome. Glad I could help. If you need support later, just message me anytime.",
+  "中文": "不客气。很高兴帮到您。如果之后还需要帮助，随时发消息给我。",
+  "தமிழ்": "பரவாயில்லை. உதவியதில் மகிழ்ச்சி. பிறகு உதவி தேவைப்பட்டால் எப்போது வேண்டுமானாலும் எனக்கு எழுதுங்கள்.",
+  Melayu: "Sama-sama. Gembira dapat membantu. Jika perlukan bantuan lagi nanti, mesej saya pada bila-bila masa.",
+};
+
+const ENDING_KEYWORDS: Record<string, string[]> = {
+  English: [
+    "thanks",
+    "thank you",
+    "thx",
+    "bye",
+    "goodbye",
+    "see you",
+    "see ya",
+    "thats all",
+    "that's all",
+    "thats it",
+    "that's it",
+    "all good",
+    "no more questions",
+    "nothing else",
+    "ok got it",
+    "okay got it",
+    "understood",
+    "noted",
+    "im done",
+    "i'm done",
+  ],
+  "中文": ["谢谢", "多谢", "感谢", "再见", "拜拜", "就这样", "没有了", "没问题了", "明白了", "知道了"],
+  "தமிழ்": ["நன்றி", "மிக்க நன்றி", "பை", "பிரியாவிடை", "அவ்வளவுதான்", "வேறு கேள்வி இல்லை", "புரிந்தது", "இப்போதைக்கு போதும்"],
+  Melayu: ["terima kasih", "bye", "selamat tinggal", "jumpa lagi", "itu sahaja", "tiada soalan lagi", "faham", "sudah cukup", "dah settle"],
+};
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000";
-
-const initialMessages: Message[] = [{ id: 1, role: "bot", text: GREETING_REPLY, time: "2:34 PM" }];
+const DEFAULT_LANGUAGE = "English";
 
 const faqChips = [
   "What is my queue status?",
@@ -91,18 +140,34 @@ function renderBotFormattedText(rawText: string) {
 }
 
 export function AskPillyScreen({ language }: { language: string }) {
-  const [messages, setMessages] = useState<Message[]>(initialMessages);
+  const greetingForLanguage = GREETING_REPLIES[language] ?? GREETING_REPLIES[DEFAULT_LANGUAGE];
+  const endingForLanguage = ENDING_REPLIES[language] ?? ENDING_REPLIES[DEFAULT_LANGUAGE];
+
+  const [messages, setMessages] = useState<Message[]>([{ id: 1, role: "bot", text: greetingForLanguage, time: "2:34 PM" }]);
   const [inputText, setInputText] = useState("");
   const [isSending, setIsSending] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    setMessages([{ id: 1, role: "bot", text: greetingForLanguage, time: "2:34 PM" }]);
+  }, [greetingForLanguage]);
+
+  useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const isGreeting = (text: string) => {
+  const matchesAnyKeyword = (normalizedText: string, keywords: string[]) =>
+    keywords.some((keyword) => normalizedText === keyword || normalizedText.includes(keyword));
+
+  const detectSmallTalkIntent = (text: string): "greeting" | "ending" | null => {
     const normalized = text.trim().toLowerCase();
-    return ["hi", "hello", "hey", "good morning", "good afternoon", "good evening"].includes(normalized);
+    const greetingKeywords = GREETING_KEYWORDS[language] ?? GREETING_KEYWORDS[DEFAULT_LANGUAGE];
+    if (matchesAnyKeyword(normalized, greetingKeywords)) return "greeting";
+
+    const endingKeywords = ENDING_KEYWORDS[language] ?? ENDING_KEYWORDS[DEFAULT_LANGUAGE];
+    if (matchesAnyKeyword(normalized, endingKeywords)) return "ending";
+
+    return null;
   };
 
   const sendMessage = async (text: string) => {
@@ -118,8 +183,10 @@ export function AskPillyScreen({ language }: { language: string }) {
     setMessages((m) => [...m, userMessage]);
     setInputText("");
 
-    if (isGreeting(text)) {
-      setMessages((m) => [...m, { id: m.length + 1, role: "bot", text: GREETING_REPLY, time: now }]);
+    const smallTalkIntent = detectSmallTalkIntent(text);
+    if (smallTalkIntent) {
+      const smallTalkReply = smallTalkIntent === "greeting" ? greetingForLanguage : endingForLanguage;
+      setMessages((m) => [...m, { id: m.length + 1, role: "bot", text: smallTalkReply, time: now }]);
       return;
     }
 
