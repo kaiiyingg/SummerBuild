@@ -1,0 +1,106 @@
+{
+  "language_aliases": ["en", "english"],
+  "assistant_language_instruction": "Reply in English.",
+  "faq_responses": [
+    {
+      "keywords": ["opening hours", "operating hours", "what time", "closing time", "open today"],
+      "reply": "The pharmacy is open Monday to Friday, 8am to 6pm, and Saturday 8am to 1pm."
+    },
+    {
+      "keywords": ["location", "where", "counter", "how to find", "which level", "which floor"],
+      "reply": "The pharmacy counter is located at Level 2, Counter 3."
+    },
+    {
+      "keywords": ["queue", "wait time", "how long", "queue status"],
+      "reply": "Please check your real time queue status in the Queue tab."
+    },
+    {
+      "keywords": ["out of stock", "not available", "delay", "delayed", "shortage"],
+      "reply": "If your medication is out of stock, you will receive an automatic notification with rescheduling options."
+    },
+    {
+      "keywords": ["contact", "phone number", "hotline", "call pharmacy"],
+      "reply": "You can contact the pharmacy at +65 6123 4567 during operating hours."
+    }
+  ],
+  "restock": {
+    "readiness_phrases": [
+      "when will my",
+      "when is my",
+      "be ready",
+      "ready for collection",
+      "ready to collect",
+      "ready yet",
+      "restock",
+      "restocked",
+      "restocking",
+      "out of stock"
+    ],
+    "medication_terms": ["medication", "medicine", "med", "prescription", "drug", "tablet", "capsule"],
+    "reply": "Your medication is currently being prepared or restocked. You will receive a notification once it is ready for collection. If you cannot wait, go to the Queue tab and tap Reschedule Collection to choose another day."
+  },
+  "redirect_triggers": [
+    {
+      "keywords": [
+        "missed my queue",
+        "i missed my queue",
+        "missed queue number",
+        "my queue expired",
+        "queue expired",
+        "missed registration queue",
+        "what if i miss my queue"
+      ],
+      "reply": "If you missed your registration queue number, open the Patient App Queue tab and tap Re-register to get a new queue number."
+    },
+    {
+      "keywords": [
+        "my medication list",
+        "what medication am i on",
+        "my medications",
+        "medications i am taking",
+        "my drugs",
+        "my prescription list",
+        "my meds",
+        "my medicine"
+      ],
+      "reply": "Go to the My Meds tab to view your current medication list."
+    },
+    {
+      "keywords": [
+        "my queue number",
+        "what is my queue",
+        "my queue status",
+        "my turn",
+        "my number",
+        "check my queue"
+      ],
+      "reply": "Go to the Queue tab to view your current number and waiting status."
+    },
+    {
+      "keywords": ["my reminder", "my reminders", "set reminder", "medication reminder", "remind me"],
+      "reply": "Go to the Reminders tab to view or set medication reminders."
+    },
+    {
+      "keywords": ["my record", "my medical record", "my history", "past visits", "my profile", "my details"],
+      "reply": "Go to the Profile tab, then Past Visits, to view your visit and medication history."
+    },
+    {
+      "keywords": [
+        "appointment",
+        "my appointment",
+        "booking",
+        "reschedule appointment",
+        "cancel appointment"
+      ],
+      "reply": "For doctor appointment requests, please contact the clinic at +65 6123 4567. For medication collection timing, use the Queue tab and tap Reschedule Collection."
+    },
+    {
+      "keywords": ["prescription", "my prescription", "what was prescribed", "doctor prescribed"],
+      "reply": "Go to the My Meds tab to review your active prescription."
+    }
+  ],
+  "fallbacks": {
+    "ai_unavailable": "I could not reach the AI assistant right now. Please try again in a moment. If this keeps happening, contact the pharmacy.",
+    "empty_reply": "I could not generate a response right now. Please try again or contact the pharmacy."
+  }
+}

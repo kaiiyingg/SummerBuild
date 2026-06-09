@@ -1,0 +1,77 @@
+{
+  "language_aliases": ["ms", "malay", "melayu", "bahasa melayu"],
+  "assistant_language_instruction": "Reply in Malay.",
+  "faq_responses": [
+    {
+      "keywords": ["waktu operasi", "jam buka", "pukul berapa buka", "pukul berapa tutup", "buka hari ini", "opening hours"],
+      "reply": "Farmasi dibuka Isnin hingga Jumaat, 8 pagi hingga 6 petang, dan Sabtu 8 pagi hingga 1 petang."
+    },
+    {
+      "keywords": ["lokasi", "di mana", "kaunter", "cara cari", "aras berapa", "tingkat berapa", "location", "where"],
+      "reply": "Kaunter farmasi terletak di Aras 2, Kaunter 3."
+    },
+    {
+      "keywords": ["giliran", "masa menunggu", "berapa lama", "status giliran", "queue", "wait time"],
+      "reply": "Sila semak status giliran masa nyata anda di tab Queue."
+    },
+    {
+      "keywords": ["kehabisan stok", "tiada stok", "lewat", "tertunda", "kekurangan", "out of stock"],
+      "reply": "Jika ubat anda kehabisan stok, anda akan menerima notifikasi automatik dengan pilihan penjadualan semula."
+    },
+    {
+      "keywords": ["hubungi", "nombor telefon", "hotline", "telefon farmasi", "contact", "call pharmacy"],
+      "reply": "Anda boleh menghubungi farmasi di +65 6123 4567 semasa waktu operasi."
+    }
+  ],
+  "restock": {
+    "readiness_phrases": [
+      "bila ubat saya",
+      "bila akan siap",
+      "sudah siap",
+      "sedia untuk ambil",
+      "boleh ambil",
+      "restock",
+      "stok semula",
+      "kehabisan stok",
+      "when will my",
+      "ready for collection",
+      "out of stock"
+    ],
+    "medication_terms": ["ubat", "preskripsi", "tablet", "kapsul", "medication", "medicine", "prescription"],
+    "reply": "Ubat anda sedang disediakan atau distok semula. Anda akan menerima notifikasi apabila sedia untuk diambil. Jika anda tidak boleh menunggu, pergi ke tab Queue dan tekan Reschedule Collection untuk pilih hari lain."
+  },
+  "redirect_triggers": [
+    {
+      "keywords": ["terlepas giliran", "saya terlepas giliran", "nombor giliran luput", "giliran luput", "missed my queue", "queue expired"],
+      "reply": "Jika anda terlepas nombor giliran pendaftaran, buka tab Queue dalam aplikasi pesakit dan tekan Re-register untuk dapatkan nombor giliran baharu."
+    },
+    {
+      "keywords": ["senarai ubat saya", "ubat yang saya ambil", "ubat saya", "senarai preskripsi saya", "my medication list", "my meds"],
+      "reply": "Pergi ke tab My Meds untuk melihat senarai ubat semasa anda."
+    },
+    {
+      "keywords": ["nombor giliran saya", "status giliran saya", "giliran saya", "check my queue", "my queue status"],
+      "reply": "Pergi ke tab Queue untuk melihat nombor semasa dan status menunggu anda."
+    },
+    {
+      "keywords": ["peringatan saya", "tetapkan peringatan", "peringatan ubat", "remind me", "set reminder"],
+      "reply": "Pergi ke tab Reminders untuk melihat atau menetapkan peringatan ubat."
+    },
+    {
+      "keywords": ["rekod saya", "rekod perubatan saya", "sejarah saya", "lawatan lepas", "my record", "past visits"],
+      "reply": "Pergi ke tab Profile, kemudian Past Visits, untuk melihat sejarah lawatan dan ubat anda."
+    },
+    {
+      "keywords": ["temu janji", "temu janji saya", "tempahan", "jadual semula temu janji", "batal temu janji", "appointment"],
+      "reply": "Untuk permintaan temu janji doktor, sila hubungi klinik di +65 6123 4567. Untuk masa pengambilan ubat, gunakan tab Queue dan tekan Reschedule Collection."
+    },
+    {
+      "keywords": ["preskripsi", "preskripsi saya", "apa yang doktor beri", "doctor prescribed"],
+      "reply": "Pergi ke tab My Meds untuk semak preskripsi aktif anda."
+    }
+  ],
+  "fallbacks": {
+    "ai_unavailable": "Saya tidak dapat menghubungi pembantu AI sekarang. Sila cuba sebentar lagi. Jika berterusan, hubungi farmasi.",
+    "empty_reply": "Saya tidak dapat jana jawapan sekarang. Sila cuba lagi atau hubungi farmasi."
+  }
+}
