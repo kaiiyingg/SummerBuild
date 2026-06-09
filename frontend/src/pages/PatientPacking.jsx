@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { PATIENT_DETAILS } from "../data/patientData";
+import PillyLogo from "../components/PillyLogo";
 import "./PatientPacking.css";
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000";
 
 /* Pilly-logo loading overlay shown during AI verification */
 function VerifyingOverlay() {
@@ -42,6 +45,14 @@ function PatientPacking() {
   const [holdReason,    setHoldReason]    = useState("");
   const [incompleteOpen,setIncompleteOpen]= useState(false);
   const [verifying,     setVerifying]     = useState(false);
+  const [identityImage, setIdentityImage] = useState(null);
+  const [quantityImage, setQuantityImage] = useState(null);
+  const [cameraTarget, setCameraTarget] = useState(null);
+  const [cameraStream, setCameraStream] = useState(null);
+  const [cameraError, setCameraError] = useState("");
+  const [verificationResult, setVerificationResult] = useState(null);
+  const [verificationError, setVerificationError] = useState("");
+  const cameraVideoRef = useRef(null);
   const [verifiedMeds, setVerifiedMeds] = useState(() => {
     const saved = localStorage.getItem(`verified-meds-${patientId}`);
 
@@ -409,8 +420,8 @@ function PatientPacking() {
                 </div>
 
                 <div>
-                    <span className="scanner-label">Queue Number</span>
-                    <strong>{patient.queueNo}</strong>
+                    <span className="scanner-label">Patient ID</span>
+                    <strong>{patient.id}</strong>
                 </div>
 
                 <div>
@@ -751,6 +762,7 @@ function PatientPacking() {
             </div>
         </div>
         )}
+      {verifying && <VerifyingOverlay />}
     </div>
   );
 }
