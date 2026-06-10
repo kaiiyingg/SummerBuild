@@ -31,17 +31,81 @@ image_type, detected_medication, detected_strength, detected_quantity,
 quantity_confidence, medication_match, quantity_match, identity_evidence,
 quantity_evidence, notes.
 
-Rules:
+General Rules:
 - image_type must be "packaged", "loose", or "unclear".
 - detected_quantity must be an integer or null.
 - quantity_confidence must be a number from 0 to 1.
 - medication_match and quantity_match must be booleans.
-- medication_match must be true only if readable label text, barcode/QR evidence, prescription label text, or a clearly readable pill imprint supports the expected medication and strength.
+- medication_match must be true only if readable label text, barcode/QR evidence, prescription label text, or clearly readable pill imprint supports the expected medication and strength.
 - If only loose pills are shown without readable imprint or separate identity evidence, medication_match must be false even if quantity_match is true.
 - Do not infer medication identity from color, shape, container, or quantity alone.
 - identity_evidence must quote or summarize the exact visible evidence used for medication identity. If no readable identity evidence is visible, set it to "".
-- quantity_evidence must quote or summarize the exact visible evidence used for counting, such as "label says 21 capsules" or "15 loose tablets visible".
+- quantity_evidence must quote or summarize the exact visible evidence used for counting.
 - quantity_match must be false whenever detected_quantity is not exactly equal to the expected quantity.
+- Count only medication units that are directly visible.
+- Never estimate, infer, reconstruct, or predict hidden medication units.
+- Do not estimate counts.
+- Only return a quantity when the count is clearly visible.
+- If confidence is below 0.8, prefer detected_quantity = null rather than guessing.
+- Pharmacy safety is more important than quantity detection.
+- When uncertain, reject the count and request a rescan instead of estimating.
+
+For loose pills:
+- Count each visible pill, tablet, or capsule one by one.
+- If tablets or capsules overlap, are partially hidden, blurry, cut off by the image edge, affected by glare, or cannot be clearly separated, set detected_quantity to null.
+- If any pill is partially obscured or cannot be confidently separated from surrounding pills, set detected_quantity to null.
+- Do not estimate missing pills.
+
+For blister packs:
+
+CRITICAL RULE:
+- Count visible blister pop-ups, not rows, columns, blister layouts, or expected packaging patterns.
+- Do not calculate quantity using rows × columns.
+- Treat every visible blister pop-up as an individual object.
+
+Finger / Obstruction Rules:
+- If a finger, hand, object, label, glare, shadow, fold, reflection, packaging material, or image edge covers part of the blister pack, treat the covered area as invisible.
+- Do not guess what is hidden under an obstruction.
+- Do not infer hidden blister pop-ups.
+- Hidden areas must be treated as unknown.
+- If a blister pop-up is partially covered, partially cropped, blurry, or not fully visible, do not count it.
+
+Layout Rules:
+- Do not reconstruct the original blister-pack layout.
+- Do not assume symmetry.
+- Do not assume a regular grid.
+- Do not assume additional blister pop-ups exist outside the visible image.
+- Do not complete partially visible rows.
+- Do not complete partially visible columns.
+- Do not estimate the total size of the blister pack.
+
+Counting Method:
+1. Locate every visible blister pop-up that clearly contains medication.
+2. Treat each visible blister pop-up as a separate object.
+3. Number every visible blister pop-up individually.
+4. Count the numbered blister pop-ups.
+5. Verify that the final quantity equals the number of numbered blister pop-ups.
+6. Return a quantity only when every counted blister pop-up is clearly visible.
+
+Example:
+
+Visible blister pop-ups:
+1. Top center
+2. Top right
+3. Middle left
+4. Middle center
+5. Middle right
+
+Total visible blister pop-ups: 5
+
+Requirements:
+- detected_quantity must equal the number of individually numbered visible blister pop-ups.
+- quantity_evidence must include the numbered blister pop-ups and the final total.
+- If a numbered breakdown cannot be provided, set detected_quantity to null.
+- If uncertain, set detected_quantity to null and quantity_confidence below 0.8.
+- It is better to reject an uncertain blister-pack count than to provide an incorrect count.
+
+Notes:
 - If pills overlap, labels are unreadable, or quantity is uncertain, lower quantity_confidence and explain in notes.
 - Do not approve a medication match unless the label or visible evidence supports it.
 """
@@ -90,6 +154,7 @@ def _normalize_result(
     has_identity_image: bool,
 ) -> dict:
     image_type = str(data.get("image_type", "unclear")).lower().strip()
+
     if image_type in {"package", "packaging", "packed", "label", "labeled"}:
         image_type = "packaged"
     elif image_type in {"pill", "pills", "tablet", "tablets", "capsule", "capsules"}:
@@ -100,39 +165,80 @@ def _normalize_result(
     data["image_type"] = image_type
 
     detected_quantity = data.get("detected_quantity")
+
     if detected_quantity in {"", "unknown", "unclear", "null"}:
         detected_quantity = None
+
     if detected_quantity is not None:
         try:
             detected_quantity = int(detected_quantity)
         except (TypeError, ValueError):
             detected_quantity = None
+
     data["detected_quantity"] = detected_quantity
+
+    confidence = float(data.get("quantity_confidence") or 0)
 
     if detected_quantity is None:
         data["quantity_match"] = False
-        _append_note(data, "Quantity was not verified because no clear count was detected.")
+
+        _append_note(
+            data,
+            "Quantity was not verified because no clear count was detected."
+        )
+
     elif detected_quantity != expected_quantity:
         data["quantity_match"] = False
+
         _append_note(
             data,
             f"Quantity mismatch: detected {detected_quantity}, expected {expected_quantity}.",
         )
+
+    elif confidence < 0.8:
+        data["quantity_match"] = False
+        data["detected_quantity"] = None
+
+        _append_note(
+            data,
+            f"Quantity confidence too low ({confidence:.2f}). Please rescan with medication clearly separated."
+        )
+
     else:
         data["quantity_match"] = True
 
-    detected_medication = _normalize_text(str(data.get("detected_medication") or ""))
+    detected_medication = _normalize_text(
+        str(data.get("detected_medication") or "")
+    )
+
     expected = _normalize_text(expected_medication)
-    identity_evidence = str(data.get("identity_evidence") or "").strip()
+
+    identity_evidence = str(
+        data.get("identity_evidence") or ""
+    ).strip()
 
     if not has_identity_image:
         data["medication_match"] = False
-        _append_note(data, "Medication identity requires a separate label, barcode, or imprint evidence image.")
+
+        _append_note(
+            data,
+            "Medication identity requires a separate label, barcode, or imprint evidence image."
+        )
+
     elif not identity_evidence:
         data["medication_match"] = False
-        _append_note(data, "Medication identity was not verified because no readable identity evidence was reported.")
-    elif expected not in detected_medication and detected_medication not in expected:
+
+        _append_note(
+            data,
+            "Medication identity was not verified because no readable identity evidence was reported."
+        )
+
+    elif (
+        expected not in detected_medication
+        and detected_medication not in expected
+    ):
         data["medication_match"] = False
+
         _append_note(
             data,
             f"Medication mismatch: detected '{data.get('detected_medication') or 'unknown'}', expected '{expected_medication}'.",
@@ -140,8 +246,85 @@ def _normalize_result(
 
     data.setdefault("identity_evidence", "")
     data.setdefault("quantity_evidence", "")
+
     return data
 
+async def verify_medication_identity(
+    *,
+    image_bytes: bytes,
+    filename: str | None,
+    content_type: str | None,
+    expected_medication: str,
+) -> dict:
+    image_url = _as_data_url(image_bytes, filename, content_type)
+
+    prompt = f"""
+Expected medication: {expected_medication}
+
+Read the medication label from the image.
+
+Return ONLY valid JSON with these exact keys:
+{{
+  "detected_medication": "",
+  "detected_strength": "",
+  "medication_match": false,
+  "identity_evidence": "",
+  "notes": ""
+}}
+
+Rules:
+- medication_match should be true if the detected medication name and strength match the expected medication.
+- Ignore brand name differences unless the expected medication includes a specific brand.
+- If the label is unreadable, medication_match must be false.
+- Do not include markdown.
+- Do not explain outside the JSON.
+"""
+
+    try:
+        response = await client.chat.completions.create(
+            model="reka-flash",
+            messages=[
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": prompt},
+                        {"type": "image_url", "image_url": {"url": image_url}},
+                    ],
+                }
+            ],
+            temperature=0.1,
+            max_tokens=300,
+        )
+
+        raw_reply = (response.choices[0].message.content or "").strip()
+
+        if not raw_reply:
+            return {
+                "detected_medication": "",
+                "detected_strength": "",
+                "medication_match": False,
+                "identity_evidence": "",
+                "notes": "AI returned an empty response. Please rescan the label.",
+            }
+
+        data = _extract_json(raw_reply)
+
+        return {
+            "detected_medication": data.get("detected_medication", ""),
+            "detected_strength": data.get("detected_strength", ""),
+            "medication_match": bool(data.get("medication_match", False)),
+            "identity_evidence": data.get("identity_evidence", ""),
+            "notes": data.get("notes", ""),
+        }
+
+    except Exception as exc:
+        return {
+            "detected_medication": "",
+            "detected_strength": "",
+            "medication_match": False,
+            "identity_evidence": "",
+            "notes": f"Unable to verify medication identity from this image. Please rescan. Details: {exc}",
+        }
 
 async def verify_medication_image(
     *,
@@ -162,15 +345,31 @@ async def verify_medication_image(
     )
 
     user_prompt = f"""Expected medication: {expected_medication}
-Expected quantity: {expected_quantity}
+    Expected quantity: {expected_quantity}
 
-Inspect the attached image(s).
-The first image, if present and labelled identity image, is for medication identity verification.
-The quantity image is for counting the full quantity.
+    Inspect the attached image(s).
 
-If no identity image is provided and the quantity image does not contain readable medication identity evidence, set medication_match to false.
-Quantity may still match even when medication identity is not verified.
-Return only JSON."""
+    The identity image is for medication name and strength verification.
+    The quantity image is for counting the visible medication quantity.
+
+    Important counting instruction:
+    - First count visible medication units WITHOUT using the expected quantity.
+    - Only after counting, compare your detected quantity against the expected quantity.
+    - Count only fully visible medication units.
+    - Do not infer hidden, covered, or partially obscured units.
+    - If a finger, hand, glare, shadow, label, or image edge covers a medication unit, do not count that unit.
+    - If the image shows a blister pack, count each fully visible blister compartment one by one.
+    - If unsure, set detected_quantity to null and quantity_confidence below 0.8.
+    - It is better to reject an uncertain count than to guess.
+
+    For quantity_evidence, provide a short counting breakdown.
+    Example:
+    "Top row: 2 visible, middle row: 2 visible, bottom row: 2 visible. Total: 6."
+
+    Return only JSON with:
+    image_type, detected_medication, detected_strength, detected_quantity,
+    quantity_confidence, medication_match, quantity_match,
+    identity_evidence, quantity_evidence, notes."""
 
     content = [{"type": "text", "text": user_prompt}]
     if identity_image_url:

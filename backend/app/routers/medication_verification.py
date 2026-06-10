@@ -1,11 +1,42 @@
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 
 from app.schemas.medication_verification import MedicationVerificationResponse
-from app.services.medication_verification import verify_medication_image
+from app.services.medication_verification import (verify_medication_image,verify_medication_identity)
 
 
 router = APIRouter()
 
+@router.post("/verify-medication-identity")
+async def verify_medication_identity_route(
+    image: UploadFile = File(...),
+    expected_medication: str = Form(...),
+):
+    if not image.content_type or not image.content_type.startswith("image/"):
+        raise HTTPException(
+            status_code=400,
+            detail="Identity upload must be an image file."
+        )
+
+    image_bytes = await image.read()
+
+    if not image_bytes:
+        raise HTTPException(
+            status_code=400,
+            detail="Identity image is empty."
+        )
+
+    try:
+        return await verify_medication_identity(
+            image_bytes=image_bytes,
+            filename=image.filename,
+            content_type=image.content_type,
+            expected_medication=expected_medication,
+        )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Medication identity verification error: {exc}"
+        ) from exc
 
 @router.post("/verify-medication-image", response_model=MedicationVerificationResponse)
 async def verify_medication_image_route(
