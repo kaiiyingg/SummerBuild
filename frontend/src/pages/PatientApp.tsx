@@ -134,7 +134,7 @@ function PillLogo({ onClick }: { onClick: () => void }) {
 }
 
 function LanguageDropdown({ onClose }: { onClose: () => void }) {
-  const { language, setLanguage, LANGUAGES, t } = useTranslation();
+  const { language, setLanguage, LANGUAGES } = useTranslation();
   return (
     <>
       <div className="fixed inset-0 z-40" onClick={onClose} />
@@ -154,7 +154,7 @@ function LanguageDropdown({ onClose }: { onClose: () => void }) {
               onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = active ? C.tealLight : "white"; }}
             >
               <span style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "14px", color: C.textPrimary, flex: 1, textAlign: "left" }}>
-                {t(`languages.${opt.code}`)}
+                {opt.nativeLabel}
               </span>
               {active && <Check size={14} color={C.teal} />}
             </button>

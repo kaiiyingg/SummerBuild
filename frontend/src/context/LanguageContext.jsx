@@ -7,7 +7,7 @@ import ta from '../locale/ta.json';
 export const LANGUAGES = [
   { code: 'en', label: 'English', nativeLabel: 'English'  },
   { code: 'zh', label: 'Chinese', nativeLabel: '中文'      },
-  { code: 'ms', label: 'Malay',   nativeLabel: 'Melayu'   },
+  { code: 'ms', label: 'Malay',   nativeLabel: 'Bahasa Melayu' },
   { code: 'ta', label: 'Tamil',   nativeLabel: 'தமிழ்'    },
 ];
 
@@ -17,11 +17,16 @@ const LanguageContext = createContext({
   language: 'en',
   setLanguage: (_code) => {},
   t: (_key) => '',
+  getLanguageLabel: (_code) => '',
   LANGUAGES,
 });
 
 export function LanguageProvider({ children }) {
   const [language, setLanguage] = useState('en');
+
+  function getLanguageLabel(code) {
+    return LANGUAGES.find((entry) => entry.code === code)?.nativeLabel || code;
+  }
 
   function t(key) {
     const locale = locales[language] ?? locales['en'];
@@ -47,7 +52,7 @@ export function LanguageProvider({ children }) {
   }
 
   return (
-    <LanguageContext.Provider value={{ language, setLanguage, t, LANGUAGES }}>
+    <LanguageContext.Provider value={{ language, setLanguage, t, getLanguageLabel, LANGUAGES }}>
       {children}
     </LanguageContext.Provider>
   );

@@ -1,46 +1,66 @@
 # SummerBuild
 
-A hospital web app. The repo has a React + Vite frontend and a FastAPI backend.
+A hospital web app with a React + Vite frontend and a FastAPI backend.
 
 ## Prerequisites
 - Node.js 18+ and npm
 - Python 3.10+
 
-## Run the frontend
+## Quick start from the repo root
+
+### 1) Install frontend dependencies
 ```bash
-cd frontend
-npm install
-npm run dev
-```
-Then open the printed URL in your browser.
-
-## Run the backend
-### 1) Create or activate virtual environment (Windows PowerShell)
-```powershell
-cd backend
-python -m venv ..\.venv
-..\.venv\Scripts\Activate.ps1
+npm run setup:frontend
 ```
 
-### 2) Install dependencies
-From `backend`:
-```powershell
-..\.venv\Scripts\python.exe -m pip install -r requirements.txt
+### 2) Create the backend virtual environment and install Python packages
+```bash
+npm run setup:backend
 ```
 
-### 3) Configure environment
-Create or update `backend/.env`:
+### 3) Add the Reka API key
+```bash
+cp backend/.env.example backend/.env
+```
+
+Then edit `backend/.env`:
 ```env
 REKA_API_KEY=your_reka_api_key_here
 ```
 
-### 4) Start API server
-From `backend`:
-```powershell
-..\.venv\Scripts\python.exe -m uvicorn app.main:app --reload
+### 4) Optional preflight check
+```bash
+npm run check:setup
 ```
 
-Other scripts: `npm run build`, `npm run preview`, `npm run lint`.
+### 5) Run both apps together
+```bash
+npm run dev
+```
+
+This starts:
+- Frontend: Vite dev server from `frontend/` on `http://127.0.0.1:5173`
+- Backend: FastAPI on `http://127.0.0.1:8000`
+
+## Run each app separately
+
+### Frontend only
+```bash
+npm run dev:frontend
+```
+
+### Backend only
+```bash
+npm run dev:backend
+```
+
+## Existing frontend commands
+
+From `frontend/` you can still use:
+- `npm run dev`
+- `npm run build`
+- `npm run preview`
+- `npm run lint`
 
 ## Environment files
 - Frontend: optional. Add `VITE_` variables in `frontend/.env` only if needed.

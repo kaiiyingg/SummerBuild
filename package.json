@@ -1,0 +1,13 @@
+{
+  "name": "summerbuild-workspace",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "check:setup": "node scripts/check-setup.mjs",
+    "setup:frontend": "npm install --prefix frontend",
+    "setup:backend": "node scripts/setup-backend.mjs",
+    "dev:frontend": "npm --prefix frontend run dev -- --host 127.0.0.1",
+    "dev:backend": "node scripts/run-backend.mjs",
+    "dev": "node scripts/dev.mjs"
+  }
+}
