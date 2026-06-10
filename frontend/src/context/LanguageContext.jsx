@@ -1,5 +1,8 @@
 import React, { createContext, useContext, useState } from 'react';
-import translations from '../translations';
+import en from '../locale/en.json';
+import zh from '../locale/zh.json';
+import ms from '../locale/ms.json';
+import ta from '../locale/ta.json';
 
 export const LANGUAGES = [
   { code: 'en', label: 'English', nativeLabel: 'English'  },
@@ -7,6 +10,8 @@ export const LANGUAGES = [
   { code: 'ms', label: 'Malay',   nativeLabel: 'Melayu'   },
   { code: 'ta', label: 'Tamil',   nativeLabel: 'தமிழ்'    },
 ];
+
+const locales = { en, zh, ms, ta };
 
 const LanguageContext = createContext({
   language: 'en',
@@ -19,19 +24,26 @@ export function LanguageProvider({ children }) {
   const [language, setLanguage] = useState('en');
 
   function t(key) {
+    const locale = locales[language] ?? locales['en'];
     const parts = key.split('.');
-    let node = translations;
+    let node = locale;
     for (const part of parts) {
       if (node && typeof node === 'object' && part in node) {
         node = node[part];
       } else {
-        return key;
+        // Fallback to English if key is missing in selected locale
+        let fallback = locales['en'];
+        for (const p of parts) {
+          if (fallback && typeof fallback === 'object' && p in fallback) {
+            fallback = fallback[p];
+          } else {
+            return key;
+          }
+        }
+        return typeof fallback === 'string' ? fallback : key;
       }
     }
-    if (typeof node === 'object' && node !== null) {
-      return node[language] ?? node['en'] ?? key;
-    }
-    return key;
+    return typeof node === 'string' ? node : key;
   }
 
   return (

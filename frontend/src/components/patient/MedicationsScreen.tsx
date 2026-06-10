@@ -55,10 +55,10 @@ const medications = [
   },
 ];
 
-const OVERALL_STATUS_CONFIG: Record<MedStatus, { label: string; dot: string; badgeColor: string; badgeBg: string; badgeBorder: string }> = {
-  ready:   { label: "Ready",          dot: C.green, badgeColor: C.greenText, badgeBg: C.greenLight, badgeBorder: `${C.green}40` },
-  packing: { label: "Being Prepared", dot: C.blue,  badgeColor: C.blueText,  badgeBg: C.blueLight,  badgeBorder: `${C.blue}40`  },
-  delayed: { label: "Delayed",        dot: C.amber, badgeColor: C.amberText, badgeBg: C.amberLight, badgeBorder: `${C.amber}40` },
+const OVERALL_STATUS_STYLE: Record<MedStatus, { dot: string; badgeColor: string; badgeBg: string; badgeBorder: string; labelKey: string }> = {
+  ready:   { dot: C.green, badgeColor: C.greenText, badgeBg: C.greenLight, badgeBorder: `${C.green}40`, labelKey: 'medications.statusReadyBadge'  },
+  packing: { dot: C.blue,  badgeColor: C.blueText,  badgeBg: C.blueLight,  badgeBorder: `${C.blue}40`,  labelKey: 'medications.statusPackingBadge' },
+  delayed: { dot: C.amber, badgeColor: C.amberText, badgeBg: C.amberLight, badgeBorder: `${C.amber}40`, labelKey: 'medications.statusDelayedBadge' },
 };
 
 function getOverallStatus(meds: typeof medications): MedStatus {
@@ -74,6 +74,7 @@ const STATUS_BORDER: Record<MedStatus, string> = {
 };
 
 function MedCard({ med }: { med: typeof medications[number] }) {
+  const { t } = useTranslation();
   const [showCaution, setShowCaution] = useState(false);
   const borderColor = STATUS_BORDER[med.status];
 
@@ -84,14 +85,14 @@ function MedCard({ med }: { med: typeof medications[number] }) {
           {med.name}
         </h3>
         <p className="mb-3" style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "15px" }}>
-          <span style={{ color: C.textPrimary, fontWeight: 600 }}>For: </span>
+          <span style={{ color: C.textPrimary, fontWeight: 600 }}>{t('medications.for')}: </span>
           <span style={{ color: C.teal }}>{med.for}</span>
         </p>
         <div className="rounded-lg p-3 relative" style={{ background: C.muted }}>
           <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "15px", color: C.textPrimary, paddingRight: "32px", lineHeight: "1.65" }}>
-            <span style={{ fontWeight: 600 }}>How to take: </span>{med.how}
+            <span style={{ fontWeight: 600 }}>{t('medications.howToTake')}: </span>{med.how}
           </p>
-          <button className="absolute bottom-3 right-3" aria-label="Read instructions aloud">
+          <button className="absolute bottom-3 right-3" aria-label={t('medications.textToSpeech')}>
             <Volume2 size={19} color={C.textSecond} />
           </button>
         </div>
@@ -115,7 +116,7 @@ function MedCard({ med }: { med: typeof medications[number] }) {
           style={{ borderTop: `1px solid ${C.border}` }}
         >
           <span style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "13px", color: C.textSecond }}>
-            {showCaution ? "Hide caution note" : "Show caution note"}
+            {showCaution ? t('medications.hideCaution') : t('medications.showCaution')}
           </span>
           {showCaution
             ? <ChevronUp size={14} color={C.textSecond} />
@@ -129,7 +130,7 @@ function MedCard({ med }: { med: typeof medications[number] }) {
 export function MedicationsScreen({ onTabChange }: { onTabChange: (tab: string) => void }) {
   const { t } = useTranslation();
   const overallStatus = getOverallStatus(medications);
-  const cfg = OVERALL_STATUS_CONFIG[overallStatus];
+  const cfg = OVERALL_STATUS_STYLE[overallStatus];
 
   return (
     <div className="p-4 md:p-6 space-y-4 overflow-y-auto h-full pb-6 max-w-4xl mx-auto w-full">
@@ -138,17 +139,17 @@ export function MedicationsScreen({ onTabChange }: { onTabChange: (tab: string) 
       <div className="flex items-start justify-between">
         <div>
           <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "14px", color: C.textSecond }}>
-            Today's prescription
+            {t('medications.todaysPrescription')}
           </p>
           <h1 style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "24px", fontWeight: 700, color: C.textPrimary }}>
-            {medications.length} medications
+            {medications.length} {t('medications.medicationsCount')}
           </h1>
         </div>
         <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full mt-1"
           style={{ background: cfg.badgeBg, border: `1px solid ${cfg.badgeBorder}` }}>
           <div className="w-2 h-2 rounded-full" style={{ background: cfg.dot }} />
           <span style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "13px", fontWeight: 600, color: cfg.badgeColor }}>
-            {cfg.label}
+            {t(cfg.labelKey)}
           </span>
         </div>
       </div>
@@ -177,9 +178,9 @@ export function MedicationsScreen({ onTabChange }: { onTabChange: (tab: string) 
               </p>
               <div className="space-y-1.5">
                 {[
-                  { icon: <Search size={12} color="rgba(255,255,255,0.9)" />,   text: "Identify any pill by photo" },
-                  { icon: <FileText size={12} color="rgba(255,255,255,0.9)" />, text: "Get instructions translated to your language" },
-                  { icon: <Volume2 size={12} color="rgba(255,255,255,0.9)" />,  text: "Have instructions read aloud to you" },
+                  { icon: <Search size={12} color="rgba(255,255,255,0.9)" />,   text: t('medications.scanFeature1') },
+                  { icon: <FileText size={12} color="rgba(255,255,255,0.9)" />, text: t('medications.scanFeature2') },
+                  { icon: <Volume2 size={12} color="rgba(255,255,255,0.9)" />,  text: t('medications.scanFeature3') },
                 ].map((f) => (
                   <div key={f.text} className="flex items-center gap-2">
                     {f.icon}
@@ -208,7 +209,7 @@ export function MedicationsScreen({ onTabChange }: { onTabChange: (tab: string) 
                 {t('chat.title')}
               </p>
               <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "13px", color: C.textSecond, lineHeight: "1.6" }}>
-                Chat in your preferred language. Ask about your medications, side effects, dosage, upcoming appointments, or any health questions you have.
+                {t('medications.chatDesc')}
               </p>
             </div>
             <span style={{ color: C.textDisabled, fontSize: "18px", alignSelf: "center" }}>›</span>

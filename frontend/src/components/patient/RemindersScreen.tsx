@@ -88,6 +88,7 @@ function AddReminderSheet({ onClose, onAdd }: {
   onClose: () => void;
   onAdd: (reminder: { name: string; time: string }) => void;
 }) {
+  const { t } = useTranslation();
   const [selectedMed,    setSelectedMed]    = useState("");
   const [selectedHour,   setSelectedHour]   = useState("");
   const [selectedPeriod, setSelectedPeriod] = useState("");
@@ -124,7 +125,7 @@ function AddReminderSheet({ onClose, onAdd }: {
         </div>
 
         <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: `1px solid ${C.border}` }}>
-          <h2 style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "20px", fontWeight: 700, color: C.textPrimary }}>Add Reminder</h2>
+          <h2 style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "20px", fontWeight: 700, color: C.textPrimary }}>{t('medications.addReminder')}</h2>
           <button onClick={onClose} className="p-1.5 rounded-full" style={{ background: C.muted }}>
             <X size={18} color={C.textSecond} />
           </button>
@@ -135,14 +136,14 @@ function AddReminderSheet({ onClose, onAdd }: {
           {/* Medication picker */}
           <div>
             <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "13px", fontWeight: 700, color: C.textDisabled, letterSpacing: "0.8px", textTransform: "uppercase", marginBottom: "10px" }}>
-              Medication
+              {t('medications.medication')}
             </p>
             <div className="relative">
               <button onClick={() => setShowMedPicker(!showMedPicker)}
                 className="w-full flex items-center justify-between px-4 py-3.5 rounded-xl"
                 style={{ border: `1.5px solid ${selectedMed ? C.teal : C.border}`, background: selectedMed ? C.tealLight : "white" }}>
                 <span style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "16px", color: selectedMed ? C.textPrimary : C.textDisabled }}>
-                  {selectedMed || "Select medication…"}
+                  {selectedMed || t('medications.selectMedication')}
                 </span>
                 <div className="flex items-center gap-2">
                   {selectedMed && (
@@ -181,13 +182,13 @@ function AddReminderSheet({ onClose, onAdd }: {
             {rec && rec.times.length > 1 && (
               <div className="mt-3">
                 <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "12px", fontWeight: 700, color: C.textDisabled, letterSpacing: "0.8px", textTransform: "uppercase", marginBottom: "8px" }}>
-                  Recommended doses — {rec.freq}
+                  {t('medications.recommendedDoses')} — {rec.freq}
                 </p>
                 <div className="flex gap-2 flex-wrap">
-                  {rec.times.map((t, i) => {
-                    const active = selectedHour === t.hour && selectedPeriod === t.period;
+                  {rec.times.map((slot, i) => {
+                    const active = selectedHour === slot.hour && selectedPeriod === slot.period;
                     return (
-                      <button key={i} onClick={() => { setSelectedHour(t.hour); setSelectedPeriod(t.period); }}
+                      <button key={i} onClick={() => { setSelectedHour(slot.hour); setSelectedPeriod(slot.period); }}
                         className="flex items-center gap-1.5 px-3 py-2 rounded-xl transition-colors"
                         style={{
                           background: active ? C.teal : "#F0FDF4",
@@ -195,10 +196,10 @@ function AddReminderSheet({ onClose, onAdd }: {
                         }}>
                         <span style={{ fontSize: "10px", color: active ? "white" : "#059669" }}>★</span>
                         <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "14px", fontWeight: 600, color: active ? "white" : "#065F46" }}>
-                          Dose {i + 1} — {t.hour} {t.period}
+                          {t('medications.dose')} {i + 1} — {slot.hour} {slot.period}
                         </span>
                         <span style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "12px", color: active ? "rgba(255,255,255,0.8)" : "#059669" }}>
-                          {t.label}
+                          {slot.label}
                         </span>
                       </button>
                     );
@@ -212,7 +213,7 @@ function AddReminderSheet({ onClose, onAdd }: {
           <div style={{ opacity: selectedMed ? 1 : 0.4, pointerEvents: selectedMed ? "auto" : "none" }}>
             <div className="flex items-center justify-between mb-3">
               <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "13px", fontWeight: 700, color: C.textDisabled, letterSpacing: "0.8px", textTransform: "uppercase" }}>
-                Time
+                {t('medications.timeLabel')}
               </p>
               {selectedMed && rec && (
                 <span style={{
@@ -222,7 +223,7 @@ function AddReminderSheet({ onClose, onAdd }: {
                   background: isRecommended ? "#F0FDF4" : C.muted,
                   border: `1px solid ${isRecommended ? "#BBF7D0" : C.border}`,
                 }}>
-                  {isRecommended ? `Recommended · Dose ${recDoseIndex + 1}` : "Custom"}
+                  {isRecommended ? `${t('medications.recommended')} · ${t('medications.dose')} ${recDoseIndex + 1}` : t('medications.custom')}
                 </span>
               )}
             </div>
@@ -267,7 +268,7 @@ function AddReminderSheet({ onClose, onAdd }: {
                 <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "15px", fontWeight: 700, color: C.textPrimary }}>{selectedMed}</p>
                 <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "14px", color: C.textSecond }}>
                   {rec?.freq ?? "Custom"} · {selectedHour} {selectedPeriod}
-                  {isRecommended && rec && rec.times.length > 1 && ` (dose ${recDoseIndex + 1} of ${rec.times.length})`}
+                  {isRecommended && rec && rec.times.length > 1 && ` (${t('medications.dose').toLowerCase()} ${recDoseIndex + 1} of ${rec.times.length})`}
                 </p>
               </div>
             </div>
@@ -280,7 +281,7 @@ function AddReminderSheet({ onClose, onAdd }: {
               fontFamily: "'DM Sans', sans-serif", fontSize: "16px", fontWeight: 700,
               cursor: selectedMed ? "pointer" : "not-allowed",
             }}>
-            Set Reminder
+            {t('medications.setReminder')}
           </button>
         </div>
       </div>
@@ -314,7 +315,7 @@ export function RemindersScreen() {
       {/* Progress summary */}
       <div className="p-4 rounded-xl bg-white" style={{ border: `1px solid ${C.border}` }}>
         <div className="flex items-center justify-between mb-3">
-          <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "15px", fontWeight: 600, color: C.textPrimary }}>Today's Progress</p>
+          <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "15px", fontWeight: 600, color: C.textPrimary }}>{t('medications.todaysProgress')}</p>
           <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "15px", fontWeight: 700, color: C.teal }}>
             {takenCount}/{reminders.length}
           </span>
@@ -323,14 +324,16 @@ export function RemindersScreen() {
           <div className="h-full rounded-full transition-all" style={{ width: `${(takenCount / reminders.length) * 100}%`, background: C.teal }} />
         </div>
         <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "13px", color: C.textSecond, marginTop: "8px" }}>
-          {takenCount === reminders.length ? "All doses taken for today!" : `${reminders.length - takenCount} dose${reminders.length - takenCount > 1 ? "s" : ""} remaining`}
+          {takenCount === reminders.length
+            ? t('medications.allDosesTaken')
+            : `${reminders.length - takenCount} ${reminders.length - takenCount === 1 ? t('medications.doseRemaining') : t('medications.dosesRemaining')}`}
         </p>
       </div>
 
       {/* Reminder list */}
       <div>
         <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "12px", fontWeight: 700, color: C.textDisabled, letterSpacing: "1px", textTransform: "uppercase", marginBottom: "10px" }}>
-          Today's Schedule
+          {t('medications.todaysSchedule')}
         </p>
         <div className="bg-white rounded-xl px-4" style={{ border: `1px solid ${C.border}` }}>
           {reminders.map((r) => (
