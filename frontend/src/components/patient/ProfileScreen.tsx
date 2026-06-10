@@ -87,9 +87,9 @@ export function ProfileScreen({ onLogout }: { onLogout: () => void }) {
         <SectionLabel text={t('profile.notifications')} />
         <div className="space-y-5">
           {[
-            { key: "queue"     as const, icon: <Bell size={18} color={C.teal} />,           label: t('profile.notifyQueueUpdates'),     desc: "When your number is called" },
-            { key: "reminders" as const, icon: <BellRing size={18} color={C.teal} />,       label: t('profile.notifyMedicationReminder'), desc: "Daily dose reminders" },
-            { key: "delays"    as const, icon: <AlertTriangle size={18} color={C.amber} />, label: "Delays & alerts",                   desc: "If your medication is delayed" },
+            { key: "queue"     as const, icon: <Bell size={18} color={C.teal} />,           label: t('profile.notifyQueueUpdates'),     desc: t('profile.notifyQueueDesc')    },
+            { key: "reminders" as const, icon: <BellRing size={18} color={C.teal} />,       label: t('profile.notifyMedicationReminder'), desc: t('profile.notifyReminderDesc') },
+            { key: "delays"    as const, icon: <AlertTriangle size={18} color={C.amber} />, label: t('profile.notifyDelaysLabel'),       desc: t('profile.notifyDelaysDesc')   },
           ].map((item) => (
             <div key={item.key} className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-full flex items-center justify-center shrink-0" style={{ background: C.bg }}>
@@ -107,7 +107,7 @@ export function ProfileScreen({ onLogout }: { onLogout: () => void }) {
 
       {/* Past visits */}
       <div className="bg-white rounded-2xl p-5" style={{ border: `1px solid ${C.border}` }}>
-        <SectionLabel text="Past Visits" />
+        <SectionLabel text={t('profile.pastVisits')} />
         <div className="space-y-2">
           {pastVisits.map((visit) => {
             const expanded = expandedVisit === visit.id;

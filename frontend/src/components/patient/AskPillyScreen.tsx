@@ -76,8 +76,8 @@ const FAQ_CHIP_KEYS = [
   "chat.suggestionOne",
   "chat.suggestionTwo",
   "chat.suggestionThree",
-  null,
-  null,
+  "chat.suggestionFour",
+  "chat.suggestionFive",
 ] as const;
 
 const FAQ_CHIP_FALLBACKS = [

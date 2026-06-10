@@ -30,9 +30,9 @@ function HeaderBadge({ status }: { status: QueueStatus }) {
     background: "rgba(255,255,255,0.25)", color: "white", border: "1px solid rgba(255,255,255,0.4)",
   };
   if (status === "waiting")  return <span style={base}>{t('queue.statusWaiting')}</span>;
-  if (status === "almost")   return <span className="animate-pulse" style={{ ...base, background: C.amber, border: "none" }}>Almost Your Turn</span>;
-  if (status === "done")     return <span style={{ ...base, background: "rgba(255,255,255,0.3)", border: "1px solid rgba(255,255,255,0.5)" }}>Completed</span>;
-  return <span style={{ ...base, background: C.green, border: "none" }}>Now Serving</span>;
+  if (status === "almost")   return <span className="animate-pulse" style={{ ...base, background: C.amber, border: "none" }}>{t('queue.statusAlmost')}</span>;
+  if (status === "done")     return <span style={{ ...base, background: "rgba(255,255,255,0.3)", border: "1px solid rgba(255,255,255,0.5)" }}>{t('queue.statusCompleted')}</span>;
+  return <span style={{ ...base, background: C.green, border: "none" }}>{t('queue.statusNow')}</span>;
 }
 
 const RING_R    = 20;
@@ -159,6 +159,7 @@ const DAYS   = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 
 function RescheduleSheet({ onClose }: { onClose: () => void }) {
+  const { t } = useTranslation();
   const today = new Date(2026, 5, 5);
   const [viewYear,  setViewYear]  = useState(today.getFullYear());
   const [viewMonth, setViewMonth] = useState(today.getMonth());
@@ -185,11 +186,11 @@ function RescheduleSheet({ onClose }: { onClose: () => void }) {
         <div className="w-16 h-16 rounded-full flex items-center justify-center mb-5" style={{ background: "#ECFDF5" }}>
           <Check size={32} color="#10B981" />
         </div>
-        <h2 style={{ fontFamily:"'DM Sans',sans-serif", fontSize:"22px", fontWeight:700, color:C.textPrimary, marginBottom:"8px" }}>Collection Rescheduled</h2>
+        <h2 style={{ fontFamily:"'DM Sans',sans-serif", fontSize:"22px", fontWeight:700, color:C.textPrimary, marginBottom:"8px" }}>{t('queue.collectionRescheduled')}</h2>
         <p style={{ fontFamily:"'Open Sans',sans-serif", fontSize:"16px", color:C.textSecond, marginBottom:"6px" }}>{MONTHS[viewMonth]} {selectedDate}, {viewYear}</p>
         <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:"20px", fontWeight:700, color:C.teal, marginBottom:"24px" }}>{selectedSlot}</p>
-        <p style={{ fontFamily:"'Open Sans',sans-serif", fontSize:"15px", color:C.textSecond, marginBottom:"28px" }}>You'll receive a reminder 30 minutes before your slot. Please proceed to Level 1, Pharmacy A.</p>
-        <button onClick={onClose} className="w-full py-3.5 rounded-xl text-white" style={{ background:C.teal, fontFamily:"'DM Sans',sans-serif", fontSize:"16px", fontWeight:700 }}>Done</button>
+        <p style={{ fontFamily:"'Open Sans',sans-serif", fontSize:"15px", color:C.textSecond, marginBottom:"28px" }}>{t('queue.rescheduleConfirmMsg')}</p>
+        <button onClick={onClose} className="w-full py-3.5 rounded-xl text-white" style={{ background:C.teal, fontFamily:"'DM Sans',sans-serif", fontSize:"16px", fontWeight:700 }}>{t('common.done')}</button>
       </div>
     </div>
   );
@@ -200,8 +201,8 @@ function RescheduleSheet({ onClose }: { onClose: () => void }) {
         <div className="flex justify-center pt-3 pb-1"><div className="w-10 h-1 rounded-full" style={{ background:C.border }} /></div>
         <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom:`1px solid ${C.border}` }}>
           <div>
-            <h2 style={{ fontFamily:"'DM Sans',sans-serif", fontSize:"20px", fontWeight:700, color:C.textPrimary }}>Reschedule Collection</h2>
-            <p style={{ fontFamily:"'Open Sans',sans-serif", fontSize:"14px", color:C.textSecond, marginTop:"2px" }}>Medication Collection · Level 1, Pharmacy A</p>
+            <h2 style={{ fontFamily:"'DM Sans',sans-serif", fontSize:"20px", fontWeight:700, color:C.textPrimary }}>{t('queue.rescheduleCollection')}</h2>
+            <p style={{ fontFamily:"'Open Sans',sans-serif", fontSize:"14px", color:C.textSecond, marginTop:"2px" }}>{t('queue.collectionLocation')}</p>
           </div>
           <button onClick={onClose} className="p-1.5 rounded-full" style={{ background:C.muted }}><X size={18} color={C.textSecond} /></button>
         </div>
@@ -231,7 +232,7 @@ function RescheduleSheet({ onClose }: { onClose: () => void }) {
           </div>
           {selectedDate && (
             <div>
-              <p style={{ fontFamily:"'Open Sans',sans-serif", fontSize:"13px", fontWeight:700, color:C.textDisabled, letterSpacing:"0.8px", textTransform:"uppercase", marginBottom:"12px" }}>Available Slots — {MONTHS[viewMonth]} {selectedDate}</p>
+              <p style={{ fontFamily:"'Open Sans',sans-serif", fontSize:"13px", fontWeight:700, color:C.textDisabled, letterSpacing:"0.8px", textTransform:"uppercase", marginBottom:"12px" }}>{t('queue.availableSlots')} — {MONTHS[viewMonth]} {selectedDate}</p>
               <div className="grid grid-cols-3 gap-2">
                 {TIME_SLOTS.map(slot=>{
                   const sel=selectedSlot===slot.time;
@@ -240,7 +241,7 @@ function RescheduleSheet({ onClose }: { onClose: () => void }) {
                       className="py-3 rounded-xl text-center transition-colors"
                       style={{ background:sel?C.teal:slot.available?C.muted:"#F1F5F9", border:sel?"none":slot.available?`1px solid ${C.border}`:"none", cursor:slot.available?"pointer":"not-allowed" }}>
                       <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:"14px", fontWeight:600, color:sel?"white":slot.available?C.textPrimary:C.textDisabled, textDecoration:!slot.available?"line-through":"none" }}>{slot.time}</span>
-                      {!slot.available && <p style={{ fontFamily:"'Open Sans',sans-serif", fontSize:"11px", color:C.textDisabled, marginTop:"2px" }}>Full</p>}
+                      {!slot.available && <p style={{ fontFamily:"'Open Sans',sans-serif", fontSize:"11px", color:C.textDisabled, marginTop:"2px" }}>{t('queue.full')}</p>}
                     </button>
                   );
                 })}
@@ -261,7 +262,7 @@ function RescheduleSheet({ onClose }: { onClose: () => void }) {
           <button onClick={()=>{if(selectedDate&&selectedSlot)setConfirmed(true);}}
             className="w-full py-3.5 rounded-xl text-white hover:opacity-90 transition-opacity"
             style={{ background:selectedDate&&selectedSlot?C.teal:C.border, fontFamily:"'DM Sans',sans-serif", fontSize:"16px", fontWeight:700, cursor:selectedDate&&selectedSlot?"pointer":"not-allowed" }}>
-            Confirm Reschedule
+            {t('queue.confirmReschedule')}
           </button>
         </div>
       </div>
@@ -271,9 +272,10 @@ function RescheduleSheet({ onClose }: { onClose: () => void }) {
 
 
 function ReRegisterSheet({ onClose }: { onClose: () => void }) {
+  const { t } = useTranslation();
   const [confirmed, setConfirmed] = useState(false);
   const [newQueue]  = useState("B052");
-  const reasons     = ["Follow-up visit", "New consultation", "Collect medication", "Other"];
+  const reasons     = [t('queue.reasonFollowUp'), t('queue.reasonNewConsultation'), t('queue.reasonCollectMedication'), t('common.other')];
   const [reason, setReason] = useState("Follow-up visit");
 
   if (confirmed) return (
@@ -283,19 +285,19 @@ function ReRegisterSheet({ onClose }: { onClose: () => void }) {
         <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ background: C.tealLight }}>
           <Check size={30} color={C.teal} strokeWidth={2.5} />
         </div>
-        <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "14px", color: C.textSecond, marginBottom: "4px" }}>Your new queue number</p>
+        <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "14px", color: C.textSecond, marginBottom: "4px" }}>{t('queue.newQueueNumber')}</p>
         <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "56px", fontWeight: 800, color: C.tealDark, lineHeight: 1, marginBottom: "8px" }}>
           {newQueue}
         </div>
         <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "15px", color: C.textSecond, marginBottom: "6px" }}>
-          Please proceed to <strong style={{ color: C.textPrimary }}>Level 1, Pharmacy A</strong>
+          {t('queue.proceedToPharmacy')}
         </p>
         <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "14px", color: C.textDisabled, marginBottom: "28px" }}>
-          You will be notified when your number is called.
+          {t('queue.notifyWhenCalled')}
         </p>
         <button onClick={onClose} className="w-full py-3.5 rounded-xl text-white"
           style={{ background: C.teal, fontFamily: "'DM Sans', sans-serif", fontSize: "16px", fontWeight: 700 }}>
-          Done
+          {t('common.done')}
         </button>
       </div>
     </div>
@@ -314,8 +316,8 @@ function ReRegisterSheet({ onClose }: { onClose: () => void }) {
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: `1px solid ${C.border}` }}>
           <div>
-            <h2 style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "20px", fontWeight: 700, color: C.textPrimary }}>Re-register</h2>
-            <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "14px", color: C.textSecond, marginTop: "2px" }}>Get a new queue number</p>
+            <h2 style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "20px", fontWeight: 700, color: C.textPrimary }}>{t('queue.reRegister')}</h2>
+            <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "14px", color: C.textSecond, marginTop: "2px" }}>{t('queue.getNewQueueNumber')}</p>
           </div>
           <button onClick={onClose} className="p-1.5 rounded-full" style={{ background: C.muted }}>
             <X size={18} color={C.textSecond} />
@@ -328,7 +330,7 @@ function ReRegisterSheet({ onClose }: { onClose: () => void }) {
           <div className="flex items-start gap-3 p-4 rounded-xl" style={{ background: C.amberLight, border: `1px solid ${C.amber}40` }}>
             <AlertTriangle size={17} color={C.amber} className="shrink-0 mt-0.5" />
             <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "14px", color: C.amberText, lineHeight: "1.5" }}>
-              Your previous queue number <strong>B047</strong> has expired. A new number will be issued at the next available slot.
+              {t('queue.previousQueueNumber')} <strong>B047</strong> {t('queue.queueExpiredNotice')}
             </p>
           </div>
 
@@ -336,13 +338,13 @@ function ReRegisterSheet({ onClose }: { onClose: () => void }) {
           <div className="rounded-xl overflow-hidden" style={{ border: `1px solid ${C.border}` }}>
             <div className="px-4 py-2" style={{ background: C.muted, borderBottom: `1px solid ${C.border}` }}>
               <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "12px", fontWeight: 700, color: C.textDisabled, letterSpacing: "0.8px", textTransform: "uppercase" }}>
-                Patient Details
+                {t('queue.patientDetails')}
               </p>
             </div>
             {[
-              { icon: <User size={15} color={C.textSecond} />,    label: "Name",   value: "Mdm. Tan Mei Ling" },
-              { icon: <Hash size={15} color={C.textSecond} />,    label: "NRIC",   value: "SXXXXXX1A" },
-              { icon: <MapPin size={15} color={C.textSecond} />,  label: "Counter",value: "Level 1, Pharmacy A" },
+              { icon: <User size={15} color={C.textSecond} />,    label: t('profile.name'),   value: "Mdm. Tan Mei Ling" },
+              { icon: <Hash size={15} color={C.textSecond} />,    label: t('queue.nric'),     value: "SXXXXXX1A" },
+              { icon: <MapPin size={15} color={C.textSecond} />,  label: t('queue.counter'),  value: "Level 1, Pharmacy A" },
             ].map((row) => (
               <div key={row.label} className="flex items-center gap-3 px-4 py-3" style={{ borderBottom: `1px solid ${C.border}` }}>
                 {row.icon}
@@ -355,7 +357,7 @@ function ReRegisterSheet({ onClose }: { onClose: () => void }) {
           {/* Reason for visit */}
           <div>
             <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "13px", fontWeight: 700, color: C.textDisabled, letterSpacing: "0.8px", textTransform: "uppercase", marginBottom: "10px" }}>
-              Reason for Visit
+              {t('queue.reasonForVisit')}
             </p>
             <div className="grid grid-cols-2 gap-2">
               {reasons.map((r) => {
@@ -381,7 +383,7 @@ function ReRegisterSheet({ onClose }: { onClose: () => void }) {
             className="w-full py-3.5 rounded-xl text-white flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
             style={{ background: C.teal, fontFamily: "'DM Sans', sans-serif", fontSize: "16px", fontWeight: 700 }}>
             <RefreshCw size={18} color="white" />
-            Get New Queue Number
+            {t('queue.getNewQueueNumber')}
           </button>
 
         </div>
@@ -428,7 +430,7 @@ export function HomeScreen({ onTabChange }: { onTabChange: (tab: string) => void
           {t('home.yourQueueStatus')}
         </h1>
         <span style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "13px", color: C.textSecond }}>
-          Updated {updatedTime}
+          {t('queue.updatedAt')} {updatedTime}
         </span>
       </div>
 
@@ -438,9 +440,9 @@ export function HomeScreen({ onTabChange }: { onTabChange: (tab: string) => void
           <Clock size={19} color={C.amber} className="mt-0.5 shrink-0" />
           <div className="flex-1">
             <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "15px", color: C.amberText }}>
-              You missed your queue number. Please re-register at Counter 3.
+              {t('queue.missedQueueAlert')}
             </p>
-            <button onClick={() => setShowReRegister(true)} style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "15px", color: C.tealDark, fontWeight: 600, marginTop: "4px" }}>Re-register →</button>
+            <button onClick={() => setShowReRegister(true)} style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "15px", color: C.tealDark, fontWeight: 600, marginTop: "4px" }}>{t('queue.reRegister')} →</button>
           </div>
           <button onClick={() => setShowMissedQueue(false)} className="shrink-0 p-1"><X size={16} color={C.textDisabled} /></button>
         </div>
@@ -472,7 +474,7 @@ export function HomeScreen({ onTabChange }: { onTabChange: (tab: string) => void
                   Queue {regQueue.label}
                 </p>
                 <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "14px", color: C.textSecond, marginTop: "2px" }}>
-                  Completed at {regQueue.completedAt}
+                  {t('queue.completedAt')} {regQueue.completedAt}
                 </p>
               </div>
             </div>
@@ -482,7 +484,7 @@ export function HomeScreen({ onTabChange }: { onTabChange: (tab: string) => void
               <div className="flex items-end gap-4 mb-3">
                 <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "64px", fontWeight: 700, lineHeight: 1, color: C.tealDark }}>{regQueue.label}</div>
                 <p className="pb-2" style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "17px", color: C.textSecond }}>
-                  Now calling: <strong style={{ color: C.textPrimary }}>{regQueue.serving}</strong>
+                  {t('queue.nowCalling')}: <strong style={{ color: C.textPrimary }}>{regQueue.serving}</strong>
                 </p>
               </div>
               <div className="mb-4">
@@ -508,7 +510,7 @@ export function HomeScreen({ onTabChange }: { onTabChange: (tab: string) => void
                       style={{ left: notifyToggle ? "calc(100% - 20px)" : "4px" }} />
                   </button>
                   <span style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "11px", color: C.textSecond }}>
-                    <Bell size={10} style={{ display: "inline", marginRight: "3px" }} />Notify me
+                    <Bell size={10} style={{ display: "inline", marginRight: "3px" }} />{t('queue.notifyMe')}
                   </span>
                 </div>
               </div>
@@ -531,12 +533,12 @@ export function HomeScreen({ onTabChange }: { onTabChange: (tab: string) => void
           {/* White body */}
           <div className="p-5 bg-white">
             <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "11px", fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase", color: C.textDisabled, marginBottom: "4px" }}>
-              Queue Number
+              {t('queue.queueNumber')}
             </p>
             <div className="flex items-end gap-4 mb-3">
               <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "64px", fontWeight: 700, lineHeight: 1, color: C.tealDark }}>{colQueue.label}</div>
               <p className="pb-2" style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "17px", color: C.textSecond }}>
-                Now calling: <strong style={{ color: C.textPrimary }}>{colQueue.serving}</strong>
+                {t('queue.nowCalling')}: <strong style={{ color: C.textPrimary }}>{colQueue.serving}</strong>
               </p>
             </div>
 
@@ -554,9 +556,9 @@ export function HomeScreen({ onTabChange }: { onTabChange: (tab: string) => void
                 <div className="flex items-start gap-2">
                   <AlertTriangle size={17} color={C.amber} className="mt-0.5 shrink-0" />
                   <div>
-                    <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "15px", fontWeight: 700, color: C.amberText }}>{colQueue.delayed.med} is delayed</p>
-                    <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "14px", color: C.amberText, marginTop: "3px" }}>Reason: {colQueue.delayed.reason}</p>
-                    <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "14px", color: C.amberText, marginTop: "2px" }}>Estimated ready in: <strong>{colQueue.delayed.eta}</strong></p>
+                    <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "15px", fontWeight: 700, color: C.amberText }}>{colQueue.delayed.med} {t('queue.isDelayed')}</p>
+                    <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "14px", color: C.amberText, marginTop: "3px" }}>{t('queue.delayedReason')}: {colQueue.delayed.reason}</p>
+                    <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "14px", color: C.amberText, marginTop: "2px" }}>{t('queue.delayedEta')}: <strong>{colQueue.delayed.eta}</strong></p>
                   </div>
                 </div>
               </div>
@@ -572,7 +574,7 @@ export function HomeScreen({ onTabChange }: { onTabChange: (tab: string) => void
         <div className="rounded-2xl p-10 bg-white flex flex-col items-center justify-center" style={{ border: `1px solid ${C.border}` }}>
           <Lock size={30} color={C.textDisabled} className="mb-3" />
           <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "16px", color: C.textDisabled, textAlign: "center" }}>
-            Queue 2 available after registration is complete
+            {t('queue.queueTwoLocked')}
           </p>
         </div>
       )}
