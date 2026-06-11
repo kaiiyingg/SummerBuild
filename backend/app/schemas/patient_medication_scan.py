@@ -28,6 +28,11 @@ class PatientMedicationScanResponse(BaseModel):
     warnings_translated: list[str] = Field(default_factory=list)
     summary_original: str = ""
     summary_translated: str = ""
+    medication_overview_translated: str = ""
+    how_to_take_points_translated: list[str] = Field(default_factory=list)
+    side_effects_translated: list[str] = Field(default_factory=list)
+    precautions_translated: list[str] = Field(default_factory=list)
+    storage_translated: list[str] = Field(default_factory=list)
     detected_language: str = "en"
     target_language: str = "en"
     confidence: float = Field(default=0, ge=0, le=1)

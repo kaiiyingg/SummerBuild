@@ -1,36 +1,35 @@
 import { type ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
-import { AlertTriangle, Camera, FileText, Search, Upload, Volume2 } from "lucide-react";
+import {
+  AlertTriangle,
+  Camera,
+  FileText,
+  Search,
+  Upload,
+  Volume2,
+  X,
+} from "lucide-react";
 import { useTranslation } from "../../context/LanguageContext";
 
 const C = {
-  teal:        "#45C5BC",
-  tealDark:    "#38B2A9",
-  tealLight:   "#F0FDFA",
-  bg:          "#F8FAFC",
-  muted:       "#F1F5F9",
+  teal: "#45C5BC",
+  tealDark: "#38B2A9",
+  tealLight: "#F0FDFA",
+  bg: "#F8FAFC",
+  muted: "#F1F5F9",
   textPrimary: "#1E293B",
-  textSecond:  "#64748B",
-  textDisabled:"#94A3B8",
-  border:      "#E2E8F0",
-  red:         "#EF4444",
-  amber:       "#F59E0B",
-  amberLight:  "#FFFBEB",
-  amberText:   "#92400E",
+  textSecond: "#64748B",
+  textDisabled: "#94A3B8",
+  border: "#E2E8F0",
+  red: "#EF4444",
+  amber: "#F59E0B",
+  amberLight: "#FFFBEB",
+  amberText: "#92400E",
+  slate: "#0F172A",
 };
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000";
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
 const SPEECH_API_URL = `${API_BASE_URL}/api/scan-medication-speech`;
-const SUPPORTED_SCAN_ACCEPT = ".jpg,.jpeg,.jfif,.png,.webp,image/*";
-const SUPPORTED_SCAN_MIME_TYPES = new Set([
-  "image/jpeg",
-  "image/jpg",
-  "image/pjpeg",
-  "image/jfif",
-  "image/png",
-  "image/webp",
-]);
-const SUPPORTED_SCAN_EXTENSIONS = [".jpg", ".jpeg", ".jfif", ".png", ".webp"];
 
 type ScanResult = {
   packaging_type: string;
@@ -46,6 +45,11 @@ type ScanResult = {
   warnings_translated: string[];
   summary_original: string;
   summary_translated: string;
+  medication_overview_translated: string;
+  how_to_take_points_translated: string[];
+  side_effects_translated: string[];
+  precautions_translated: string[];
+  storage_translated: string[];
   detected_language: string;
   target_language: string;
   confidence: number;
@@ -55,7 +59,16 @@ type ScanResult = {
   text_for_speech: string;
 };
 
-type SpeechSection = "results" | "summary" | "directions" | "warnings" | "all" | null;
+type SpeechSection =
+  | "results"
+  | "label"
+  | "overview"
+  | "how"
+  | "effects"
+  | "precautions"
+  | "storage"
+  | "all"
+  | null;
 
 function formatPackagingType(type: string, t: (key: string) => string) {
   switch (type) {
@@ -193,10 +206,59 @@ function SectionHeader({
   );
 }
 
+function ResultList({
+  items,
+  emptyText,
+}: {
+  items: string[];
+  emptyText: string;
+}) {
+  if (!items.length) {
+    return (
+      <p
+        style={{
+          fontFamily: "'Open Sans', sans-serif",
+          fontSize: "14px",
+          color: C.textSecond,
+          lineHeight: "1.6",
+          marginTop: "8px",
+        }}
+      >
+        {emptyText}
+      </p>
+    );
+  }
+
+  return (
+    <div className="space-y-2 mt-3">
+      {items.map((item) => (
+        <div key={item} className="flex items-start gap-2">
+          <span
+            className="mt-[8px] h-1.5 w-1.5 rounded-full shrink-0"
+            style={{ background: C.teal }}
+            aria-hidden="true"
+          />
+          <p
+            style={{
+              fontFamily: "'Open Sans', sans-serif",
+              fontSize: "14px",
+              color: C.textPrimary,
+              lineHeight: "1.6",
+            }}
+          >
+            {item}
+          </p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export function ScanScreen() {
   const { language, t, getLanguageLabel } = useTranslation();
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const uploadInputRef = useRef<HTMLInputElement>(null);
+  const cameraVideoRef = useRef<HTMLVideoElement | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const speechRequestRef = useRef<AbortController | null>(null);
   const speechCacheRef = useRef<Map<string, string>>(new Map());
@@ -205,11 +267,14 @@ export function ScanScreen() {
   const [scanError, setScanError] = useState("");
   const [isScanning, setIsScanning] = useState(false);
   const [activeSpeechSection, setActiveSpeechSection] = useState<SpeechSection>(null);
+  const [cameraOpen, setCameraOpen] = useState(false);
+  const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
+  const [cameraError, setCameraError] = useState("");
 
   const features = [
-    { icon: <Search size={20} color={C.teal} />,   title: t("medications.featureIdentifyTitle"),  desc: t("medications.featureIdentifyDesc") },
+    { icon: <Search size={20} color={C.teal} />, title: t("medications.featureIdentifyTitle"), desc: t("medications.featureIdentifyDesc") },
     { icon: <FileText size={20} color={C.teal} />, title: t("medications.featureTranslateTitle"), desc: t("medications.featureTranslateDesc") },
-    { icon: <Volume2 size={20} color={C.teal} />,  title: t("medications.featureTtsTitle"),       desc: t("medications.featureTtsDesc") },
+    { icon: <Volume2 size={20} color={C.teal} />, title: t("medications.featureTtsTitle"), desc: t("medications.featureTtsDesc") },
   ];
 
   const previewUrl = useMemo(
@@ -226,17 +291,40 @@ export function ScanScreen() {
   }, [previewUrl]);
 
   useEffect(() => {
+    if (cameraVideoRef.current && cameraStream) {
+      cameraVideoRef.current.srcObject = cameraStream;
+    }
+  }, [cameraStream]);
+
+  useEffect(() => {
     return () => {
       stopSpeaking(false);
       clearSpeechCache();
+      stopCameraStream(cameraStream);
     };
-  }, []);
+  }, [cameraStream]);
 
   const scanLanguageLabel = getLanguageLabel(language);
   const canRetranslate = Boolean(selectedImage && scanResult && scanResult.target_language !== language);
   const medicationHeading =
     [scanResult?.medication_name, scanResult?.strength].filter(Boolean).join(" ").trim() ||
     t("medications.scanResultsTitle");
+  const labelMeaningText = scanResult?.summary_translated || scanResult?.summary_original || "";
+  const overviewText = scanResult?.medication_overview_translated || "";
+  const howToTakeItems = scanResult?.how_to_take_points_translated.length
+    ? scanResult.how_to_take_points_translated
+    : scanResult?.directions_translated
+      ? [scanResult.directions_translated]
+      : [];
+  const sideEffectsItems = scanResult?.side_effects_translated ?? [];
+  const precautionItems = scanResult?.precautions_translated.length
+    ? scanResult.precautions_translated
+    : scanResult?.warnings_translated ?? [];
+  const storageItems = scanResult?.storage_translated ?? [];
+
+  function stopCameraStream(stream: MediaStream | null) {
+    stream?.getTracks().forEach((track) => track.stop());
+  }
 
   function clearSpeechCache() {
     for (const objectUrl of speechCacheRef.current.values()) {
@@ -261,6 +349,78 @@ export function ScanScreen() {
     if (clearActive) {
       setActiveSpeechSection(null);
     }
+  }
+
+  function closeCamera() {
+    stopCameraStream(cameraStream);
+    setCameraStream(null);
+    setCameraError("");
+    setCameraOpen(false);
+  }
+
+  async function openLiveCamera() {
+    setScanError("");
+    setCameraError("");
+    setCameraOpen(true);
+
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setCameraOpen(false);
+      cameraInputRef.current?.click();
+      return;
+    }
+
+    try {
+      stopCameraStream(cameraStream);
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: { ideal: "environment" },
+          width: { ideal: 1920 },
+          height: { ideal: 1080 },
+        },
+        audio: false,
+      });
+      setCameraStream(stream);
+    } catch {
+      setCameraError(t("medications.scanCameraError"));
+    }
+  }
+
+  async function captureCameraPhoto() {
+    const video = cameraVideoRef.current;
+    if (!video || !video.videoWidth || !video.videoHeight) {
+      setCameraError(t("medications.scanCameraNotReady"));
+      return;
+    }
+
+    const canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+
+    const context = canvas.getContext("2d");
+    if (!context) {
+      setCameraError(t("medications.scanCameraError"));
+      return;
+    }
+
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    const blob = await new Promise<Blob | null>((resolve) => {
+      canvas.toBlob(resolve, "image/jpeg", 0.92);
+    });
+
+    if (!blob) {
+      setCameraError(t("medications.scanCameraError"));
+      return;
+    }
+
+    const file = new File(
+      [blob],
+      `medication-label-${new Date().toISOString().replace(/[:.]/g, "-")}.jpg`,
+      { type: "image/jpeg" }
+    );
+
+    closeCamera();
+    await runScan(file);
   }
 
   async function fetchSpeechAudioUrl(
@@ -401,12 +561,7 @@ export function ScanScreen() {
 
     if (!file) return;
 
-    const normalizedMime = file.type.toLowerCase();
-    const normalizedName = file.name.toLowerCase();
-    const hasSupportedMime = SUPPORTED_SCAN_MIME_TYPES.has(normalizedMime) || normalizedMime.startsWith("image/");
-    const hasSupportedExtension = SUPPORTED_SCAN_EXTENSIONS.some((ext) => normalizedName.endsWith(ext));
-
-    if (!hasSupportedMime && !hasSupportedExtension) {
+    if (!file.type.startsWith("image/")) {
       setScanError(t("medications.scanUnsupportedFile"));
       return;
     }
@@ -436,6 +591,7 @@ export function ScanScreen() {
     ? [
         t("medications.scanResultsTitle"),
         medicationHeading,
+        formatPackagingType(scanResult.packaging_type, t),
         scanResult.dosage_form ? `${t("medications.scanDosageForm")}: ${scanResult.dosage_form}.` : "",
         scanResult.quantity ? `${t("medications.scanQuantity")}: ${scanResult.quantity}.` : "",
         scanResult.refills ? `${t("medications.scanRefills")}: ${scanResult.refills}.` : "",
@@ -445,30 +601,51 @@ export function ScanScreen() {
         .join(" ")
     : "";
 
-  const summaryReadText = scanResult
-    ? [t("medications.scanSummary"), scanResult.summary_translated || scanResult.summary_original || t("medications.scanNoResult")]
+  const labelReadText = scanResult
+    ? [t("medications.scanLabelMeaning"), labelMeaningText || t("medications.scanNoLabelMeaning")]
         .filter(Boolean)
         .join(". ")
     : "";
 
-  const directionsReadText = scanResult
-    ? [t("medications.scanDirections"), scanResult.directions_translated || t("medications.scanNoDirections")]
+  const overviewReadText = scanResult
+    ? [t("medications.scanOverview"), overviewText || t("medications.scanNoOverview")]
         .filter(Boolean)
         .join(". ")
     : "";
 
-  const warningsReadText = scanResult
-    ? [
-        t("medications.scanWarnings"),
-        scanResult.warnings_translated.length
-          ? scanResult.warnings_translated.join(" ")
-          : t("medications.scanNoWarnings"),
-      ]
+  const howToTakeReadText = scanResult
+    ? [t("medications.howToTake"), howToTakeItems.length ? howToTakeItems.join(" ") : t("medications.scanNoHowToTake")]
         .filter(Boolean)
         .join(". ")
     : "";
 
-  const readAllText = [resultsReadText, summaryReadText, directionsReadText, warningsReadText]
+  const sideEffectsReadText = scanResult
+    ? [t("medications.scanSideEffects"), sideEffectsItems.length ? sideEffectsItems.join(" ") : t("medications.scanNoSideEffects")]
+        .filter(Boolean)
+        .join(". ")
+    : "";
+
+  const precautionsReadText = scanResult
+    ? [t("medications.scanPrecautions"), precautionItems.length ? precautionItems.join(" ") : t("medications.scanNoPrecautions")]
+        .filter(Boolean)
+        .join(". ")
+    : "";
+
+  const storageReadText = scanResult
+    ? [t("medications.scanStorage"), storageItems.length ? storageItems.join(" ") : t("medications.scanNoStorage")]
+        .filter(Boolean)
+        .join(". ")
+    : "";
+
+  const readAllText = [
+    resultsReadText,
+    labelReadText,
+    overviewReadText,
+    howToTakeReadText,
+    sideEffectsReadText,
+    precautionsReadText,
+    storageReadText,
+  ]
     .filter(Boolean)
     .join(" ");
 
@@ -507,13 +684,13 @@ export function ScanScreen() {
         <h2 style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "20px", fontWeight: 700, color: C.textPrimary, marginBottom: "8px" }}>
           {t("medications.scanTitle")}
         </h2>
-        <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "15px", color: C.textSecond, marginBottom: "24px" }}>
+        <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "15px", color: C.textSecond, marginBottom: "24px", lineHeight: "1.7" }}>
           {t("medications.tapToScan")}
         </p>
 
         <div className="flex gap-3 w-full">
           <button
-            onClick={() => cameraInputRef.current?.click()}
+            onClick={() => void openLiveCamera()}
             className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl hover:opacity-90 transition-opacity"
             style={{
               background: C.muted,
@@ -530,7 +707,7 @@ export function ScanScreen() {
           <input
             ref={cameraInputRef}
             type="file"
-            accept={SUPPORTED_SCAN_ACCEPT}
+            accept="image/*"
             capture="environment"
             className="hidden"
             onChange={(event) => void handleFileSelected(event)}
@@ -560,6 +737,115 @@ export function ScanScreen() {
           />
         </div>
       </div>
+
+      {cameraOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(15,23,42,0.68)] p-4">
+          <div
+            className="w-full max-w-xl rounded-[28px] bg-white p-5 md:p-6 space-y-4"
+            style={{ boxShadow: "0 30px 80px rgba(15,23,42,0.28)" }}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p
+                  style={{
+                    fontFamily: "'Open Sans', sans-serif",
+                    fontSize: "12px",
+                    fontWeight: 700,
+                    color: C.textDisabled,
+                    letterSpacing: "1px",
+                    textTransform: "uppercase",
+                  }}
+                >
+                  {t("medications.scanCameraLiveTitle")}
+                </p>
+                <h3 style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "22px", fontWeight: 700, color: C.textPrimary, marginTop: "6px" }}>
+                  {t("medications.openCamera")}
+                </h3>
+                <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "14px", color: C.textSecond, lineHeight: "1.7", marginTop: "6px" }}>
+                  {t("medications.scanCameraLiveDesc")}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={closeCamera}
+                aria-label={t("medications.scanCloseCamera")}
+                className="h-10 w-10 rounded-full flex items-center justify-center"
+                style={{ background: C.muted, border: `1px solid ${C.border}` }}
+              >
+                <X size={18} color={C.textPrimary} />
+              </button>
+            </div>
+
+            {cameraError ? (
+              <div
+                className="rounded-2xl p-4 flex items-start gap-3"
+                style={{ background: "#FEF2F2", border: "1px solid #FECACA" }}
+              >
+                <AlertTriangle size={18} color={C.red} className="shrink-0 mt-0.5" />
+                <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "14px", color: "#991B1B", lineHeight: "1.6" }}>
+                  {cameraError}
+                </p>
+              </div>
+            ) : null}
+
+            <div
+              className="overflow-hidden rounded-[24px]"
+              style={{ background: cameraStream ? "#0F172A" : C.muted, border: `1px solid ${C.border}` }}
+            >
+              {cameraStream ? (
+                <video
+                  ref={cameraVideoRef}
+                  autoPlay
+                  playsInline
+                  muted
+                  className="block h-[360px] w-full object-cover"
+                />
+              ) : (
+                <div className="flex h-[360px] items-center justify-center px-8 text-center">
+                  <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "15px", color: C.textSecond }}>
+                    {cameraError ? t("medications.scanUseUploadInstead") : t("medications.scanCameraStarting")}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={cameraError ? () => {
+                  closeCamera();
+                  uploadInputRef.current?.click();
+                } : closeCamera}
+                className="flex-1 rounded-xl py-3 transition-opacity hover:opacity-90"
+                style={{
+                  background: C.muted,
+                  border: `1px solid ${C.border}`,
+                  color: C.textPrimary,
+                  fontFamily: "'DM Sans', sans-serif",
+                  fontSize: "15px",
+                  fontWeight: 700,
+                }}
+              >
+                {cameraError ? t("medications.scanUseUploadInstead") : t("medications.scanCloseCamera")}
+              </button>
+              <button
+                type="button"
+                onClick={() => void captureCameraPhoto()}
+                disabled={!cameraStream || isScanning}
+                className="flex-1 rounded-xl py-3 text-white transition-opacity disabled:opacity-50"
+                style={{
+                  background: `linear-gradient(135deg, ${C.teal} 0%, ${C.tealDark} 100%)`,
+                  fontFamily: "'DM Sans', sans-serif",
+                  fontSize: "15px",
+                  fontWeight: 700,
+                }}
+              >
+                {t("medications.scanCapturePhoto")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {scanError && (
         <div
@@ -666,13 +952,23 @@ export function ScanScreen() {
                     title={t("medications.scanResultsTitle")}
                     active={activeSpeechSection === "results"}
                     label={activeSpeechSection === "results" ? t("medications.scanStopSectionAudio") : t("medications.scanReadResults")}
-                    onSpeak={() => speakText("results", resultsReadText)}
+                    onSpeak={() => void speakText("results", resultsReadText)}
                   />
                   <h2 style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "24px", fontWeight: 700, color: C.textPrimary, marginTop: "6px" }}>
                     {medicationHeading}
                   </h2>
+                  {scanResult.generic_name && scanResult.generic_name !== scanResult.medication_name && (
+                    <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "14px", color: C.textSecond, marginTop: "8px" }}>
+                      {scanResult.generic_name}
+                    </p>
+                  )}
 
                   <div className="flex flex-wrap gap-2 mt-4">
+                    <div className="px-3 py-1.5 rounded-full" style={{ background: C.muted, border: `1px solid ${C.border}` }}>
+                      <span style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "13px", color: C.textPrimary }}>
+                        {formatPackagingType(scanResult.packaging_type, t)}
+                      </span>
+                    </div>
                     {scanResult.dosage_form && (
                       <div className="px-3 py-1.5 rounded-full" style={{ background: C.muted, border: `1px solid ${C.border}` }}>
                         <span style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "13px", color: C.textPrimary }}>
@@ -721,60 +1017,80 @@ export function ScanScreen() {
                   </div>
                 )}
 
-                <div className="space-y-4">
+                <div className="space-y-5">
                   <div>
                     <SectionHeader
-                      title={t("medications.scanSummary")}
-                      active={activeSpeechSection === "summary"}
-                      label={activeSpeechSection === "summary" ? t("medications.scanStopSectionAudio") : t("medications.scanReadSummary")}
-                      onSpeak={() => speakText("summary", summaryReadText)}
+                      title={t("medications.scanLabelMeaning")}
+                      active={activeSpeechSection === "label"}
+                      label={activeSpeechSection === "label" ? t("medications.scanStopSectionAudio") : t("medications.scanReadLabelMeaning")}
+                      onSpeak={() => void speakText("label", labelReadText)}
                     />
                     <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "15px", color: C.textPrimary, lineHeight: "1.7", marginTop: "8px" }}>
-                      {scanResult.summary_translated || scanResult.summary_original || t("medications.scanNoResult")}
+                      {labelMeaningText || t("medications.scanNoLabelMeaning")}
                     </p>
                   </div>
 
                   <div>
                     <SectionHeader
-                      title={t("medications.scanDirections")}
-                      active={activeSpeechSection === "directions"}
-                      label={activeSpeechSection === "directions" ? t("medications.scanStopSectionAudio") : t("medications.scanReadDirections")}
-                      onSpeak={() => speakText("directions", directionsReadText)}
+                      title={t("medications.scanOverview")}
+                      active={activeSpeechSection === "overview"}
+                      label={activeSpeechSection === "overview" ? t("medications.scanStopSectionAudio") : t("medications.scanReadOverview")}
+                      onSpeak={() => void speakText("overview", overviewReadText)}
                     />
                     <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "15px", color: C.textPrimary, lineHeight: "1.7", marginTop: "8px" }}>
-                      {scanResult.directions_translated || t("medications.scanNoDirections")}
+                      {overviewText || t("medications.scanNoOverview")}
                     </p>
+                    {overviewText && (
+                      <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "13px", color: C.textSecond, lineHeight: "1.6", marginTop: "8px" }}>
+                        {t("medications.scanOverviewNote")}
+                      </p>
+                    )}
                   </div>
 
                   <div>
                     <SectionHeader
-                      title={t("medications.scanWarnings")}
-                      active={activeSpeechSection === "warnings"}
-                      label={activeSpeechSection === "warnings" ? t("medications.scanStopSectionAudio") : t("medications.scanReadWarnings")}
-                      onSpeak={() => speakText("warnings", warningsReadText)}
+                      title={t("medications.howToTake")}
+                      active={activeSpeechSection === "how"}
+                      label={activeSpeechSection === "how" ? t("medications.scanStopSectionAudio") : t("medications.scanReadHowToTake")}
+                      onSpeak={() => void speakText("how", howToTakeReadText)}
                     />
-                    <div className="space-y-2 mt-3">
-                      {scanResult.warnings_translated.length ? (
-                        scanResult.warnings_translated.map((warning) => (
-                          <div key={warning} className="flex items-start gap-2">
-                            <AlertTriangle size={14} color={C.amber} className="shrink-0 mt-1" />
-                            <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "14px", color: C.textPrimary, lineHeight: "1.6" }}>
-                              {warning}
-                            </p>
-                          </div>
-                        ))
-                      ) : (
-                        <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "14px", color: C.textSecond }}>
-                          {t("medications.scanNoWarnings")}
-                        </p>
-                      )}
-                    </div>
+                    <ResultList items={howToTakeItems} emptyText={t("medications.scanNoHowToTake")} />
+                  </div>
+
+                  <div>
+                    <SectionHeader
+                      title={t("medications.scanSideEffects")}
+                      active={activeSpeechSection === "effects"}
+                      label={activeSpeechSection === "effects" ? t("medications.scanStopSectionAudio") : t("medications.scanReadSideEffects")}
+                      onSpeak={() => void speakText("effects", sideEffectsReadText)}
+                    />
+                    <ResultList items={sideEffectsItems} emptyText={t("medications.scanNoSideEffects")} />
+                  </div>
+
+                  <div>
+                    <SectionHeader
+                      title={t("medications.scanPrecautions")}
+                      active={activeSpeechSection === "precautions"}
+                      label={activeSpeechSection === "precautions" ? t("medications.scanStopSectionAudio") : t("medications.scanReadPrecautions")}
+                      onSpeak={() => void speakText("precautions", precautionsReadText)}
+                    />
+                    <ResultList items={precautionItems} emptyText={t("medications.scanNoPrecautions")} />
+                  </div>
+
+                  <div>
+                    <SectionHeader
+                      title={t("medications.scanStorage")}
+                      active={activeSpeechSection === "storage"}
+                      label={activeSpeechSection === "storage" ? t("medications.scanStopSectionAudio") : t("medications.scanReadStorage")}
+                      onSpeak={() => void speakText("storage", storageReadText)}
+                    />
+                    <ResultList items={storageItems} emptyText={t("medications.scanNoStorage")} />
                   </div>
                 </div>
 
                 <button
                   type="button"
-                  onClick={() => speakText("all", readAllText)}
+                  onClick={() => void speakText("all", readAllText)}
                   className="w-full rounded-2xl px-4 py-4 transition-all"
                   style={{
                     background: activeSpeechSection === "all"
@@ -829,7 +1145,7 @@ export function ScanScreen() {
                 <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "16px", fontWeight: 600, color: C.textPrimary }}>
                   {feature.title}
                 </p>
-                <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "14px", color: C.textSecond, marginTop: "2px" }}>
+                <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "14px", color: C.textSecond, marginTop: "2px", lineHeight: "1.6" }}>
                   {feature.desc}
                 </p>
               </div>
@@ -852,7 +1168,7 @@ export function ScanScreen() {
             t("medications.tipCamera3"),
             t("medications.tipCamera4"),
           ].map((tip) => (
-            <p key={tip} style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "14px", color: C.textSecond, marginBottom: "4px" }}>
+            <p key={tip} style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "14px", color: C.textSecond, marginBottom: "4px", lineHeight: "1.6" }}>
               · {tip}
             </p>
           ))}
@@ -871,7 +1187,7 @@ export function ScanScreen() {
             t("medications.tipUpload3"),
             t("medications.tipUpload4"),
           ].map((tip) => (
-            <p key={tip} style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "14px", color: C.textSecond, marginBottom: "4px" }}>
+            <p key={tip} style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "14px", color: C.textSecond, marginBottom: "4px", lineHeight: "1.6" }}>
               · {tip}
             </p>
           ))}

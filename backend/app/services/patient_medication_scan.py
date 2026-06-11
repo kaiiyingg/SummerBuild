@@ -83,18 +83,24 @@ Return only valid JSON with these exact keys:
 packaging_type, medication_name, generic_name, strength, dosage_form,
 quantity, refills, directions_original, directions_translated,
 warnings_original, warnings_translated, summary_original, summary_translated,
+medication_overview_translated, how_to_take_points_translated,
+side_effects_translated, precautions_translated, storage_translated,
 detected_language, target_language, confidence, needs_review, review_reason,
 detected_text_lines, text_for_speech
 
 Rules:
 - packaging_type must be one of: bottle, box, blister_pack, pharmacy_label, warning_sticker, packet, unclear.
 - confidence must be a number from 0 to 1.
-- warnings_original, warnings_translated, and detected_text_lines must be arrays.
+- warnings_original, warnings_translated, detected_text_lines, how_to_take_points_translated, side_effects_translated, precautions_translated, and storage_translated must be arrays.
 - Preserve medication names, strengths, numbers, dates, and units exactly as visible.
-- Do not invent instructions, diagnoses, side effects, or missing text.
+- Do not invent visible label text, diagnoses, or personalized advice.
 - If multiple rotated versions of the same image are provided, use the version that makes the label easiest to read.
 - If the image only shows a warning sticker or partial label, still translate the visible text and set needs_review to true if the medication identity is incomplete.
-- summary_original and summary_translated should be short, patient-friendly summaries based only on visible label text.
+- summary_original and summary_translated should explain what the visible scanned label section means in short, patient-friendly language based only on visible label text.
+- medication_overview_translated should explain what the medication is commonly used for, only when the medication identity is clearly visible. Otherwise return an empty string.
+- how_to_take_points_translated, side_effects_translated, precautions_translated, and storage_translated should be short bullet-style points in the target language.
+- You may use general medication knowledge for medication_overview_translated, how_to_take_points_translated, side_effects_translated, precautions_translated, and storage_translated only when the medication identity is clearly visible.
+- If the medication identity is unclear or only part of the label is visible, leave the general medication education fields empty instead of guessing.
 - directions_original and directions_translated must be plain strings, not arrays or bracketed text.
 - review_reason must be in the target language.
 - text_for_speech should match the displayed medication instructions and warnings, not a different summary.
@@ -109,10 +115,12 @@ Rules:
 packaging_type, medication_name, generic_name, strength, dosage_form,
 quantity, refills, directions_original, directions_translated,
 warnings_original, warnings_translated, summary_original, summary_translated,
+medication_overview_translated, how_to_take_points_translated,
+side_effects_translated, precautions_translated, storage_translated,
 detected_language, target_language, confidence, needs_review, review_reason,
 detected_text_lines, text_for_speech
 - directions_original and directions_translated must be plain strings, not arrays or bracketed text.
-- warnings_original, warnings_translated, and detected_text_lines must be arrays.
+- warnings_original, warnings_translated, detected_text_lines, how_to_take_points_translated, side_effects_translated, precautions_translated, and storage_translated must be arrays.
 - Preserve the content already present. Do not invent new medication facts.
 """
 
@@ -372,6 +380,11 @@ def _normalize_result(data: dict, *, target_language: str) -> dict:
         "warnings_translated": _normalize_list(data.get("warnings_translated")),
         "summary_original": _normalize_string(data.get("summary_original")),
         "summary_translated": _normalize_string(data.get("summary_translated")),
+        "medication_overview_translated": _normalize_string(data.get("medication_overview_translated")),
+        "how_to_take_points_translated": _normalize_list(data.get("how_to_take_points_translated")),
+        "side_effects_translated": _normalize_list(data.get("side_effects_translated")),
+        "precautions_translated": _normalize_list(data.get("precautions_translated")),
+        "storage_translated": _normalize_list(data.get("storage_translated")),
         "detected_language": _normalize_locale(data.get("detected_language")),
         "target_language": target_language,
         "confidence": _normalize_confidence(data.get("confidence")),
@@ -394,6 +407,12 @@ def _normalize_result(data: dict, *, target_language: str) -> dict:
 
     if not normalized["summary_translated"]:
         normalized["summary_translated"] = normalized["summary_original"]
+
+    if not normalized["how_to_take_points_translated"] and normalized["directions_translated"]:
+        normalized["how_to_take_points_translated"] = [normalized["directions_translated"]]
+
+    if not normalized["precautions_translated"] and normalized["warnings_translated"]:
+        normalized["precautions_translated"] = normalized["warnings_translated"]
 
     if (
         not normalized["medication_name"]
@@ -426,9 +445,12 @@ def _normalize_result(data: dict, *, target_language: str) -> dict:
                 ]
                 if part
             ).strip(),
+            normalized["medication_overview_translated"],
             normalized["summary_translated"],
-            normalized["directions_translated"],
-            " ".join(normalized["warnings_translated"]).strip(),
+            " ".join(normalized["how_to_take_points_translated"]).strip(),
+            " ".join(normalized["side_effects_translated"]).strip(),
+            " ".join(normalized["precautions_translated"]).strip(),
+            " ".join(normalized["storage_translated"]).strip(),
         ]
         normalized["text_for_speech"] = " ".join(part for part in speech_parts if part).strip()
 
@@ -443,7 +465,7 @@ async def _repair_json_with_model(raw_reply: str) -> str:
             {"role": "user", "content": raw_reply},
         ],
         temperature=0,
-        max_tokens=900,
+        max_tokens=1400,
     )
     return (response.choices[0].message.content or "").strip()
 
@@ -486,7 +508,9 @@ The photo may show a bottle label, prescription sticker, box label, blister pack
 Please:
 1. Identify the medication if the name is visible.
 2. Extract visible instructions, warnings, quantity, refills, and other key label text.
-3. Translate the directions, warnings, summary, and text_for_speech into {target_language_name}.
+3. Explain what the scanned label section means in plain language.
+4. If the medication identity is clear, add a short general explanation of what the medication is commonly used for, how to take it, possible side effects, precautions, and storage.
+5. Translate the patient-facing content into {target_language_name}.
 
 Return only JSON."""
 
@@ -509,7 +533,7 @@ Return only JSON."""
             },
         ],
         temperature=0.1,
-        max_tokens=900,
+        max_tokens=1400,
     )
 
     raw_reply = (response.choices[0].message.content or "").strip()
