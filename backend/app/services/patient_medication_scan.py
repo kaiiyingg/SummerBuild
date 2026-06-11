@@ -71,6 +71,14 @@ KNOWN_REVIEW_REASON_KEYS = {
     "This image does not contain enough clear label text to identify the medication safely.": "no_clear_text",
 }
 
+MEDICATION_EDUCATION_KEYS = (
+    "medication_overview_translated",
+    "how_to_take_points_translated",
+    "side_effects_translated",
+    "precautions_translated",
+    "storage_translated",
+)
+
 SYSTEM_PROMPT = """You are an AI assistant helping patients understand medication labels.
 
 Your job:
@@ -122,6 +130,21 @@ detected_text_lines, text_for_speech
 - directions_original and directions_translated must be plain strings, not arrays or bracketed text.
 - warnings_original, warnings_translated, detected_text_lines, how_to_take_points_translated, side_effects_translated, precautions_translated, and storage_translated must be arrays.
 - Preserve the content already present. Do not invent new medication facts.
+"""
+
+ENRICHMENT_PROMPT = """You are an AI assistant helping patients understand what a medication does.
+
+Return only valid JSON with these exact keys:
+medication_overview_translated, how_to_take_points_translated,
+side_effects_translated, precautions_translated, storage_translated
+
+Rules:
+- medication_overview_translated must be a short patient-friendly paragraph in the target language.
+- how_to_take_points_translated, side_effects_translated, precautions_translated, and storage_translated must be arrays of short bullet-style points in the target language.
+- Use general medication knowledge only if the medication identity is clear from the provided name or generic name.
+- Respect the extracted label instructions and warnings when they are provided. Do not contradict them.
+- Do not invent diagnoses, personalized dosing, or emergency advice.
+- If the medication identity is unclear, return an empty string and empty arrays instead of guessing.
 """
 
 
@@ -365,6 +388,66 @@ def _translate_known_review_reason(review_reason: str, target_language: str) -> 
     return get_localized_scan_message(message_key, target_language)
 
 
+def _build_text_for_speech_payload(data: dict) -> str:
+    speech_parts = [
+        " ".join(
+            part
+            for part in [
+                data.get("medication_name", ""),
+                data.get("strength", ""),
+                data.get("dosage_form", ""),
+            ]
+            if part
+        ).strip(),
+        data.get("medication_overview_translated", ""),
+        data.get("summary_translated", ""),
+        " ".join(data.get("how_to_take_points_translated", [])).strip(),
+        " ".join(data.get("side_effects_translated", [])).strip(),
+        " ".join(data.get("precautions_translated", [])).strip(),
+        " ".join(data.get("storage_translated", [])).strip(),
+    ]
+    return " ".join(part for part in speech_parts if part).strip()
+
+
+def _empty_medication_education() -> dict:
+    return {
+        "medication_overview_translated": "",
+        "how_to_take_points_translated": [],
+        "side_effects_translated": [],
+        "precautions_translated": [],
+        "storage_translated": [],
+    }
+
+
+def _normalize_medication_education_payload(data: dict) -> dict:
+    return {
+        "medication_overview_translated": _normalize_string(data.get("medication_overview_translated")),
+        "how_to_take_points_translated": _normalize_list(data.get("how_to_take_points_translated")),
+        "side_effects_translated": _normalize_list(data.get("side_effects_translated")),
+        "precautions_translated": _normalize_list(data.get("precautions_translated")),
+        "storage_translated": _normalize_list(data.get("storage_translated")),
+    }
+
+
+def _merge_missing_medication_education(base: dict, supplement: dict) -> dict:
+    for key in MEDICATION_EDUCATION_KEYS:
+        if base.get(key):
+            continue
+        value = supplement.get(key)
+        if value:
+            base[key] = value
+    return base
+
+
+def _needs_medication_education_enrichment(data: dict) -> bool:
+    medication_identity = " ".join(
+        part for part in [data.get("medication_name", ""), data.get("generic_name", "")] if part
+    ).strip()
+    if len(medication_identity) < 3:
+        return False
+    return any(not data.get(key) for key in MEDICATION_EDUCATION_KEYS)
+
+
 def _normalize_result(data: dict, *, target_language: str) -> dict:
     normalized = {
         "packaging_type": _normalize_packaging_type(data.get("packaging_type")),
@@ -435,24 +518,7 @@ def _normalize_result(data: dict, *, target_language: str) -> dict:
         normalized["review_reason"] = get_localized_scan_message("missing_fields", target_language)
 
     if not normalized["text_for_speech"]:
-        speech_parts = [
-            " ".join(
-                part
-                for part in [
-                    normalized["medication_name"],
-                    normalized["strength"],
-                    normalized["dosage_form"],
-                ]
-                if part
-            ).strip(),
-            normalized["medication_overview_translated"],
-            normalized["summary_translated"],
-            " ".join(normalized["how_to_take_points_translated"]).strip(),
-            " ".join(normalized["side_effects_translated"]).strip(),
-            " ".join(normalized["precautions_translated"]).strip(),
-            " ".join(normalized["storage_translated"]).strip(),
-        ]
-        normalized["text_for_speech"] = " ".join(part for part in speech_parts if part).strip()
+        normalized["text_for_speech"] = _build_text_for_speech_payload(normalized)
 
     return normalized
 
@@ -487,6 +553,54 @@ async def _parse_response_payload(raw_reply: str, *, target_language: str) -> di
         return repaired
 
     raise PatientMedicationScanError(get_localized_scan_message("parse_failed", target_language))
+
+
+async def _enrich_medication_education(
+    *,
+    scan_result: dict,
+    target_language: str,
+) -> dict:
+    target_language_name = SUPPORTED_LOCALES[target_language]
+    context_payload = {
+        "target_language": target_language,
+        "target_language_name": target_language_name,
+        "medication_name": scan_result.get("medication_name", ""),
+        "generic_name": scan_result.get("generic_name", ""),
+        "strength": scan_result.get("strength", ""),
+        "dosage_form": scan_result.get("dosage_form", ""),
+        "directions_original": scan_result.get("directions_original", ""),
+        "directions_translated": scan_result.get("directions_translated", ""),
+        "warnings_original": scan_result.get("warnings_original", []),
+        "warnings_translated": scan_result.get("warnings_translated", []),
+        "summary_translated": scan_result.get("summary_translated", ""),
+    }
+
+    try:
+        response = await client.chat.completions.create(
+            model="reka-flash",
+            messages=[
+                {"role": "system", "content": ENRICHMENT_PROMPT},
+                {
+                    "role": "user",
+                    "content": (
+                        f"Target patient language: {target_language_name} ({target_language})\n\n"
+                        "Use the extracted medication details below to fill in any missing patient-friendly education sections.\n"
+                        "Keep the answer concise and practical for a patient.\n"
+                        "Return only JSON.\n\n"
+                        f"{json.dumps(context_payload, ensure_ascii=False)}"
+                    ),
+                },
+            ],
+            temperature=0.1,
+            max_tokens=900,
+        )
+        raw_reply = (response.choices[0].message.content or "").strip()
+        parsed = _extract_json(raw_reply)
+        if parsed is None:
+            return _empty_medication_education()
+        return _normalize_medication_education_payload(parsed)
+    except Exception:
+        return _empty_medication_education()
 
 
 async def scan_medication_label(
@@ -539,4 +653,11 @@ Return only JSON."""
     raw_reply = (response.choices[0].message.content or "").strip()
     parsed_payload = await _parse_response_payload(raw_reply, target_language=target_language)
     parsed = _normalize_result(parsed_payload, target_language=target_language)
+    if _needs_medication_education_enrichment(parsed):
+        enrichment = await _enrich_medication_education(
+            scan_result=parsed,
+            target_language=target_language,
+        )
+        parsed = _merge_missing_medication_education(parsed, enrichment)
+        parsed["text_for_speech"] = _build_text_for_speech_payload(parsed)
     return PatientMedicationScanResponse(**parsed)
