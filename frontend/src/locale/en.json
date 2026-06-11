@@ -157,6 +157,7 @@
     "scanReadDirections": "Read directions",
     "scanReadWarnings": "Read warning",
     "scanStopSectionAudio": "Stop this audio",
+    "scanAudioError": "We couldn't play the audio right now. Please try again.",
     "scanReadHint": "Hear the translated instructions",
     "scanReadingNow": "Tap to stop the audio",
     "scanRescan": "Scan another photo",

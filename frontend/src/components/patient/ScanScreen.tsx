@@ -20,12 +20,7 @@ const C = {
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000";
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
-const SPEECH_LANGUAGE_MAP: Record<string, string> = {
-  en: "en-US",
-  zh: "zh-CN",
-  ms: "ms-MY",
-  ta: "ta-IN",
-};
+const SPEECH_API_URL = `${API_BASE_URL}/api/scan-medication-speech`;
 
 type ScanResult = {
   packaging_type: string;
@@ -192,6 +187,9 @@ export function ScanScreen() {
   const { language, t, getLanguageLabel } = useTranslation();
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const uploadInputRef = useRef<HTMLInputElement>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const speechRequestRef = useRef<AbortController | null>(null);
+  const speechCacheRef = useRef<Map<string, string>>(new Map());
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [scanResult, setScanResult] = useState<ScanResult | null>(null);
   const [scanError, setScanError] = useState("");
@@ -219,9 +217,8 @@ export function ScanScreen() {
 
   useEffect(() => {
     return () => {
-      if (typeof window !== "undefined" && "speechSynthesis" in window) {
-        window.speechSynthesis.cancel();
-      }
+      stopSpeaking(false);
+      clearSpeechCache();
     };
   }, []);
 
@@ -231,14 +228,82 @@ export function ScanScreen() {
     [scanResult?.medication_name, scanResult?.strength].filter(Boolean).join(" ").trim() ||
     t("medications.scanResultsTitle");
 
-  const stopSpeaking = () => {
-    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
-    window.speechSynthesis.cancel();
-    setActiveSpeechSection(null);
-  };
+  function clearSpeechCache() {
+    for (const objectUrl of speechCacheRef.current.values()) {
+      URL.revokeObjectURL(objectUrl);
+    }
+    speechCacheRef.current.clear();
+  }
 
-  const speakText = (section: Exclude<SpeechSection, null>, text: string) => {
-    if (typeof window === "undefined" || !("speechSynthesis" in window) || !text.trim()) {
+  function stopSpeaking(clearActive = true) {
+    if (speechRequestRef.current) {
+      speechRequestRef.current.abort();
+      speechRequestRef.current = null;
+    }
+
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+      audioRef.current.src = "";
+      audioRef.current = null;
+    }
+
+    if (clearActive) {
+      setActiveSpeechSection(null);
+    }
+  }
+
+  async function fetchSpeechAudioUrl(
+    section: Exclude<SpeechSection, null>,
+    text: string,
+  ) {
+    const speechLanguage = scanResult?.target_language ?? language;
+    const cacheKey = `${speechLanguage}:${section}:${text}`;
+    const cachedUrl = speechCacheRef.current.get(cacheKey);
+    if (cachedUrl) {
+      return cachedUrl;
+    }
+
+    const controller = new AbortController();
+    speechRequestRef.current = controller;
+
+    try {
+      const response = await fetch(SPEECH_API_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          text,
+          language: speechLanguage,
+        }),
+        signal: controller.signal,
+      });
+
+      if (!response.ok) {
+        let detail = "";
+        try {
+          const errorData = await response.json();
+          detail = errorData.detail || "";
+        } catch {
+          // Fall back to the translated message below.
+        }
+        throw new Error(detail || t("medications.scanAudioError"));
+      }
+
+      const blob = await response.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      speechCacheRef.current.set(cacheKey, objectUrl);
+      return objectUrl;
+    } finally {
+      if (speechRequestRef.current === controller) {
+        speechRequestRef.current = null;
+      }
+    }
+  }
+
+  async function speakText(section: Exclude<SpeechSection, null>, text: string) {
+    if (!text.trim()) {
       return;
     }
 
@@ -247,40 +312,47 @@ export function ScanScreen() {
       return;
     }
 
-    const synth = window.speechSynthesis;
-    synth.cancel();
-
-    const utterance = new SpeechSynthesisUtterance(text.trim());
-    utterance.lang = SPEECH_LANGUAGE_MAP[scanResult?.target_language ?? language] ?? SPEECH_LANGUAGE_MAP[language] ?? "en-US";
-
-    const voices = synth.getVoices();
-    const exactVoice = voices.find(
-      (voice) => voice.lang.toLowerCase() === utterance.lang.toLowerCase()
-    );
-    const languagePrefix = utterance.lang.split("-")[0].toLowerCase();
-    const fallbackVoice = voices.find((voice) =>
-      voice.lang.toLowerCase().startsWith(languagePrefix)
-    );
-    if (exactVoice || fallbackVoice) {
-      utterance.voice = exactVoice ?? fallbackVoice ?? null;
-    }
-
-    utterance.onend = () => {
-      setActiveSpeechSection((current) => (current === section ? null : current));
-    };
-    utterance.onerror = () => {
-      setActiveSpeechSection((current) => (current === section ? null : current));
-    };
-
+    stopSpeaking(false);
+    setScanError("");
     setActiveSpeechSection(section);
-    synth.speak(utterance);
-  };
+
+    try {
+      const audioUrl = await fetchSpeechAudioUrl(section, text.trim());
+      const audio = new Audio(audioUrl);
+
+      audio.onended = () => {
+        if (audioRef.current === audio) {
+          audioRef.current = null;
+          setActiveSpeechSection(null);
+        }
+      };
+
+      audio.onerror = () => {
+        if (audioRef.current === audio) {
+          audioRef.current = null;
+          setActiveSpeechSection(null);
+          setScanError(t("medications.scanAudioError"));
+        }
+      };
+
+      audioRef.current = audio;
+      await audio.play();
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") {
+        return;
+      }
+
+      setActiveSpeechSection(null);
+      setScanError(error instanceof Error ? error.message : t("medications.scanAudioError"));
+    }
+  }
 
   const runScan = async (file: File) => {
     setSelectedImage(file);
     setScanResult(null);
     setScanError("");
     stopSpeaking();
+    clearSpeechCache();
     setIsScanning(true);
 
     const formData = new FormData();

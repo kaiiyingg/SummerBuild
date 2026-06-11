@@ -18,7 +18,7 @@ npm run setup:frontend
 npm run setup:backend
 ```
 
-### 3) Add the Reka API key
+### 3) Add the backend API keys
 ```bash
 cp backend/.env.example backend/.env
 ```
@@ -26,6 +26,10 @@ cp backend/.env.example backend/.env
 Then edit `backend/.env`:
 ```env
 REKA_API_KEY=your_reka_api_key_here
+OPENAI_API_KEY=your_openai_api_key_here
+OPENAI_TTS_MODEL=gpt-4o-mini-tts
+OPENAI_TTS_VOICE=marin
+OPENAI_TTS_SPEED=1.0
 ```
 
 ### 4) Optional preflight check
@@ -65,3 +69,4 @@ From `frontend/` you can still use:
 ## Environment files
 - Frontend: optional. Add `VITE_` variables in `frontend/.env` only if needed.
 - Backend: requires `REKA_API_KEY` in `backend/.env`.
+- Backend TTS: patient medication read-aloud uses `OPENAI_API_KEY`. `OPENAI_TTS_MODEL`, `OPENAI_TTS_VOICE`, and `OPENAI_TTS_SPEED` are optional overrides.

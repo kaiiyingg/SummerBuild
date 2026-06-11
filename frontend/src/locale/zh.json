@@ -157,6 +157,7 @@
     "scanReadDirections": "朗读用法说明",
     "scanReadWarnings": "朗读注意事项",
     "scanStopSectionAudio": "停止本段朗读",
+    "scanAudioError": "目前无法播放语音，请稍后再试。",
     "scanReadHint": "收听翻译后的用药说明",
     "scanReadingNow": "点击即可停止朗读",
     "scanRescan": "扫描其他照片",

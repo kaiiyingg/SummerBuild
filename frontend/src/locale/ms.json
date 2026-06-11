@@ -157,6 +157,7 @@
     "scanReadDirections": "Baca arahan",
     "scanReadWarnings": "Baca amaran",
     "scanStopSectionAudio": "Hentikan audio ini",
+    "scanAudioError": "Kami tidak dapat memainkan audio sekarang. Sila cuba lagi.",
     "scanReadHint": "Dengar arahan yang telah diterjemahkan",
     "scanReadingNow": "Ketik untuk hentikan audio",
     "scanRescan": "Imbas foto lain",
