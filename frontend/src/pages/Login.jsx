@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 import PillyLogo from "../components/PillyLogo";
+import { loginWithEmail, registerWithEmail } from "../services/authService";
 import "./Login.css";
 
 const USER_ROLE_KEY = "pilly-user-roles";
@@ -16,12 +17,6 @@ function getStoredRoles() {
   } catch {
     return {};
   }
-}
-
-function setStoredRole(email, role) {
-  const roles = getStoredRoles();
-  roles[normalizeEmail(email)] = role;
-  localStorage.setItem(USER_ROLE_KEY, JSON.stringify(roles));
 }
 
 function getStoredRole(email) {
@@ -52,32 +47,62 @@ function Login() {
 
   // Language toggle (non-functional placeholder)
   const [lang, setLang] = useState("EN");
+  const [authError, setAuthError] = useState("");
+  const [authNotice, setAuthNotice] = useState("");
+  const [authLoading, setAuthLoading] = useState(false);
 
   const passwordsMismatch = regConfirm.length > 0 && regPassword !== regConfirm;
   const canRegister =
     regPassword.length > 0 && regConfirm.length > 0 && !passwordsMismatch;
 
-  const handleLoginSubmit = (e) => {
+  const handleLoginSubmit = async (e) => {
     e.preventDefault();
-    const cleanEmail = loginEmail.trim();
-    const role = getStoredRole(cleanEmail) ?? loginRole;
+    setAuthError("");
+    setAuthNotice("");
+    setAuthLoading(true);
 
-    localStorage.setItem("pilly-user-email", cleanEmail);
-    localStorage.setItem("pilly-user-role", role);
+    try {
+      const { role } = await loginWithEmail({
+        email: loginEmail,
+        fallbackRole: getStoredRole(loginEmail) ?? loginRole,
+      });
 
-    navigate(role === "patient" ? "/patient/app" : "/pharmacist/dashboard");
+      navigate(role === "patient" ? "/patient/app" : "/pharmacist/dashboard");
+    } catch (error) {
+      setAuthError(
+        error instanceof Error
+          ? error.message
+          : "Unable to sign in. Please check your email and password."
+      );
+    } finally {
+      setAuthLoading(false);
+    }
   };
 
-  const handleRegisterSubmit = (e) => {
+  const handleRegisterSubmit = async (e) => {
     e.preventDefault();
     if (!canRegister) return;
 
-    const cleanEmail = regEmail.trim();
-    setStoredRole(cleanEmail, regRole);
-    localStorage.setItem("pilly-user-email", cleanEmail);
-    localStorage.setItem("pilly-user-role", regRole);
+    setAuthError("");
+    setAuthNotice("");
+    setAuthLoading(true);
 
-    navigate(regRole === "patient" ? "/patient/app" : "/pharmacist/dashboard");
+    try {
+      const { role } = await registerWithEmail({
+        email: regEmail,
+        role: regRole,
+      });
+
+      navigate(role === "patient" ? "/patient/app" : "/pharmacist/dashboard");
+    } catch (error) {
+      setAuthError(
+        error instanceof Error
+          ? error.message
+          : "Unable to create account. Please try another email or password."
+      );
+    } finally {
+      setAuthLoading(false);
+    }
   };
 
   return (
@@ -207,9 +232,16 @@ function Login() {
               type="submit"
               className="btn-primary"
               tabIndex={isRegister ? -1 : 0}
+              disabled={authLoading}
             >
-              Sign In
+              {authLoading ? "Signing In..." : "Sign In"}
             </button>
+
+            {(authError || authNotice) && (
+              <p className={authError ? "field-error" : "form-subtitle"} role="alert">
+                {authError || authNotice}
+              </p>
+            )}
 
             <p className="switch-line">
               New to Pilly?{" "}
@@ -343,11 +375,17 @@ function Login() {
             <button
               type="submit"
               className="btn-primary"
-              disabled={!canRegister}
+              disabled={!canRegister || authLoading}
               tabIndex={isRegister ? 0 : -1}
             >
-              Create Account
+              {authLoading ? "Creating..." : "Create Account"}
             </button>
+
+            {(authError || authNotice) && (
+              <p className={authError ? "field-error" : "form-subtitle"} role="alert">
+                {authError || authNotice}
+              </p>
+            )}
 
             <p className="switch-line">
               Already have an account?{" "}

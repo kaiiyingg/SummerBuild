@@ -1,7 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { PATIENT_DETAILS } from "../data/patientData";
 import PillyLogo from "../components/PillyLogo";
+import {
+  addHoldReason,
+  fetchPatientDetails,
+  setMedicationVerified,
+  setPatientStatus,
+  subscribeToPatientChanges,
+} from "../services/pharmacyData";
 import "./PatientPacking.css";
 
 const API_BASE_URL =
@@ -40,8 +46,8 @@ function PatientPacking() {
   const { patientId } = useParams();
   const navigate = useNavigate();
 
-  const patient = PATIENT_DETAILS.find((p) => p.id === patientId);
-
+  const [patient, setPatient] = useState(null);
+  const [loadingPatient, setLoadingPatient] = useState(true);
   const [scannerOpen, setScannerOpen] = useState(false);
   const [selectedMed, setSelectedMed] = useState(null);
   const [holdOpen, setHoldOpen] = useState(false);
@@ -65,18 +71,34 @@ function PatientPacking() {
     if (saved) {
       return JSON.parse(saved);
     }
-
-    const foundPatient = PATIENT_DETAILS.find((p) => p.id === patientId);
-
-    if (foundPatient?.status === "Collected") {
-      return foundPatient.medications.reduce((acc, med) => {
-        acc[med.id] = true;
-        return acc;
-      }, {});
-    }
-
     return {};
   });
+
+  const loadPatient = async () => {
+    setLoadingPatient(true);
+    const nextPatient = await fetchPatientDetails(patientId);
+    setPatient(nextPatient);
+    setLoadingPatient(false);
+  };
+
+  useEffect(() => {
+    loadPatient();
+    return subscribeToPatientChanges(loadPatient);
+  }, [patientId]);
+
+  useEffect(() => {
+    if (!patient) return;
+
+    setVerifiedMeds((current) => {
+      const next = { ...current };
+      patient.medications.forEach((med) => {
+        if (med.verified) {
+          next[med.id] = true;
+        }
+      });
+      return next;
+    });
+  }, [patient]);
 
   useEffect(() => {
     if (cameraVideoRef.current && cameraStream) {
@@ -152,7 +174,7 @@ function PatientPacking() {
   }, 100);
 };
 
-  const confirmMedicationVerification = () => {
+  const confirmMedicationVerification = async () => {
     if (!selectedMed || !patient) return;
 
     const updatedVerifiedMeds = {
@@ -161,21 +183,18 @@ function PatientPacking() {
     };
 
     setVerifiedMeds(updatedVerifiedMeds);
-
-    localStorage.setItem(
-      `verified-meds-${patient.id}`,
-      JSON.stringify(updatedVerifiedMeds)
-    );
+    await setMedicationVerified(patient.id, selectedMed.id, true);
 
     const allVerified = patient.medications.every(
       (med) => updatedVerifiedMeds[med.id]
     );
 
     if (allVerified) {
-      localStorage.setItem(`patient-status-${patient.id}`, "ready");
+      await setPatientStatus(patient.id, "ready");
     }
 
     resetScanner();
+    loadPatient();
   };
 
   const analyzeMedicationIdentity = async (identityFile) => {
@@ -354,6 +373,16 @@ function PatientPacking() {
     0.98
   );
 };
+
+  if (loadingPatient) {
+    return (
+      <div className="pack-page">
+        <div className="pack-card">
+          <h1>Loading patient...</h1>
+        </div>
+      </div>
+    );
+  }
 
   if (!patient) {
     return (
@@ -768,9 +797,8 @@ function PatientPacking() {
 
             <button
               className="hold-submit"
-              onClick={() => {
-                localStorage.setItem(`patient-status-${patient.id}`, "on_hold");
-                localStorage.setItem(`hold-reason-${patient.id}`, holdReason);
+              onClick={async () => {
+                await addHoldReason(patient.id, holdReason);
                 navigate("/pharmacist/dashboard");
               }}
             >

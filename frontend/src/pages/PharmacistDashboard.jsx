@@ -1,7 +1,8 @@
-import { useState, useMemo} from "react";
+import { useEffect, useState, useMemo} from "react";
 import { useNavigate } from "react-router-dom";
 import { FaChevronRight } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
+import { fetchPatients, subscribeToPatientChanges } from "../services/pharmacyData";
 import "./PharmacistDashboard.css";
 
 function useCountUp(target) {
@@ -23,17 +24,6 @@ function StatCard({ cfg, count, isActive, onClick }) {
     </button>
   );
 }
-
-const PATIENTS = [
-  { id: "P001", queueNo: "A127", name: "Tan Wei Ming", urgency: "A", meds: 4, status: "pending", waitMin: 8, time: "8 min ago" },
-  { id: "P002", queueNo: "B291", name: "Siti Rahmah", urgency: "B", meds: 2, status: "on_hold", waitMin: 15, time: "15 min ago" },
-  { id: "P003", queueNo: "A342", name: "David Lim", urgency: "A", meds: 6, status: "ready", waitMin: 22, time: "22 min ago" },
-  { id: "P004", queueNo: "C103", name: "Priya Nair", urgency: "C", meds: 1, status: "pending", waitMin: 31, time: "31 min ago" },
-  { id: "P005", queueNo: "B667", name: "Mohammad Faiz", urgency: "B", meds: 3, status: "collected", waitMin: 45, time: "45 min ago" },
-  { id: "P006", queueNo: "A518", name: "Chen Li Hua", urgency: "A", meds: 5, status: "pending", waitMin: 52, time: "52 min ago" },
-  { id: "P007", queueNo: "C745", name: "Kavitha Raj", urgency: "C", meds: 2, status: "on_hold", waitMin: 68, time: "1 hr ago" },
-  { id: "P008", queueNo: "B184", name: "James Tan", urgency: "B", meds: 3, status: "ready", waitMin: 90, time: "1.5 hr ago" },
-];
 
 const STATUS = {
   pending: { label: "Pending Packing", bg: "#FFFBEB", color: "#92400E", border: "#FDE68A" },
@@ -95,12 +85,16 @@ export default function PharmacistDashboard() {
   const [sort, setSort] = useState("urgency_ac");
 
   const [searchQuery, setSearchQuery] = useState("");
+  const [livePatients, setLivePatients] = useState([]);
 
-  const livePatients = useMemo(() => {
-    return PATIENTS.map((p) => ({
-      ...p,
-      status: localStorage.getItem(`patient-status-${p.id}`) ?? p.status,
-    }));
+  const loadPatients = async () => {
+    const nextPatients = await fetchPatients();
+    setLivePatients(nextPatients);
+  };
+
+  useEffect(() => {
+    loadPatients();
+    return subscribeToPatientChanges(loadPatients);
   }, []);
 
   const statusCounts = livePatients.reduce(

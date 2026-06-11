@@ -10,6 +10,10 @@ import {
   ChevronUp,
 } from "lucide-react";
 import { useTranslation } from "../../context/LanguageContext";
+import {
+  fetchCurrentPatientDetails,
+  subscribeToPatientChanges,
+} from "../../services/pharmacyData";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000";
 const SPEECH_API_URL = `${API_BASE_URL}/api/scan-medication-speech`;
@@ -40,7 +44,7 @@ const C = {
 
 type MedStatus = "ready" | "packing" | "delayed";
 
-const medications = [
+const fallbackMedications = [
   {
     id: 1,
     name: "Metformin 500mg",
@@ -84,7 +88,11 @@ const OVERALL_STATUS_STYLE: Record<
   delayed: { dot: C.amber, badgeColor: C.amberText, badgeBg: C.amberLight, badgeBorder: `${C.amber}40`, labelKey: "medications.statusDelayedBadge" },
 };
 
-function getOverallStatus(meds: typeof medications): MedStatus {
+function getMedStatus(med: { verified?: boolean }): MedStatus {
+  return med.verified ? "ready" : "packing";
+}
+
+function getOverallStatus(meds: Array<{ status: MedStatus }>): MedStatus {
   if (meds.some((m) => m.status === "delayed")) return "delayed";
   if (meds.some((m) => m.status === "packing")) return "packing";
   return "ready";
@@ -101,7 +109,7 @@ function MedCard({
   isSpeaking,
   onSpeakHowToTake,
 }: {
-  med: typeof medications[number];
+  med: typeof fallbackMedications[number] & { verified?: boolean };
   isSpeaking: boolean;
   onSpeakHowToTake: () => void;
 }) {
@@ -175,6 +183,9 @@ function MedCard({
 
 export function MedicationsScreen({ onTabChange }: { onTabChange: (tab: string) => void }) {
   const { t } = useTranslation();
+  const [medications, setMedications] = useState(
+    fallbackMedications.map((med) => ({ ...med, status: getMedStatus(med) }))
+  );
   const overallStatus = getOverallStatus(medications);
   const cfg = OVERALL_STATUS_STYLE[overallStatus];
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -182,6 +193,28 @@ export function MedicationsScreen({ onTabChange }: { onTabChange: (tab: string) 
   const speechCacheRef = useRef<Map<string, string>>(new Map());
   const [activeSpeechMedId, setActiveSpeechMedId] = useState<number | null>(null);
   const [audioError, setAudioError] = useState("");
+
+  useEffect(() => {
+    const loadMedications = async () => {
+      const patient = await fetchCurrentPatientDetails();
+      if (!patient?.medications?.length) return;
+
+      setMedications(
+        patient.medications.map((med) => ({
+          id: med.id,
+          name: med.name,
+          for: t("medications.todaysPrescription"),
+          how: "Follow the instructions provided on your medication label.",
+          caution: med.verified ? null : "This medication is still being prepared or verified.",
+          status: getMedStatus(med),
+          verified: med.verified,
+        }))
+      );
+    };
+
+    loadMedications();
+    return subscribeToPatientChanges(loadMedications);
+  }, [t]);
 
   useEffect(() => {
     return () => {
@@ -259,7 +292,7 @@ export function MedicationsScreen({ onTabChange }: { onTabChange: (tab: string) 
     }
   }
 
-  async function speakHowToTake(med: typeof medications[number]) {
+  async function speakHowToTake(med: typeof fallbackMedications[number]) {
     if (activeSpeechMedId === med.id) {
       stopSpeaking();
       return;

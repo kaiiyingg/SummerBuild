@@ -1,6 +1,12 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Bell, Plus, X, Clock, ChevronDown, Check } from "lucide-react";
 import { useTranslation } from "../../context/LanguageContext";
+import {
+  addPatientReminder,
+  fetchPatientReminders,
+  setPatientReminderTaken,
+  subscribeToReminderChanges,
+} from "../../services/pharmacyData";
 
 const C = {
   teal:        "#45C5BC",
@@ -296,11 +302,31 @@ export function RemindersScreen() {
 
   const takenCount = reminders.filter((r) => r.taken).length;
 
-  const toggleReminder = (id: number) =>
-    setReminders((r) => r.map((rem) => rem.id === id ? { ...rem, taken: !rem.taken } : rem));
+  useEffect(() => {
+    const loadReminders = async () => {
+      setReminders(await fetchPatientReminders());
+    };
 
-  const addReminder = ({ name, time }: { name: string; time: string }) =>
-    setReminders((r) => [...r, { id: r.length + 1, name, time, taken: false }]);
+    loadReminders();
+    return subscribeToReminderChanges(loadReminders);
+  }, []);
+
+  const toggleReminder = async (id: number) => {
+    const reminder = reminders.find((item) => item.id === id);
+    if (!reminder) return;
+
+    const nextTaken = !reminder.taken;
+    setReminders((r) => r.map((rem) => rem.id === id ? { ...rem, taken: nextTaken } : rem));
+    await setPatientReminderTaken(id, nextTaken);
+  };
+
+  const addReminder = async ({ name, time }: { name: string; time: string }) => {
+    const savedReminder = await addPatientReminder({ name, time });
+    setReminders((r) => [
+      ...r,
+      savedReminder ?? { id: r.length + 1, name, time, taken: false },
+    ]);
+  };
 
   return (
     <div className="p-4 md:p-6 space-y-5 overflow-y-auto h-full pb-6 max-w-2xl mx-auto w-full">
@@ -337,7 +363,7 @@ export function RemindersScreen() {
         </p>
         <div className="bg-white rounded-xl px-4" style={{ border: `1px solid ${C.border}` }}>
           {reminders.map((r) => (
-            <ReminderRow key={r.id} reminder={r} onToggle={() => toggleReminder(r.id)} />
+            <ReminderRow key={r.id} reminder={r} onToggle={() => void toggleReminder(r.id)} />
           ))}
           <div className="py-4 text-center">
             <button onClick={() => setShowAddSheet(true)}
@@ -349,7 +375,7 @@ export function RemindersScreen() {
         </div>
       </div>
 
-      {showAddSheet && <AddReminderSheet onClose={() => setShowAddSheet(false)} onAdd={addReminder} />}
+      {showAddSheet && <AddReminderSheet onClose={() => setShowAddSheet(false)} onAdd={(reminder) => void addReminder(reminder)} />}
     </div>
   );
 }

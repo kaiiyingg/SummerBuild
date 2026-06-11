@@ -10,6 +10,11 @@ import { RemindersScreen } from "../components/patient/RemindersScreen";
 import { AskPillyScreen } from "../components/patient/AskPillyScreen";
 import { ProfileScreen } from "../components/patient/ProfileScreen";
 import { useTranslation } from "../context/LanguageContext";
+import { logout } from "../services/authService";
+import {
+  fetchCurrentPatientDetails,
+  subscribeToPatientChanges,
+} from "../services/pharmacyData";
 import { BasicToast } from "../components/ui/Toast";
 
 // ── palette ────────────────────────────────────────────────────
@@ -320,6 +325,7 @@ export default function App() {
   const [showLogoutModal,    setShowLogoutModal]    = useState(false);
   const [notifications,      setNotifications]      = useState(NOTIFICATIONS);
   const [delayedToastMsg,    setDelayedToastMsg]    = useState<string | null>(null);
+  const [patientName,        setPatientName]        = useState("Patient");
   const delayedNotifiedIds = useRef<Set<number>>(new Set());
 
   const unreadCount  = notifications.filter((n) => !n.read).length;
@@ -343,12 +349,21 @@ export default function App() {
     ]));
     setDelayedToastMsg(`${freshDelayedMeds[0].name} is delayed. Added to notifications.`);
   };
-  const handleLogout = () => {
-    localStorage.removeItem("pilly-user-email");
-    localStorage.removeItem("pilly-user-role");
+  const handleLogout = async () => {
+    await logout();
     setShowLogoutModal(false);
     navigate("/");
   };
+
+  useEffect(() => {
+    const loadPatientName = async () => {
+      const patient = await fetchCurrentPatientDetails();
+      setPatientName(patient?.name || "Patient");
+    };
+
+    loadPatientName();
+    return subscribeToPatientChanges(loadPatientName);
+  }, []);
 
   const renderScreen = () => {
     switch (activeTab) {
@@ -379,7 +394,7 @@ export default function App() {
 
           <div className="hidden sm:flex flex-col items-center">
             <span style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "12px", color: C.textSecond }}>{t('auth.welcomeBack')},</span>
-            <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "15px", fontWeight: 600, color: C.textPrimary }}>Mdm. Tan Mei Ling</span>
+            <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "15px", fontWeight: 600, color: C.textPrimary }}>{patientName}</span>
           </div>
 
           <div className="flex items-center gap-1">

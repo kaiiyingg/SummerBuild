@@ -1,6 +1,10 @@
 import { useState, useRef, useEffect } from "react";
 import { Clock, Users, Lock, AlertTriangle, X, Calendar, Bell, ChevronLeft, ChevronRight, Check, RefreshCw, MapPin, User, Hash } from "lucide-react";
 import { useTranslation } from "../../context/LanguageContext";
+import {
+  fetchCurrentPatientDetails,
+  subscribeToPatientChanges,
+} from "../../services/pharmacyData";
 
 const C = {
   teal:        "#45C5BC",
@@ -394,6 +398,7 @@ function ReRegisterSheet({ onClose }: { onClose: () => void }) {
 
 export function HomeScreen({ onTabChange }: { onTabChange: (tab: string) => void }) {
   const { t } = useTranslation();
+  const [patient, setPatient] = useState<any>(null);
   const [showMissedQueue,  setShowMissedQueue]  = useState(true);
   const [showReRegister,   setShowReRegister]   = useState(false);
   const [notifyToggle,     setNotifyToggle]     = useState(true);
@@ -402,16 +407,41 @@ export function HomeScreen({ onTabChange }: { onTabChange: (tab: string) => void
   const now = new Date();
   const updatedTime = now.toLocaleTimeString("en-SG", { hour: "numeric", minute: "2-digit", hour12: true });
 
+  useEffect(() => {
+    const loadPatient = async () => {
+      setPatient(await fetchCurrentPatientDetails());
+    };
+
+    loadPatient();
+    return subscribeToPatientChanges(loadPatient);
+  }, []);
+
   const regQueue = {
     number: 47, label: "B047", serving: "B041", servingNum: 41,
     waitTime: "12–15 min", ahead: 6,
     status: "waiting" as QueueStatus, counter: "Level 1, Pharmacy A", date: "Tuesday, 3 June 2026",
     completedAt: "9:15 AM",
   };
+  const pendingMedication = patient?.medications?.find((med: any) => !med.verified);
+  const queueNumber = patient?.queueNo ?? "A024";
+  const queueDigits = Number.parseInt(queueNumber.replace(/\D/g, ""), 10) || 24;
+  const servingNum = Math.max(1, queueDigits - 6);
+  const allMedicationReady = patient?.medications?.length
+    ? patient.medications.every((med: any) => med.verified)
+    : false;
   const colQueue = {
-    number: 24, label: "A024", serving: "A018", servingNum: 18,
-    waitTime: "8–12 min", ahead: 4, status: "almost" as QueueStatus, isActive: true,
-    delayed: { med: "Atorvastatin 20mg", reason: "Out of stock — restocking in progress", eta: "~20 min" },
+    number: queueDigits,
+    label: queueNumber,
+    serving: `${queueNumber[0] ?? "A"}${String(servingNum).padStart(3, "0")}`,
+    servingNum,
+    waitTime: patient?.status === "ready" ? "Ready now" : "8-12 min",
+    ahead: Math.max(0, queueDigits - servingNum),
+    status: (patient?.status === "ready" || allMedicationReady ? "now" : "almost") as QueueStatus,
+    isActive: true,
+    delayed:
+      pendingMedication && patient?.status !== "ready"
+        ? { med: pendingMedication.name, reason: "Being prepared or verified", eta: "~20 min" }
+        : null,
   };
 
   const InfoChip = ({ icon, text }: { icon: React.ReactNode; text: string }) => (
@@ -584,3 +614,4 @@ export function HomeScreen({ onTabChange }: { onTabChange: (tab: string) => void
     </div>
   );
 }
+
