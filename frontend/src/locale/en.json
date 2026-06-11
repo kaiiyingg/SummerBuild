@@ -176,7 +176,7 @@
     "scanPackagingWarningSticker": "Warning sticker",
     "scanPackagingPacket": "Medication packet",
     "scanPackagingDefault": "Medication label",
-    "scanUnsupportedFile": "Please upload a JPG, PNG, or WEBP image of the medication label.",
+    "scanUnsupportedFile": "Please upload a JPG, JPEG, PNG, or WEBP image of the medication label.",
     "scanFileTooLarge": "This photo is larger than 10MB. Please upload a smaller image.",
     "tipCamera1": "Ensure good lighting when scanning",
     "tipCamera2": "Hold camera steady over the label",
@@ -185,7 +185,7 @@
     "tipUpload1": "Use a clear, well-lit photo taken close to the label",
     "tipUpload2": "Ensure the full label is visible and not cropped",
     "tipUpload3": "Avoid blurry or dark images for better accuracy",
-    "tipUpload4": "Supported formats: JPG, PNG, WEBP (max 10MB)"
+    "tipUpload4": "Supported formats: JPG, JPEG, PNG, WEBP (max 10MB)"
   },
   "chat": {
     "title": "Ask Pilly",
@@ -195,11 +195,11 @@
     "escalateToPharmacist": "Connect to Pharmacist",
     "escalateNotice": "A pharmacist will respond during working hours (Mon–Fri, 8am–6pm)",
     "typing": "Pilly is typing...",
-    "suggestionOne": "What are the side effects of my medication?",
-    "suggestionTwo": "Can I take my medication with food?",
-    "suggestionThree": "How long will I wait for my medication?",
-    "suggestionFour": "What are common side effects?",
-    "suggestionFive": "What are the pharmacy opening hours?"
+    "suggestionOne": "Hi Pilly, can you introduce yourself?",
+    "suggestionTwo": "Where can I check my queue status?",
+    "suggestionThree": "What time does the pharmacy close today?",
+    "suggestionFour": "Can you explain what this medicine is for in simple terms?",
+    "suggestionFive": "I feel dizzy after taking my tablets. Is this serious?"
   },
   "profile": {
     "title": "Profile",

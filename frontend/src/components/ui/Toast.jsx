@@ -42,10 +42,10 @@ export function BasicToast({
     <AnimatePresence>
       {visible && (
         <motion.div
-          className={`fixed bottom-4 right-4 z-50 flex w-80 items-center gap-3 rounded-lg border p-4 shadow-lg ${toastClasses[type]} ${className}`}
-          initial={{ opacity: 0, y: 20, scale: 0.95 }}
+          className={`fixed left-1/2 top-[calc(env(safe-area-inset-top)+72px)] z-50 flex w-[min(92vw,28rem)] -translate-x-1/2 items-center gap-3 rounded-lg border p-4 shadow-lg ${toastClasses[type]} ${className}`}
+          initial={{ opacity: 0, y: -16, scale: 0.95 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: 20, scale: 0.95, transition: { duration: 0.15 } }}
+          exit={{ opacity: 0, y: -16, scale: 0.95, transition: { duration: 0.15 } }}
           transition={{ type: "spring", bounce: 0.25 }}
         >
           <div className="flex-shrink-0">{toastIcons[type]}</div>

@@ -176,7 +176,7 @@
     "scanPackagingWarningSticker": "Pelekat amaran",
     "scanPackagingPacket": "Paket ubat",
     "scanPackagingDefault": "Label ubat",
-    "scanUnsupportedFile": "Sila muat naik imej JPG, PNG, atau WEBP bagi label ubat.",
+    "scanUnsupportedFile": "Sila muat naik imej JPG, JPEG, PNG, atau WEBP bagi label ubat.",
     "scanFileTooLarge": "Foto ini melebihi 10MB. Sila muat naik imej yang lebih kecil.",
     "tipCamera1": "Pastikan pencahayaan yang baik semasa mengimbas",
     "tipCamera2": "Pegang kamera dengan stabil di atas label",
@@ -185,7 +185,7 @@
     "tipUpload1": "Gunakan foto yang jelas dan terang diambil dekat dengan label",
     "tipUpload2": "Pastikan label penuh kelihatan dan tidak dipotong",
     "tipUpload3": "Elakkan imej yang kabur atau gelap untuk ketepatan yang lebih baik",
-    "tipUpload4": "Format yang disokong: JPG, PNG, WEBP (maks 10MB)"
+    "tipUpload4": "Format yang disokong: JPG, JPEG, PNG, WEBP (maks 10MB)"
   },
   "chat": {
     "title": "Tanya Pilly",
@@ -195,11 +195,11 @@
     "escalateToPharmacist": "Hubungi Farmasis",
     "escalateNotice": "Farmasis akan bertindak balas semasa waktu bekerja (Isnin–Jumaat, 8pg–6ptg)",
     "typing": "Pilly sedang menaip...",
-    "suggestionOne": "Apakah kesan sampingan ubat saya?",
-    "suggestionTwo": "Bolehkah saya ambil ubat bersama makanan?",
-    "suggestionThree": "Berapa lama saya perlu tunggu untuk ubat saya?",
-    "suggestionFour": "Apakah kesan sampingan yang biasa?",
-    "suggestionFive": "Apakah waktu operasi farmasi?"
+    "suggestionOne": "Hai Pilly, boleh kenalkan apa yang kamu boleh bantu?",
+    "suggestionTwo": "Di mana senarai ubat saya?",
+    "suggestionThree": "Farmasi pukul berapa tutup hari ini?",
+    "suggestionFour": "Boleh terangkan ubat ini untuk apa dalam bahasa mudah?",
+    "suggestionFive": "Saya rasa pening selepas makan ubat, adakah ini normal?"
   },
   "profile": {
     "title": "Profil",

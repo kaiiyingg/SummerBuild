@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Volume2, Camera, MessageCircle, Search, FileText, AlertTriangle, ChevronDown, ChevronUp } from "lucide-react";
 import { useTranslation } from "../../context/LanguageContext";
 
@@ -54,18 +54,6 @@ const medications = [
     status: "ready" as MedStatus,
   },
 ];
-
-const OVERALL_STATUS_STYLE: Record<MedStatus, { dot: string; badgeColor: string; badgeBg: string; badgeBorder: string; labelKey: string }> = {
-  ready:   { dot: C.green, badgeColor: C.greenText, badgeBg: C.greenLight, badgeBorder: `${C.green}40`, labelKey: 'medications.statusReadyBadge'  },
-  packing: { dot: C.blue,  badgeColor: C.blueText,  badgeBg: C.blueLight,  badgeBorder: `${C.blue}40`,  labelKey: 'medications.statusPackingBadge' },
-  delayed: { dot: C.amber, badgeColor: C.amberText, badgeBg: C.amberLight, badgeBorder: `${C.amber}40`, labelKey: 'medications.statusDelayedBadge' },
-};
-
-function getOverallStatus(meds: typeof medications): MedStatus {
-  if (meds.some((m) => m.status === "delayed")) return "delayed";
-  if (meds.some((m) => m.status === "packing")) return "packing";
-  return "ready";
-}
 
 const STATUS_BORDER: Record<MedStatus, string> = {
   ready:   C.teal,
@@ -127,31 +115,30 @@ function MedCard({ med }: { med: typeof medications[number] }) {
   );
 }
 
-export function MedicationsScreen({ onTabChange }: { onTabChange: (tab: string) => void }) {
+export function MedicationsScreen({ onTabChange, onDelayedMedsDetected }: {
+  onTabChange: (tab: string) => void;
+  onDelayedMedsDetected?: (delayedMeds: Array<typeof medications[number]>) => void;
+}) {
   const { t } = useTranslation();
-  const overallStatus = getOverallStatus(medications);
-  const cfg = OVERALL_STATUS_STYLE[overallStatus];
+  const delayedMeds = medications.filter((med) => med.status === "delayed");
+
+  useEffect(() => {
+    if (delayedMeds.length > 0) {
+      onDelayedMedsDetected?.(delayedMeds);
+    }
+  }, [delayedMeds, onDelayedMedsDetected]);
 
   return (
     <div className="p-4 md:p-6 space-y-4 overflow-y-auto h-full pb-6 max-w-4xl mx-auto w-full">
 
       {/* Page header */}
-      <div className="flex items-start justify-between">
-        <div>
-          <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "14px", color: C.textSecond }}>
-            {t('medications.todaysPrescription')}
-          </p>
-          <h1 style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "24px", fontWeight: 700, color: C.textPrimary }}>
-            {medications.length} {t('medications.medicationsCount')}
-          </h1>
-        </div>
-        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full mt-1"
-          style={{ background: cfg.badgeBg, border: `1px solid ${cfg.badgeBorder}` }}>
-          <div className="w-2 h-2 rounded-full" style={{ background: cfg.dot }} />
-          <span style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "13px", fontWeight: 600, color: cfg.badgeColor }}>
-            {t(cfg.labelKey)}
-          </span>
-        </div>
+      <div>
+        <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "14px", color: C.textSecond }}>
+          {t('medications.todaysPrescription')}
+        </p>
+        <h1 style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "24px", fontWeight: 700, color: C.textPrimary }}>
+          {medications.length} {t('medications.medicationsCount')}
+        </h1>
       </div>
 
       {/* Med cards */}

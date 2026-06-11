@@ -166,8 +166,24 @@ export function AskPillyScreen() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+  const isAsciiKeyword = (keyword: string) => /^[a-z0-9\s'’-]+$/i.test(keyword);
+
   const matchesAnyKeyword = (normalizedText: string, keywords: string[]) =>
-    keywords.some((keyword) => normalizedText === keyword || normalizedText.includes(keyword));
+    keywords.some((keyword) => {
+      const normalizedKeyword = keyword.trim().toLowerCase();
+      if (!normalizedKeyword) return false;
+
+      // For latin keywords, match as whole words/phrases to avoid false positives like "hi" in "which".
+      if (isAsciiKeyword(normalizedKeyword)) {
+        const pattern = new RegExp(`(^|\\W)${escapeRegExp(normalizedKeyword)}(?=\\W|$)`, "i");
+        return pattern.test(normalizedText);
+      }
+
+      // For non-latin scripts, keep phrase containment.
+      return normalizedText.includes(normalizedKeyword);
+    });
 
   const detectSmallTalkIntent = (text: string): "greeting" | "ending" | null => {
     const normalized = text.trim().toLowerCase();

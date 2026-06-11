@@ -10,6 +10,7 @@ import { RemindersScreen } from "../components/patient/RemindersScreen";
 import { AskPillyScreen } from "../components/patient/AskPillyScreen";
 import { ProfileScreen } from "../components/patient/ProfileScreen";
 import { useTranslation } from "../context/LanguageContext";
+import { BasicToast } from "../components/ui/Toast";
 
 // ── palette ────────────────────────────────────────────────────
 const C = {
@@ -186,7 +187,7 @@ function NotificationDropdown({ notifications, onClose, onMarkAllRead }: {
             className="flex items-start gap-3 px-4 py-3"
             style={{
               background: n.read ? "white" : "#F8FAFC",
-              borderLeft: n.read ? `3px solid transparent` : `3px solid ${C.teal}`,
+              borderLeft: n.read ? `3px solid transparent` : `3px solid ${n.dot}`,
               borderBottom: `1px solid ${C.border}`,
             }}
           >
@@ -318,10 +319,30 @@ export default function App() {
   const [showLangDropdown,   setShowLangDropdown]   = useState(false);
   const [showLogoutModal,    setShowLogoutModal]    = useState(false);
   const [notifications,      setNotifications]      = useState(NOTIFICATIONS);
+  const [delayedToastMsg,    setDelayedToastMsg]    = useState<string | null>(null);
+  const delayedNotifiedIds = useRef<Set<number>>(new Set());
 
   const unreadCount  = notifications.filter((n) => !n.read).length;
   const currentShort = LANG_SHORT[language] ?? 'EN';
   const markAllRead  = () => setNotifications((n) => n.map((x) => ({ ...x, read: true })));
+  const handleDelayedMedsDetected = (delayedMeds: Array<{ id: number; name: string }>) => {
+    const freshDelayedMeds = delayedMeds.filter((med) => !delayedNotifiedIds.current.has(med.id));
+    if (freshDelayedMeds.length === 0) return;
+
+    freshDelayedMeds.forEach((med) => delayedNotifiedIds.current.add(med.id));
+    setNotifications((prev) => ([
+      ...freshDelayedMeds.map((med) => ({
+        id: Date.now() + med.id,
+        dot: C.amber,
+        title: `${med.name} is delayed`,
+        subtitle: "Pharmacy is preparing your medicine. We will notify you when ready.",
+        time: "Just now",
+        read: false,
+      })),
+      ...prev,
+    ]));
+    setDelayedToastMsg(`${freshDelayedMeds[0].name} is delayed. Added to notifications.`);
+  };
   const handleLogout = () => {
     localStorage.removeItem("pilly-user-email");
     localStorage.removeItem("pilly-user-role");
@@ -332,7 +353,12 @@ export default function App() {
   const renderScreen = () => {
     switch (activeTab) {
       case "home":        return <HomeScreen onTabChange={(t) => setActiveTab(t as Tab)} />;
-      case "medications": return <MedicationsScreen onTabChange={(t) => setActiveTab(t as Tab)} />;
+      case "medications": return (
+        <MedicationsScreen
+          onTabChange={(t) => setActiveTab(t as Tab)}
+          onDelayedMedsDetected={handleDelayedMedsDetected}
+        />
+      );
       case "scan":        return <ScanScreen />;
       case "reminders":   return <RemindersScreen />;
       case "askpilly":    return <AskPillyScreen />;
@@ -435,6 +461,15 @@ export default function App() {
 
       {showLogoutModal && <LogoutModal onConfirm={handleLogout} onCancel={() => setShowLogoutModal(false)} />}
       {activeTab !== "askpilly" && <FloatingChatBubble onOpen={() => setActiveTab("askpilly")} />}
+      {delayedToastMsg && (
+        <BasicToast
+          message={delayedToastMsg}
+          type="warning"
+          duration={3800}
+          isVisible={Boolean(delayedToastMsg)}
+          onClose={() => setDelayedToastMsg(null)}
+        />
+      )}
     </div>
   );
 }

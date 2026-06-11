@@ -176,7 +176,7 @@
     "scanPackagingWarningSticker": "警示贴纸",
     "scanPackagingPacket": "药袋标签",
     "scanPackagingDefault": "药品标签",
-    "scanUnsupportedFile": "请上传药品标签的 JPG、PNG 或 WEBP 图片。",
+    "scanUnsupportedFile": "请上传药品标签的 JPG、JPEG、PNG 或 WEBP 图片。",
     "scanFileTooLarge": "此照片大于 10MB。请上传更小的图片。",
     "tipCamera1": "扫描时确保光线充足",
     "tipCamera2": "将相机稳定地对准标签",
@@ -185,7 +185,7 @@
     "tipUpload1": "使用靠近标签拍摄的清晰、光线充足的照片",
     "tipUpload2": "确保标签完整可见，未被裁剪",
     "tipUpload3": "避免模糊或暗色图像以提高准确性",
-    "tipUpload4": "支持格式：JPG、PNG、WEBP（最大 10MB）"
+    "tipUpload4": "支持格式：JPG、JPEG、PNG、WEBP（最大 10MB）"
   },
   "chat": {
     "title": "问问 Pilly",
@@ -195,11 +195,11 @@
     "escalateToPharmacist": "联系药剂师",
     "escalateNotice": "药剂师将在工作时间内回复（周一至周五，上午8点至下午6点）",
     "typing": "Pilly 正在输入...",
-    "suggestionOne": "我的药物有哪些副作用？",
-    "suggestionTwo": "我可以随餐服药吗？",
-    "suggestionThree": "我需要等多久才能取药？",
-    "suggestionFour": "常见的副作用有哪些？",
-    "suggestionFive": "药房的营业时间是什么？"
+    "suggestionOne": "你好 Pilly，你可以介绍一下你能帮我做什么吗？",
+    "suggestionTwo": "我的药单在哪里看？",
+    "suggestionThree": "药房今天几点关门？",
+    "suggestionFour": "你可以用简单的话解释这个药是治什么的吗？",
+    "suggestionFive": "我吃药后有点头晕，这正常吗？"
   },
   "profile": {
     "title": "我的账号",

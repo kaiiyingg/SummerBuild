@@ -21,6 +21,16 @@ const C = {
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000";
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
 const SPEECH_API_URL = `${API_BASE_URL}/api/scan-medication-speech`;
+const SUPPORTED_SCAN_ACCEPT = ".jpg,.jpeg,.jfif,.png,.webp,image/*";
+const SUPPORTED_SCAN_MIME_TYPES = new Set([
+  "image/jpeg",
+  "image/jpg",
+  "image/pjpeg",
+  "image/jfif",
+  "image/png",
+  "image/webp",
+]);
+const SUPPORTED_SCAN_EXTENSIONS = [".jpg", ".jpeg", ".jfif", ".png", ".webp"];
 
 type ScanResult = {
   packaging_type: string;
@@ -391,7 +401,12 @@ export function ScanScreen() {
 
     if (!file) return;
 
-    if (!file.type.startsWith("image/")) {
+    const normalizedMime = file.type.toLowerCase();
+    const normalizedName = file.name.toLowerCase();
+    const hasSupportedMime = SUPPORTED_SCAN_MIME_TYPES.has(normalizedMime) || normalizedMime.startsWith("image/");
+    const hasSupportedExtension = SUPPORTED_SCAN_EXTENSIONS.some((ext) => normalizedName.endsWith(ext));
+
+    if (!hasSupportedMime && !hasSupportedExtension) {
       setScanError(t("medications.scanUnsupportedFile"));
       return;
     }
@@ -515,7 +530,7 @@ export function ScanScreen() {
           <input
             ref={cameraInputRef}
             type="file"
-            accept="image/*"
+            accept={SUPPORTED_SCAN_ACCEPT}
             capture="environment"
             className="hidden"
             onChange={(event) => void handleFileSelected(event)}
