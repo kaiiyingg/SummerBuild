@@ -127,7 +127,7 @@
     "scanFeature1": "Explain any label section you are unsure about",
     "scanFeature2": "See what the detected medication is commonly used for",
     "scanFeature3": "Hear instructions, side effects, and precautions aloud",
-    "chatDesc": "Chat in your preferred language. Ask about your medications, side effects, dosage, upcoming appointments, or any health questions you have.",
+    "chatDesc": "Chat in your preferred language. Ask about your medications, side effects, dosage, pharmacy opening hours, or any health questions you have.",
     "textToSpeech": "Read aloud",
     "tapToScan": "Use your camera or upload a label photo for quick explanations and medication guidance",
     "openCamera": "Open Camera",
@@ -215,10 +215,14 @@
     "tipUpload1": "Upload a clear photo of the exact part you want translated or explained",
     "tipUpload2": "Include the full bottle or box label if you want general medication information",
     "tipUpload3": "Keep the image sharp so dosage, side effects, and precautions can be read",
-    "tipUpload4": "Supported formats: JPG, JPEG, PNG, WEBP (max 10MB)"
+    "tipUpload4": "Supported formats: JPG, JPEG, PNG, WEBP (max 10MB)",
+    "scanEasyStepsTitle": "3 easy steps",
+    "scanEasyStep1": "1. Choose Open Camera or Upload Photo.",
+    "scanEasyStep2": "2. Keep the words clear and use bright light.",
+    "scanEasyStep3": "3. Wait for results and tap Read Aloud if needed."
   },
   "chat": {
-    "title": "Ask Pilly",
+    "title": "Pharmacy Help",
     "subtitle": "Get answers to your medication questions",
     "placeholder": "Type your question here...",
     "send": "Send",

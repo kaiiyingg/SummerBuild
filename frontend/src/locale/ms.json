@@ -215,10 +215,14 @@
     "tipUpload1": "Muat naik foto yang jelas bagi bahagian tepat yang anda mahu diterjemahkan atau diterangkan",
     "tipUpload2": "Sertakan label penuh botol atau kotak jika anda mahukan maklumat umum tentang ubat",
     "tipUpload3": "Pastikan imej tajam supaya dos, kesan sampingan, dan langkah berjaga-jaga boleh dibaca",
-    "tipUpload4": "Format yang disokong: JPG, JPEG, PNG, WEBP (maks 10MB)"
+    "tipUpload4": "Format yang disokong: JPG, JPEG, PNG, WEBP (maks 10MB)",
+    "scanEasyStepsTitle": "3 langkah mudah",
+    "scanEasyStep1": "1. Pilih Buka Kamera atau Muat Naik Foto.",
+    "scanEasyStep2": "2. Pastikan tulisan jelas dan gunakan cahaya terang.",
+    "scanEasyStep3": "3. Tunggu keputusan, kemudian tekan Baca dengan kuat jika perlu."
   },
   "chat": {
-    "title": "Tanya Pilly",
+    "title": "Bantuan Farmasi",
     "subtitle": "Dapatkan jawapan kepada soalan ubat anda",
     "placeholder": "Taip soalan anda di sini...",
     "send": "Hantar",

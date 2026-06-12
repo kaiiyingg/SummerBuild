@@ -68,20 +68,20 @@ const ALL_HOURS = [
 
 function ReminderRow({ reminder, onToggle }: { reminder: Reminder; onToggle: () => void }) {
   return (
-    <div className="flex items-center gap-3 py-3.5" style={{ borderBottom: `1px solid ${C.border}` }}>
-      <div className="w-9 h-9 rounded-full flex items-center justify-center shrink-0" style={{ background: C.tealLight }}>
-        <Bell size={17} color={C.teal} />
+    <div className="flex items-center gap-4 py-4" style={{ borderBottom: `1px solid ${C.border}` }}>
+      <div className="h-11 w-11 rounded-full flex items-center justify-center shrink-0" style={{ background: C.tealLight }}>
+        <Bell size={20} color={C.teal} />
       </div>
       <div className="flex-1">
-        <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "15px", fontWeight: 600, color: reminder.taken ? C.textDisabled : C.textPrimary, textDecoration: reminder.taken ? "line-through" : "none" }}>
+        <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "17px", fontWeight: 600, color: reminder.taken ? C.textDisabled : C.textPrimary, textDecoration: reminder.taken ? "line-through" : "none" }}>
           {reminder.name}
         </p>
-        <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "14px", color: C.textSecond, marginTop: "2px" }}>{reminder.time}</p>
+        <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "16px", color: C.textSecond, marginTop: "3px" }}>{reminder.time}</p>
       </div>
-      <button onClick={onToggle} className="w-7 h-7 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors"
+      <button onClick={onToggle} className="h-9 w-9 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors"
         style={{ borderColor: reminder.taken ? C.teal : C.border, background: reminder.taken ? C.teal : "white" }}>
         {reminder.taken && (
-          <svg width="13" height="13" viewBox="0 0 12 12" fill="none">
+          <svg width="16" height="16" viewBox="0 0 12 12" fill="none">
             <path d="M2 6l3 3 5-5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         )}
@@ -332,24 +332,24 @@ export function RemindersScreen() {
     <div className="p-4 md:p-6 space-y-5 overflow-y-auto h-full pb-6 max-w-2xl mx-auto w-full">
 
       <div className="flex items-center justify-between">
-        <h1 style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "22px", fontWeight: 700, color: C.textPrimary }}>
+        <h1 style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "28px", fontWeight: 700, color: C.textPrimary }}>
           {t('medications.reminderTitle')}
         </h1>
-        <Bell size={20} color={C.teal} />
+        <Bell size={26} color={C.teal} />
       </div>
 
       {/* Progress summary */}
       <div className="p-4 rounded-xl bg-white" style={{ border: `1px solid ${C.border}` }}>
         <div className="flex items-center justify-between mb-3">
-          <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "15px", fontWeight: 600, color: C.textPrimary }}>{t('medications.todaysProgress')}</p>
-          <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "15px", fontWeight: 700, color: C.teal }}>
+          <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "18px", fontWeight: 600, color: C.textPrimary }}>{t('medications.todaysProgress')}</p>
+          <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "20px", fontWeight: 700, color: C.teal }}>
             {takenCount}/{reminders.length}
           </span>
         </div>
         <div className="w-full h-2 rounded-full overflow-hidden" style={{ background: C.muted }}>
-          <div className="h-full rounded-full transition-all" style={{ width: `${(takenCount / reminders.length) * 100}%`, background: C.teal }} />
+          <div className="h-full rounded-full transition-all" style={{ width: `${(takenCount / Math.max(reminders.length, 1)) * 100}%`, background: C.teal }} />
         </div>
-        <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "13px", color: C.textSecond, marginTop: "8px" }}>
+        <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "17px", color: C.textSecond, marginTop: "10px", lineHeight: "1.5" }}>
           {takenCount === reminders.length
             ? t('medications.allDosesTaken')
             : `${reminders.length - takenCount} ${reminders.length - takenCount === 1 ? t('medications.doseRemaining') : t('medications.dosesRemaining')}`}
@@ -358,18 +358,20 @@ export function RemindersScreen() {
 
       {/* Reminder list */}
       <div>
-        <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "12px", fontWeight: 700, color: C.textDisabled, letterSpacing: "1px", textTransform: "uppercase", marginBottom: "10px" }}>
+        <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "14px", fontWeight: 700, color: C.textDisabled, letterSpacing: "1px", textTransform: "uppercase", marginBottom: "10px" }}>
           {t('medications.todaysSchedule')}
         </p>
         <div className="bg-white rounded-xl px-4" style={{ border: `1px solid ${C.border}` }}>
-          {reminders.map((r) => (
-            <ReminderRow key={r.id} reminder={r} onToggle={() => void toggleReminder(r.id)} />
-          ))}
+          <div className="overflow-y-auto" style={{ maxHeight: "min(50vh, 460px)" }}>
+            {reminders.map((r) => (
+              <ReminderRow key={r.id} reminder={r} onToggle={() => void toggleReminder(r.id)} />
+            ))}
+          </div>
           <div className="py-4 text-center">
             <button onClick={() => setShowAddSheet(true)}
-              className="flex items-center gap-1.5 mx-auto hover:opacity-80 transition-opacity"
-              style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "15px", color: C.teal, fontWeight: 600 }}>
-              <Plus size={16} />{t('medications.addReminder')}
+              className="mx-auto flex min-h-[44px] items-center gap-2 rounded-xl px-3 hover:opacity-80 transition-opacity"
+              style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "17px", color: C.teal, fontWeight: 700 }}>
+              <Plus size={19} />{t('medications.addReminder')}
             </button>
           </div>
         </div>

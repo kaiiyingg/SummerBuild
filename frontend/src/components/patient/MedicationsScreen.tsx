@@ -6,8 +6,7 @@ import {
   Search,
   FileText,
   AlertTriangle,
-  ChevronDown,
-  ChevronUp,
+  ChevronRight,
 } from "lucide-react";
 import { useTranslation } from "../../context/LanguageContext";
 
@@ -46,7 +45,7 @@ const fallbackMedications = [
     name: "Metformin 500mg",
     for: "Type 2 Diabetes",
     how: "Take 1 tablet twice daily with meals. Do not skip doses.",
-    caution: "May cause stomach upset if taken without food. Swallow whole — do not crush or chew.",
+    caution: "May cause stomach upset if taken without food. Swallow whole, do not crush or chew.",
     status: "ready" as MedStatus,
   },
   {
@@ -91,7 +90,6 @@ function MedCard({
   onSpeakHowToTake: () => void;
 }) {
   const { t } = useTranslation();
-  const [showCaution, setShowCaution] = useState(false);
   const borderColor = STATUS_BORDER[med.status];
 
   return (
@@ -128,32 +126,15 @@ function MedCard({
           </button>
         </div>
 
-        {med.caution && showCaution && (
-          <div className="mt-3 flex items-start gap-2 p-3 rounded-lg" style={{ background: C.amberLight, border: `1px solid ${C.amber}40` }}>
-            <AlertTriangle size={15} color={C.amber} className="shrink-0 mt-0.5" />
-            <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "14px", color: C.amberText, lineHeight: "1.55" }}>
+        {med.caution && (
+          <div className="mt-3 flex items-start gap-3 p-4 rounded-xl" style={{ background: C.amberLight, border: `1.5px solid ${C.amber}55` }}>
+            <AlertTriangle size={19} color={C.amber} className="shrink-0 mt-0.5" />
+            <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "17px", color: C.amberText, lineHeight: "1.65", fontWeight: 600 }}>
               {med.caution}
             </p>
           </div>
         )}
       </div>
-
-      {med.caution && (
-        <button
-          onClick={() => setShowCaution(!showCaution)}
-          className="w-full flex items-center justify-center gap-1.5 py-2.5 hover:opacity-70 transition-opacity"
-          style={{ borderTop: `1px solid ${C.border}` }}
-        >
-          <span style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "13px", color: C.textSecond }}>
-            {showCaution ? t("medications.hideCaution") : t("medications.showCaution")}
-          </span>
-          {showCaution ? (
-            <ChevronUp size={14} color={C.textSecond} />
-          ) : (
-            <ChevronDown size={14} color={C.textSecond} />
-          )}
-        </button>
-      )}
     </div>
   );
 }
@@ -330,60 +311,84 @@ export function MedicationsScreen({
         ))}
       </div>
 
-      <div className="rounded-xl overflow-hidden" style={{ border: `1px solid ${C.border}` }}>
-        <button
-          onClick={() => onTabChange("scan")}
-          className="w-full text-left hover:opacity-90 transition-opacity"
-          style={{ background: `linear-gradient(135deg, ${C.teal} 0%, ${C.tealDark} 100%)` }}
+      <div className="space-y-3">
+        <div
+          className="w-full rounded-2xl p-5 text-left"
+          style={{
+            background: "white",
+            border: `2px solid ${C.teal}55`,
+            boxShadow: "0 8px 20px rgba(15,23,42,0.06)",
+          }}
         >
-          <div className="flex items-start gap-4 p-4">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: "rgba(255,255,255,0.2)" }}>
-              <Camera size={20} color="white" />
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0" style={{ background: C.tealLight }}>
+              <Camera size={23} color={C.teal} />
             </div>
             <div className="flex-1">
-              <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "16px", fontWeight: 700, color: "white", marginBottom: "6px" }}>
+              <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "20px", fontWeight: 700, color: C.textPrimary, marginBottom: "8px" }}>
                 {t("medications.scanTitle")}
               </p>
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 {[
-                  { icon: <Search size={12} color="rgba(255,255,255,0.9)" />, text: t("medications.scanFeature1") },
-                  { icon: <FileText size={12} color="rgba(255,255,255,0.9)" />, text: t("medications.scanFeature2") },
-                  { icon: <Volume2 size={12} color="rgba(255,255,255,0.9)" />, text: t("medications.scanFeature3") },
+                  { icon: <Search size={14} color={C.teal} />, text: t("medications.scanFeature1") },
+                  { icon: <FileText size={14} color={C.teal} />, text: t("medications.scanFeature2") },
+                  { icon: <Volume2 size={14} color={C.teal} />, text: t("medications.scanFeature3") },
                 ].map((feature) => (
-                  <div key={feature.text} className="flex items-center gap-2">
+                  <div key={feature.text} className="flex items-start gap-2.5">
                     {feature.icon}
-                    <span style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "13px", color: "rgba(255,255,255,0.9)" }}>
+                    <span style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "16px", color: C.textSecond, lineHeight: "1.55" }}>
                       {feature.text}
                     </span>
                   </div>
                 ))}
               </div>
+              <button
+                onClick={() => onTabChange("scan")}
+                className="mt-5 w-full flex items-center justify-between rounded-2xl px-5 py-3.5 hover:opacity-95 transition-opacity"
+                style={{ background: C.teal, border: `1px solid ${C.tealDark}` }}
+              >
+                <span className="inline-flex items-center gap-2.5" style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "18px", fontWeight: 700, color: "white" }}>
+                  <Camera size={18} color="white" />
+                  Open camera to scan
+                </span>
+                <ChevronRight size={21} color="white" />
+              </button>
             </div>
-            <span style={{ color: "rgba(255,255,255,0.7)", fontSize: "18px", alignSelf: "center" }}>›</span>
           </div>
-        </button>
+        </div>
 
-        <div style={{ height: "1px", background: C.border }} />
-
-        <button
-          onClick={() => onTabChange("askpilly")}
-          className="w-full text-left bg-white hover:bg-[#F8FAFC] transition-colors"
+        <div
+          className="w-full rounded-2xl p-5 text-left bg-white"
+          style={{
+            border: `2px solid ${C.teal}55`,
+            boxShadow: "0 8px 20px rgba(15,23,42,0.06)",
+          }}
         >
-          <div className="flex items-start gap-4 p-4">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: C.tealLight }}>
-              <MessageCircle size={20} color={C.teal} />
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0" style={{ background: C.tealLight }}>
+              <MessageCircle size={23} color={C.teal} />
             </div>
             <div className="flex-1">
-              <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "16px", fontWeight: 700, color: C.textPrimary, marginBottom: "4px" }}>
+              <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "20px", fontWeight: 700, color: C.textPrimary, marginBottom: "8px" }}>
                 {t("chat.title")}
               </p>
-              <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "13px", color: C.textSecond, lineHeight: "1.6" }}>
+              <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "16px", color: C.textSecond, lineHeight: "1.6" }}>
                 {t("medications.chatDesc")}
               </p>
+              <button
+                onClick={() => onTabChange("askpilly")}
+                className="mt-5 w-full flex items-center justify-between rounded-2xl px-5 py-3.5 hover:opacity-95 transition-opacity"
+                style={{ background: C.teal, border: `1px solid ${C.tealDark}` }}
+              >
+                <span className="inline-flex items-center gap-2.5" style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "18px", fontWeight: 700, color: "white" }}>
+                  <MessageCircle size={18} color="white" />
+                  Ask the AI helper
+                </span>
+                <ChevronRight size={21} color="white" />
+              </button>
             </div>
-            <span style={{ color: C.textDisabled, fontSize: "18px", alignSelf: "center" }}>›</span>
           </div>
-        </button>
+        </div>
       </div>
     </div>
   );

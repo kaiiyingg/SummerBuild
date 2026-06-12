@@ -215,10 +215,14 @@
     "tipUpload1": "上传您想翻译或解释的那一部分清晰照片",
     "tipUpload2": "若想查看一般药物信息，请包含完整瓶身或盒装标签",
     "tipUpload3": "保持图像清晰，以便读取剂量、副作用和注意事项",
-    "tipUpload4": "支持格式：JPG、JPEG、PNG、WEBP（最大 10MB）"
+    "tipUpload4": "支持格式：JPG、JPEG、PNG、WEBP（最大 10MB）",
+    "scanEasyStepsTitle": "3个简单步骤",
+    "scanEasyStep1": "1. 选择“打开相机”或“上传照片”。",
+    "scanEasyStep2": "2. 保持文字清晰，并确保光线充足。",
+    "scanEasyStep3": "3. 等待结果；需要时可点“朗读内容”。"
   },
   "chat": {
-    "title": "问问 Pilly",
+    "title": "药房用药帮助",
     "subtitle": "获取药物相关问题的解答",
     "placeholder": "在此输入您的问题...",
     "send": "发送",

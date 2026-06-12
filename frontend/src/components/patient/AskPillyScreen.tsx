@@ -372,9 +372,6 @@ export function AskPillyScreen() {
 
       <div className="shrink-0 px-4 py-3 bg-white" style={{ borderTop: `1px solid ${C.border}` }}>
         <div className="flex items-center gap-3">
-          <button aria-label="Voice input">
-            <Mic size={22} color={C.textSecond} />
-          </button>
           <div className="flex-1 flex items-center px-4 py-2.5 rounded-3xl" style={{ background: C.muted }}>
             <input
               type="text"
@@ -386,6 +383,13 @@ export function AskPillyScreen() {
               style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "15px", color: C.textPrimary }}
             />
           </div>
+          <button
+            aria-label="Voice input"
+            className="w-11 h-11 rounded-full flex items-center justify-center shrink-0 hover:opacity-80 transition-opacity"
+            style={{ background: C.muted, border: `1px solid ${C.border}` }}
+          >
+            <Mic size={20} color={C.textSecond} />
+          </button>
           <button
             onClick={() => sendMessage(inputText)}
             className="w-11 h-11 rounded-full flex items-center justify-center shrink-0 hover:opacity-80 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"

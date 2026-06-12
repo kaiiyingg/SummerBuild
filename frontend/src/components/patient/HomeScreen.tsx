@@ -25,6 +25,10 @@ const C = {
 
 type QueueStatus   = "waiting" | "almost" | "now" | "done";
 
+function shouldShowHeaderBadge(status: QueueStatus) {
+  return status === "now" || status === "done";
+}
+
 // ── Header status badge (white pill on teal/green header) ──
 function HeaderBadge({ status }: { status: QueueStatus }) {
   const { t } = useTranslation();
@@ -275,12 +279,11 @@ function RescheduleSheet({ onClose }: { onClose: () => void }) {
 }
 
 
-function ReRegisterSheet({ onClose }: { onClose: () => void }) {
+function ReRegisterSheet({ onClose, patient }: { onClose: () => void; patient?: any }) {
   const { t } = useTranslation();
   const [confirmed, setConfirmed] = useState(false);
   const [newQueue]  = useState("B052");
-  const reasons     = [t('queue.reasonFollowUp'), t('queue.reasonNewConsultation'), t('queue.reasonCollectMedication'), t('common.other')];
-  const [reason, setReason] = useState("Follow-up visit");
+  const reasonForVisit = patient?.reasonForVisit ?? patient?.reason_for_visit ?? t('queue.reasonFollowUp');
 
   if (confirmed) return (
     <div className="fixed inset-0 z-50 flex items-end justify-center" style={{ background: "rgba(15,23,42,0.45)" }} onClick={onClose}>
@@ -309,7 +312,7 @@ function ReRegisterSheet({ onClose }: { onClose: () => void }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center" style={{ background: "rgba(15,23,42,0.45)" }} onClick={onClose}>
-      <div className="w-full max-w-lg bg-white rounded-t-3xl pb-8 overflow-y-auto"
+      <div className="w-full max-w-xl bg-white rounded-t-3xl pb-8 overflow-y-auto"
         style={{ maxHeight: "90svh", boxShadow: "0 -8px 40px rgba(0,0,0,0.12)" }} onClick={(e) => e.stopPropagation()}>
 
         {/* Handle */}
@@ -318,30 +321,30 @@ function ReRegisterSheet({ onClose }: { onClose: () => void }) {
         </div>
 
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: `1px solid ${C.border}` }}>
+        <div className="flex items-center justify-between px-7 py-5" style={{ borderBottom: `1px solid ${C.border}` }}>
           <div>
-            <h2 style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "20px", fontWeight: 700, color: C.textPrimary }}>{t('queue.reRegister')}</h2>
-            <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "14px", color: C.textSecond, marginTop: "2px" }}>{t('queue.getNewQueueNumber')}</p>
+            <h2 style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "26px", fontWeight: 800, color: C.textPrimary, lineHeight: 1.2 }}>{t('queue.reRegister')}</h2>
+            <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "18px", color: C.textSecond, marginTop: "4px", lineHeight: 1.4 }}>{t('queue.getNewQueueNumber')}</p>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-full" style={{ background: C.muted }}>
-            <X size={18} color={C.textSecond} />
+          <button onClick={onClose} className="p-2 rounded-full" style={{ background: C.muted }}>
+            <X size={22} color={C.textSecond} />
           </button>
         </div>
 
-        <div className="px-6 pt-5 space-y-5">
+        <div className="px-7 pt-6 space-y-6">
 
           {/* Missed queue notice */}
-          <div className="flex items-start gap-3 p-4 rounded-xl" style={{ background: C.amberLight, border: `1px solid ${C.amber}40` }}>
-            <AlertTriangle size={17} color={C.amber} className="shrink-0 mt-0.5" />
-            <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "14px", color: C.amberText, lineHeight: "1.5" }}>
+          <div className="flex items-start gap-4 p-5 rounded-2xl" style={{ background: C.amberLight, border: `1.5px solid ${C.amber}55` }}>
+            <AlertTriangle size={24} color={C.amber} className="shrink-0 mt-0.5" />
+            <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "18px", color: C.amberText, lineHeight: "1.65", fontWeight: 600 }}>
               {t('queue.previousQueueNumber')} <strong>B047</strong> {t('queue.queueExpiredNotice')}
             </p>
           </div>
 
           {/* Patient info (read-only) */}
-          <div className="rounded-xl overflow-hidden" style={{ border: `1px solid ${C.border}` }}>
-            <div className="px-4 py-2" style={{ background: C.muted, borderBottom: `1px solid ${C.border}` }}>
-              <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "12px", fontWeight: 700, color: C.textDisabled, letterSpacing: "0.8px", textTransform: "uppercase" }}>
+          <div className="rounded-2xl overflow-hidden" style={{ border: `1px solid ${C.border}` }}>
+            <div className="px-5 py-3" style={{ background: C.muted, borderBottom: `1px solid ${C.border}` }}>
+              <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "13px", fontWeight: 700, color: C.textDisabled, letterSpacing: "0.8px", textTransform: "uppercase" }}>
                 {t('queue.patientDetails')}
               </p>
             </div>
@@ -350,43 +353,28 @@ function ReRegisterSheet({ onClose }: { onClose: () => void }) {
               { icon: <Hash size={15} color={C.textSecond} />,    label: t('queue.nric'),     value: "SXXXXXX1A" },
               { icon: <MapPin size={15} color={C.textSecond} />,  label: t('queue.counter'),  value: "Level 1, Pharmacy A" },
             ].map((row) => (
-              <div key={row.label} className="flex items-center gap-3 px-4 py-3" style={{ borderBottom: `1px solid ${C.border}` }}>
+              <div key={row.label} className="flex items-center gap-3 px-5 py-4" style={{ borderBottom: `1px solid ${C.border}` }}>
                 {row.icon}
-                <span style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "14px", color: C.textSecond, width: "60px" }}>{row.label}</span>
-                <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "15px", fontWeight: 600, color: C.textPrimary }}>{row.value}</span>
+                <span style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "15px", color: C.textSecond, width: "75px" }}>{row.label}</span>
+                <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "18px", fontWeight: 600, color: C.textPrimary }}>{row.value}</span>
               </div>
             ))}
           </div>
 
           {/* Reason for visit */}
           <div>
-            <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "13px", fontWeight: 700, color: C.textDisabled, letterSpacing: "0.8px", textTransform: "uppercase", marginBottom: "10px" }}>
-              {t('queue.reasonForVisit')}
-            </p>
-            <div className="grid grid-cols-2 gap-2">
-              {reasons.map((r) => {
-                const active = reason === r;
-                return (
-                  <button key={r} onClick={() => setReason(r)}
-                    className="py-3 px-4 rounded-xl text-left transition-colors"
-                    style={{
-                      background: active ? C.tealLight : "white",
-                      border: `1.5px solid ${active ? C.teal : C.border}`,
-                    }}>
-                    <span style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "14px", fontWeight: active ? 600 : 400, color: active ? C.teal : C.textPrimary }}>
-                      {r}
-                    </span>
-                  </button>
-                );
-              })}
+            <div className="px-5 py-4 rounded-2xl" style={{ background: C.muted, border: `1px solid ${C.border}` }}>
+              <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "18px", color: C.textPrimary, lineHeight: 1.6 }}>
+                <strong>{t('queue.reasonForVisit')}:</strong> {reasonForVisit}
+              </p>
             </div>
           </div>
 
           {/* Confirm */}
           <button onClick={() => setConfirmed(true)}
-            className="w-full py-3.5 rounded-xl text-white flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
-            style={{ background: C.teal, fontFamily: "'DM Sans', sans-serif", fontSize: "16px", fontWeight: 700 }}>
-            <RefreshCw size={18} color="white" />
+            className="w-full py-4 rounded-2xl text-white flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
+            style={{ background: C.teal, fontFamily: "'DM Sans', sans-serif", fontSize: "20px", fontWeight: 700 }}>
+            <RefreshCw size={20} color="white" />
             {t('queue.getNewQueueNumber')}
           </button>
 
@@ -418,7 +406,7 @@ export function HomeScreen({ onTabChange }: { onTabChange: (tab: string) => void
 
   const regQueue = {
     number: 47, label: "B047", serving: "B041", servingNum: 41,
-    waitTime: "12–15 min", ahead: 6,
+    waitTime: "12 to 15 min", ahead: 6,
     status: "waiting" as QueueStatus, counter: "Level 1, Pharmacy A", date: "Tuesday, 3 June 2026",
     completedAt: "9:15 AM",
   };
@@ -456,25 +444,39 @@ export function HomeScreen({ onTabChange }: { onTabChange: (tab: string) => void
 
       {/* ── Page header ── */}
       <div className="flex items-center justify-between">
-        <h1 style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "18px", fontWeight: 800, color: C.textPrimary, letterSpacing: "0.5px", textTransform: "uppercase" }}>
+        <h1 style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "22px", fontWeight: 800, color: C.textPrimary, letterSpacing: "0.4px" }}>
           {t('home.yourQueueStatus')}
         </h1>
-        <span style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "13px", color: C.textSecond }}>
+        <span style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "16px", color: C.textSecond }}>
           {t('queue.updatedAt')} {updatedTime}
         </span>
       </div>
 
       {/* Missed queue alert */}
       {showMissedQueue && (
-        <div className="flex items-start gap-3 p-4 rounded-xl" style={{ background: C.amberLight, border: `1px solid ${C.amber}` }}>
-          <Clock size={19} color={C.amber} className="mt-0.5 shrink-0" />
-          <div className="flex-1">
-            <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "15px", color: C.amberText }}>
-              {t('queue.missedQueueAlert')}
-            </p>
-            <button onClick={() => setShowReRegister(true)} style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "15px", color: C.tealDark, fontWeight: 600, marginTop: "4px" }}>{t('queue.reRegister')} →</button>
+        <div className="rounded-xl p-4" style={{ background: "#FEF2F2", border: `2px solid ${C.red}` }}>
+          <div className="flex items-start gap-3">
+            <div className="h-9 w-9 rounded-full flex items-center justify-center shrink-0" style={{ background: "#FEE2E2" }}>
+              <AlertTriangle size={20} color={C.red} className="shrink-0" />
+            </div>
+            <div className="flex-1">
+              <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "17px", fontWeight: 700, color: "#991B1B", lineHeight: "1.5" }}>
+                {t('queue.missedQueueAlert')}
+              </p>
+            </div>
           </div>
-          <button onClick={() => setShowMissedQueue(false)} className="shrink-0 p-1"><X size={16} color={C.textDisabled} /></button>
+          <button
+            onClick={() => setShowReRegister(true)}
+            className="mt-4 w-full rounded-xl py-3.5 text-white hover:opacity-90 transition-opacity"
+            style={{
+              background: C.teal,
+              fontFamily: "'DM Sans', sans-serif",
+              fontSize: "18px",
+              fontWeight: 700,
+            }}
+          >
+            {t('queue.reRegister')}
+          </button>
         </div>
       )}
 
@@ -488,7 +490,7 @@ export function HomeScreen({ onTabChange }: { onTabChange: (tab: string) => void
           <span style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "13px", fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase", color: "white" }}>
             {t('queue.registrationQueue')}
           </span>
-          <HeaderBadge status={regQueue.status} />
+          {shouldShowHeaderBadge(regQueue.status) && <HeaderBadge status={regQueue.status} />}
         </div>
 
         {/* White body */}
@@ -528,19 +530,19 @@ export function HomeScreen({ onTabChange }: { onTabChange: (tab: string) => void
 
               <div className="flex items-center justify-between pt-4" style={{ borderTop: `1px solid ${C.border}` }}>
                 <div>
-                  <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "15px", color: C.textPrimary, marginBottom: "2px" }}>{regQueue.counter}</p>
-                  <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "15px", color: C.textSecond }}>{regQueue.date}</p>
+                  <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "17px", color: C.textPrimary, marginBottom: "4px" }}>{regQueue.counter}</p>
+                  <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "16px", color: C.textSecond }}>{regQueue.date}</p>
                 </div>
-                <div className="flex flex-col items-center gap-1">
+                <div className="flex flex-col items-center gap-2">
                   <button onClick={() => setNotifyToggle(!notifyToggle)}
-                    className="relative w-12 h-6 rounded-full transition-colors"
+                    className="relative h-10 w-20 rounded-full transition-colors"
                     style={{ background: notifyToggle ? C.teal : C.border }}
                     aria-label="Toggle notifications">
-                    <span className="absolute top-1 w-4 h-4 rounded-full bg-white transition-all"
-                      style={{ left: notifyToggle ? "calc(100% - 20px)" : "4px" }} />
+                    <span className="absolute top-1 h-8 w-8 rounded-full bg-white transition-all"
+                      style={{ left: notifyToggle ? "calc(100% - 36px)" : "4px" }} />
                   </button>
-                  <span style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "11px", color: C.textSecond }}>
-                    <Bell size={10} style={{ display: "inline", marginRight: "3px" }} />{t('queue.notifyMe')}
+                  <span style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "17px", color: C.textSecond, fontWeight: 600 }}>
+                    <Bell size={16} style={{ display: "inline", marginRight: "6px" }} />{t('queue.notifyMe')}
                   </span>
                 </div>
               </div>
@@ -557,12 +559,12 @@ export function HomeScreen({ onTabChange }: { onTabChange: (tab: string) => void
             <span style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "13px", fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase", color: "white" }}>
               {t('queue.collectionQueue')}
             </span>
-            <HeaderBadge status={colQueue.status} />
+            {shouldShowHeaderBadge(colQueue.status) && <HeaderBadge status={colQueue.status} />}
           </div>
 
           {/* White body */}
           <div className="p-5 bg-white">
-            <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "11px", fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase", color: C.textDisabled, marginBottom: "4px" }}>
+            <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "13px", fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase", color: C.textDisabled, marginBottom: "4px" }}>
               {t('queue.queueNumber')}
             </p>
             <div className="flex items-end gap-4 mb-3">
@@ -583,13 +585,30 @@ export function HomeScreen({ onTabChange }: { onTabChange: (tab: string) => void
 
             {colQueue.delayed && (
               <div className="rounded-xl p-4 mb-4" style={{ background: C.amberLight, border: `1px solid ${C.amber}` }}>
-                <div className="flex items-start gap-2">
-                  <AlertTriangle size={17} color={C.amber} className="mt-0.5 shrink-0" />
-                  <div>
-                    <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "15px", fontWeight: 700, color: C.amberText }}>{colQueue.delayed.med} {t('queue.isDelayed')}</p>
-                    <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "14px", color: C.amberText, marginTop: "3px" }}>{t('queue.delayedReason')}: {colQueue.delayed.reason}</p>
-                    <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "14px", color: C.amberText, marginTop: "2px" }}>{t('queue.delayedEta')}: <strong>{colQueue.delayed.eta}</strong></p>
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-3">
+                  <div className="flex items-start gap-3 min-w-0">
+                    <AlertTriangle size={20} color={C.amber} className="mt-1 shrink-0" />
+                    <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "20px", fontWeight: 800, color: C.amberText, lineHeight: 1.25 }}>
+                      {colQueue.delayed.med} {t('queue.isDelayed')}
+                    </p>
                   </div>
+                  <div className="shrink-0 rounded-lg px-3 py-2" style={{ background: "white", border: `1px solid ${C.amber}` }}>
+                    <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "11px", fontWeight: 700, letterSpacing: "0.5px", textTransform: "uppercase", color: C.amberText }}>
+                      {t('queue.delayedEta')}
+                    </p>
+                    <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "18px", fontWeight: 800, color: C.amberText }}>
+                      {colQueue.delayed.eta}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="rounded-lg px-3 py-3" style={{ background: "white", border: `1px solid ${C.amber}` }}>
+                  <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "11px", fontWeight: 700, letterSpacing: "0.5px", textTransform: "uppercase", color: C.amberText }}>
+                    {t('queue.delayedReason')}
+                  </p>
+                  <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "16px", color: C.amberText, marginTop: "4px", lineHeight: 1.45 }}>
+                    {colQueue.delayed.reason}
+                  </p>
                 </div>
               </div>
             )}
@@ -610,8 +629,7 @@ export function HomeScreen({ onTabChange }: { onTabChange: (tab: string) => void
       )}
 
       {showReschedule   && <RescheduleSheet   onClose={() => setShowReschedule(false)} />}
-      {showReRegister   && <ReRegisterSheet   onClose={() => { setShowReRegister(false); setShowMissedQueue(false); }} />}
+      {showReRegister   && <ReRegisterSheet   patient={patient} onClose={() => { setShowReRegister(false); setShowMissedQueue(false); }} />}
     </div>
   );
 }
-

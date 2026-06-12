@@ -670,38 +670,55 @@ export function ScanScreen() {
         }
       `}</style>
 
-      <h1 style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "22px", fontWeight: 700, color: C.textPrimary }}>
+      <h1 style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "28px", fontWeight: 700, color: C.textPrimary }}>
         {t("medications.scanTitle")}
       </h1>
 
       <div
-        className="bg-white rounded-2xl p-6 flex flex-col items-center text-center"
+        className="bg-white rounded-2xl p-6 md:p-7 flex flex-col items-center text-center"
         style={{ border: `1px solid ${C.border}`, boxShadow: "0 2px 8px rgba(0,0,0,0.05)" }}
       >
-        <div className="w-20 h-20 rounded-2xl flex items-center justify-center mb-4" style={{ background: C.tealLight }}>
-          <Camera size={36} color={C.teal} />
+        <div className="w-24 h-24 rounded-2xl flex items-center justify-center mb-4" style={{ background: C.tealLight }}>
+          <Camera size={42} color={C.teal} />
         </div>
-        <h2 style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "20px", fontWeight: 700, color: C.textPrimary, marginBottom: "8px" }}>
+        <h2 style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "24px", fontWeight: 700, color: C.textPrimary, marginBottom: "10px" }}>
           {t("medications.scanTitle")}
         </h2>
-        <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "15px", color: C.textSecond, marginBottom: "24px", lineHeight: "1.7" }}>
+        <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "17px", color: C.textSecond, marginBottom: "20px", lineHeight: "1.75", maxWidth: "680px" }}>
           {t("medications.tapToScan")}
         </p>
+        <div
+          className="w-full rounded-xl p-4 text-left mb-5"
+          style={{ background: C.tealLight, border: `1px solid ${C.border}` }}
+        >
+          <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "17px", fontWeight: 700, color: C.textPrimary, marginBottom: "8px" }}>
+            {t("medications.scanEasyStepsTitle")}
+          </p>
+          {[
+            t("medications.scanEasyStep1"),
+            t("medications.scanEasyStep2"),
+            t("medications.scanEasyStep3"),
+          ].map((step) => (
+            <p key={step} style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "16px", color: C.textSecond, lineHeight: "1.6", marginBottom: "4px" }}>
+              {step}
+            </p>
+          ))}
+        </div>
 
-        <div className="flex gap-3 w-full">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
           <button
             onClick={() => void openLiveCamera()}
-            className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl hover:opacity-90 transition-opacity"
+            className="flex min-h-[56px] items-center justify-center gap-2 rounded-xl px-4 py-3 hover:opacity-90 transition-opacity"
             style={{
               background: C.muted,
               border: `1.5px solid ${C.border}`,
               color: C.textPrimary,
               fontFamily: "'DM Sans', sans-serif",
-              fontSize: "15px",
-              fontWeight: 600,
+              fontSize: "17px",
+              fontWeight: 700,
             }}
           >
-            <Camera size={18} color={C.textSecond} />
+            <Camera size={21} color={C.textSecond} />
             {t("medications.openCamera")}
           </button>
           <input
@@ -715,17 +732,17 @@ export function ScanScreen() {
 
           <button
             onClick={() => uploadInputRef.current?.click()}
-            className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl hover:opacity-90 transition-opacity"
+            className="flex min-h-[56px] items-center justify-center gap-2 rounded-xl px-4 py-3 hover:opacity-90 transition-opacity"
             style={{
               background: C.muted,
               border: `1.5px solid ${C.border}`,
               color: C.textPrimary,
               fontFamily: "'DM Sans', sans-serif",
-              fontSize: "15px",
-              fontWeight: 600,
+              fontSize: "17px",
+              fontWeight: 700,
             }}
           >
-            <Upload size={18} color={C.textSecond} />
+            <Upload size={21} color={C.textSecond} />
             {t("medications.uploadPhoto")}
           </button>
           <input
@@ -1121,7 +1138,7 @@ export function ScanScreen() {
         <p
           style={{
             fontFamily: "'Open Sans', sans-serif",
-            fontSize: "12px",
+            fontSize: "14px",
             fontWeight: 700,
             color: C.textDisabled,
             letterSpacing: "1px",
@@ -1138,14 +1155,14 @@ export function ScanScreen() {
               className="flex items-start gap-4 p-4 rounded-xl bg-white"
               style={{ border: `1px solid ${C.border}` }}
             >
-              <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ background: C.tealLight }}>
+              <div className="w-12 h-12 rounded-full flex items-center justify-center shrink-0" style={{ background: C.tealLight }}>
                 {feature.icon}
               </div>
               <div>
-                <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "16px", fontWeight: 600, color: C.textPrimary }}>
+                <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "18px", fontWeight: 600, color: C.textPrimary }}>
                   {feature.title}
                 </p>
-                <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "14px", color: C.textSecond, marginTop: "2px", lineHeight: "1.6" }}>
+                <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "16px", color: C.textSecond, marginTop: "4px", lineHeight: "1.65" }}>
                   {feature.desc}
                 </p>
               </div>
@@ -1157,8 +1174,8 @@ export function ScanScreen() {
       <div className="space-y-3">
         <div className="p-4 rounded-xl" style={{ background: C.muted, border: `1px solid ${C.border}` }}>
           <div className="flex items-center gap-2 mb-3">
-            <Camera size={15} color={C.textSecond} />
-            <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "15px", fontWeight: 600, color: C.textPrimary }}>
+            <Camera size={18} color={C.textSecond} />
+            <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "17px", fontWeight: 700, color: C.textPrimary }}>
               {t("medications.tipsCameraTitle")}
             </p>
           </div>
@@ -1167,17 +1184,17 @@ export function ScanScreen() {
             t("medications.tipCamera2"),
             t("medications.tipCamera3"),
             t("medications.tipCamera4"),
-          ].map((tip) => (
-            <p key={tip} style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "14px", color: C.textSecond, marginBottom: "4px", lineHeight: "1.6" }}>
-              · {tip}
+          ].map((tip, index) => (
+            <p key={tip} style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "16px", color: C.textSecond, marginBottom: "6px", lineHeight: "1.65" }}>
+              {index + 1}. {tip}
             </p>
           ))}
         </div>
 
         <div className="p-4 rounded-xl" style={{ background: C.muted, border: `1px solid ${C.border}` }}>
           <div className="flex items-center gap-2 mb-3">
-            <Upload size={15} color={C.textSecond} />
-            <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "15px", fontWeight: 600, color: C.textPrimary }}>
+            <Upload size={18} color={C.textSecond} />
+            <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "17px", fontWeight: 700, color: C.textPrimary }}>
               {t("medications.tipsUploadTitle")}
             </p>
           </div>
@@ -1186,9 +1203,9 @@ export function ScanScreen() {
             t("medications.tipUpload2"),
             t("medications.tipUpload3"),
             t("medications.tipUpload4"),
-          ].map((tip) => (
-            <p key={tip} style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "14px", color: C.textSecond, marginBottom: "4px", lineHeight: "1.6" }}>
-              · {tip}
+          ].map((tip, index) => (
+            <p key={tip} style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "16px", color: C.textSecond, marginBottom: "6px", lineHeight: "1.65" }}>
+              {index + 1}. {tip}
             </p>
           ))}
         </div>

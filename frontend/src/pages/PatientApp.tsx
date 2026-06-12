@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Bell, LogOut, Users, Pill, ScanLine, AlarmClock, User, ChevronDown, Check, Globe, MessageCircle } from "lucide-react";
+import { Bell, Users, Pill, ScanLine, AlarmClock, User, ChevronDown, Check, Globe, MessageCircle } from "lucide-react";
 import "./PatientApp.css";
 import PillyLogoSmall from "../components/PillyLogoSmall";
 import { HomeScreen } from "../components/patient/HomeScreen";
@@ -10,7 +10,11 @@ import { RemindersScreen } from "../components/patient/RemindersScreen";
 import { AskPillyScreen } from "../components/patient/AskPillyScreen";
 import { ProfileScreen } from "../components/patient/ProfileScreen";
 import { useTranslation } from "../context/LanguageContext";
-import { logout } from "../services/authService";
+import {
+  clearLanguageOnboarding,
+  logout,
+  shouldShowLanguageOnboarding,
+} from "../services/authService";
 import {
   fetchCurrentPatientDetails,
   subscribeToPatientChanges,
@@ -42,11 +46,11 @@ type Tab = "home" | "medications" | "scan" | "reminders" | "askpilly" | "profile
 const LANG_SHORT: Record<string, string> = { en: 'EN', zh: '中文', ms: 'BM', ta: 'தமிழ்' };
 
 const TAB_DEFS: { id: Tab; key: string; icon: React.ReactNode }[] = [
-  { id: "home",        key: "nav.queue",       icon: <Users size={22} /> },
-  { id: "medications", key: "nav.medications",  icon: <Pill size={22} /> },
-  { id: "scan",        key: "nav.scan",         icon: <ScanLine size={22} /> },
-  { id: "reminders",   key: "nav.reminders",    icon: <AlarmClock size={22} /> },
-  { id: "profile",     key: "nav.profile",      icon: <User size={22} /> },
+  { id: "home",        key: "nav.queue",       icon: <Users size={26} /> },
+  { id: "medications", key: "nav.medications",  icon: <Pill size={26} /> },
+  { id: "scan",        key: "nav.scan",         icon: <ScanLine size={26} /> },
+  { id: "reminders",   key: "nav.reminders",    icon: <AlarmClock size={26} /> },
+  { id: "profile",     key: "nav.profile",      icon: <User size={26} /> },
 ];
 
 type NotificationItem = {
@@ -286,6 +290,61 @@ function LogoutModal({ onConfirm, onCancel }: { onConfirm: () => void; onCancel:
   );
 }
 
+function LanguagePreferenceModal({ onContinue }: { onContinue: () => void }) {
+  const { language, setLanguage, LANGUAGES } = useTranslation();
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center px-6" style={{ background: "rgba(15,23,42,0.45)" }}>
+      <div className="bg-white rounded-2xl p-6 w-full max-w-md" style={{ boxShadow: "0 8px 40px rgba(0,0,0,0.12)" }}>
+        <h2 className="mb-2" style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "22px", fontWeight: 700, color: C.textPrimary }}>
+          Choose your preferred language
+        </h2>
+        <p className="mb-4" style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "15px", color: C.textSecond }}>
+          You can change this later in Profile or using the{" "}
+          <Globe
+            size={14}
+            color={C.textSecond}
+            style={{ display: "inline-block", verticalAlign: "-2px", margin: "0 2px" }}
+            aria-hidden="true"
+          />{" "}
+          icon in the top-right corner.
+        </p>
+
+        <div className="grid gap-2 mb-5">
+          {LANGUAGES.map((opt) => {
+            const active = language === opt.code;
+            return (
+              <button
+                key={opt.code}
+                type="button"
+                onClick={() => setLanguage(opt.code)}
+                className="w-full rounded-xl px-4 py-3 text-left transition-colors"
+                style={{
+                  border: `1.5px solid ${active ? C.teal : C.border}`,
+                  background: active ? C.tealLight : "white",
+                }}
+              >
+                <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "16px", fontWeight: 700, color: C.textPrimary }}>
+                  {opt.nativeLabel}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        <button
+          type="button"
+          onClick={onContinue}
+          className="w-full py-3 rounded-xl text-white hover:opacity-80 transition-opacity"
+          style={{ background: C.teal, fontFamily: "'DM Sans', sans-serif", fontSize: "15px", fontWeight: 700 }}
+        >
+          Continue
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ── Draggable floating chat bubble ──
 function FloatingChatBubble({ onOpen }: { onOpen: () => void }) {
   const [pos, setPos]   = useState({ x: 0, y: 0 });
@@ -294,7 +353,7 @@ function FloatingChatBubble({ onOpen }: { onOpen: () => void }) {
   const hasMoved = useRef(false);
   const offset   = useRef({ x: 0, y: 0 });
 
-  const BUBBLE_SIZE = 52;
+  const BUBBLE_SIZE = 68;
 
   const clamp = (x: number, y: number) => ({
     x: Math.min(Math.max(x, 0), window.innerWidth  - BUBBLE_SIZE),
@@ -355,11 +414,11 @@ function FloatingChatBubble({ onOpen }: { onOpen: () => void }) {
       onClick={handleClick}
     >
       <div style={{
-        width: 52, height: 52, borderRadius: "50%", background: C.teal, cursor: "grab",
+        width: BUBBLE_SIZE, height: BUBBLE_SIZE, borderRadius: "50%", background: C.teal, cursor: "grab",
         display: "flex", alignItems: "center", justifyContent: "center",
         boxShadow: "0 4px 16px rgba(69,197,188,0.45)",
       }}>
-        <MessageCircle size={24} color="white" />
+        <MessageCircle size={30} color="white" />
       </div>
     </div>
   );
@@ -369,11 +428,12 @@ function FloatingChatBubble({ onOpen }: { onOpen: () => void }) {
 
 export default function App() {
   const navigate = useNavigate();
-  const { language, setLanguage, t } = useTranslation();
+  const { language, t } = useTranslation();
   const [activeTab,          setActiveTab]          = useState<Tab>("home");
   const [showNotifications,  setShowNotifications]  = useState(false);
   const [showLangDropdown,   setShowLangDropdown]   = useState(false);
   const [showLogoutModal,    setShowLogoutModal]    = useState(false);
+  const [showLanguageModal,  setShowLanguageModal]  = useState(false);
   const [notifications,      setNotifications]      = useState<NotificationItem[]>(NOTIFICATIONS);
   const [hasNewNotification, setHasNewNotification] = useState(false);
   const [delayedToastMsg,    setDelayedToastMsg]    = useState<string | null>(null);
@@ -403,6 +463,14 @@ export default function App() {
       setHasNewNotification(false);
     }
   }, [showNotifications]);
+
+  useEffect(() => {
+    const email = localStorage.getItem("pilly-user-email");
+    if (!email) return;
+    if (shouldShowLanguageOnboarding(email)) {
+      setShowLanguageModal(true);
+    }
+  }, []);
 
   const renderScreen = () => {
     switch (activeTab) {
@@ -445,14 +513,14 @@ export default function App() {
       `}</style>
 
       {/* Header */}
-      <header className="shrink-0 bg-white" style={{ height: "60px", borderBottom: `1px solid ${C.border}` }}>
+      <header className="shrink-0 bg-white" style={{ minHeight: "74px", borderBottom: `1px solid ${C.border}` }}>
         <div className="flex items-center justify-between h-full px-4 md:px-8 max-w-screen-xl mx-auto">
 
           <PillLogo onClick={() => setActiveTab("home")} />
 
           <div className="hidden sm:flex flex-col items-center">
-            <span style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "12px", color: C.textSecond }}>{t('auth.welcomeBack')},</span>
-            <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "15px", fontWeight: 600, color: C.textPrimary }}>{patientName}</span>
+            <span style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "14px", color: C.textSecond }}>{t('auth.welcomeBack')},</span>
+            <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "17px", fontWeight: 600, color: C.textPrimary }}>{patientName}</span>
           </div>
 
           <div className="flex items-center gap-1">
@@ -461,14 +529,14 @@ export default function App() {
             <div className="relative">
               <button
                 onClick={() => { setShowLangDropdown(!showLangDropdown); setShowNotifications(false); }}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-colors hover:bg-[#F1F5F9]"
+                className="flex min-h-[46px] items-center gap-2 rounded-xl px-3.5 py-2 transition-colors hover:bg-[#F1F5F9]"
                 aria-label="Change language"
               >
-                <Globe size={17} color={C.textSecond} />
-                <span style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "13px", fontWeight: 600, color: C.textPrimary }}>
+                <Globe size={19} color={C.textSecond} />
+                <span style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "15px", fontWeight: 700, color: C.textPrimary }}>
                   {currentShort}
                 </span>
-                <ChevronDown size={13} color={C.textSecond} />
+                <ChevronDown size={15} color={C.textSecond} />
               </button>
               {showLangDropdown && (
                 <LanguageDropdown onClose={() => setShowLangDropdown(false)} />
@@ -486,13 +554,13 @@ export default function App() {
                   });
                   setShowLangDropdown(false);
                 }}
-                className={`relative p-2 rounded-xl transition-colors hover:bg-[#F1F5F9] ${hasNewNotification ? "bell-alert-active" : ""}`}
+                className={`relative flex h-[46px] w-[46px] items-center justify-center rounded-xl transition-colors hover:bg-[#F1F5F9] ${hasNewNotification ? "bell-alert-active" : ""}`}
                 aria-label="Notifications"
               >
-                <Bell size={21} color={C.textSecond} />
+                <Bell size={23} color={C.textSecond} />
                 {unreadCount > 0 && (
-                  <span className="absolute top-1.5 right-1.5 w-3.5 h-3.5 rounded-full flex items-center justify-center text-white"
-                    style={{ background: C.red, fontSize: "9px", fontWeight: 700 }}>
+                  <span className="absolute right-1 top-1 flex h-5 min-w-[20px] items-center justify-center rounded-full px-1 text-white"
+                    style={{ background: C.red, fontSize: "11px", fontWeight: 700 }}>
                     {unreadCount}
                   </span>
                 )}
@@ -503,8 +571,14 @@ export default function App() {
             </div>
 
             {/* Logout */}
-            <button onClick={() => setShowLogoutModal(true)} className="p-2 rounded-xl transition-colors hover:bg-[#F1F5F9]" aria-label="Log out">
-              <LogOut size={21} color={C.textSecond} />
+            <button
+              onClick={() => setShowLogoutModal(true)}
+              className="flex min-h-[46px] items-center justify-center rounded-xl px-4 py-2 transition-colors hover:bg-[#F1F5F9]"
+              aria-label={t("profile.logout")}
+            >
+              <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "15px", fontWeight: 700, color: C.textPrimary }}>
+                {t("profile.logout")}
+              </span>
             </button>
 
           </div>
@@ -517,7 +591,7 @@ export default function App() {
       </main>
 
       {/* Bottom nav */}
-      <nav className="shrink-0 bg-white" style={{ height: "64px", borderTop: `1px solid ${C.border}` }}>
+      <nav className="shrink-0 bg-white" style={{ minHeight: "84px", borderTop: `1px solid ${C.border}` }}>
         <div className="flex items-center h-full max-w-screen-xl mx-auto px-2 md:px-8">
           {TAB_DEFS.map((tab) => {
             const active = activeTab === tab.id;
@@ -525,14 +599,14 @@ export default function App() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className="flex-1 flex flex-col items-center justify-center gap-0.5 h-full transition-colors"
+                className="flex-1 flex h-full flex-col items-center justify-center gap-1 transition-colors py-1"
                 style={{ color: active ? C.teal : C.textSecond }}
               >
                 {tab.icon}
-                <span style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "10px", fontWeight: 500 }}>
+                <span style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "13px", fontWeight: 600 }}>
                   {t(tab.key)}
                 </span>
-                {active && <div className="w-1.5 h-1.5 rounded-full" style={{ background: C.teal }} />}
+                {active && <div className="h-2 w-2 rounded-full" style={{ background: C.teal }} />}
               </button>
             );
           })}
@@ -540,6 +614,15 @@ export default function App() {
       </nav>
 
       {showLogoutModal && <LogoutModal onConfirm={handleLogout} onCancel={() => setShowLogoutModal(false)} />}
+      {showLanguageModal && (
+        <LanguagePreferenceModal
+          onContinue={() => {
+            const email = localStorage.getItem("pilly-user-email");
+            if (email) clearLanguageOnboarding(email);
+            setShowLanguageModal(false);
+          }}
+        />
+      )}
       {activeTab !== "askpilly" && <FloatingChatBubble onOpen={() => setActiveTab("askpilly")} />}
       {delayedToastMsg && (
         <BasicToast
