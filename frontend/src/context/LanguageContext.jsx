@@ -24,11 +24,19 @@ const LanguageContext = createContext({
 export function LanguageProvider({ children }) {
   const [language, setLanguage] = useState('en');
 
+  function interpolate(template, vars) {
+    if (!vars) return template;
+    return template.replace(/\{\{\s*([^}]+)\s*\}\}/g, (_, key) => {
+      const value = vars[key];
+      return value === undefined || value === null ? `{{${key}}}` : String(value);
+    });
+  }
+
   function getLanguageLabel(code) {
     return LANGUAGES.find((entry) => entry.code === code)?.nativeLabel || code;
   }
 
-  function t(key) {
+  function t(key, vars) {
     const locale = locales[language] ?? locales['en'];
     const parts = key.split('.');
     let node = locale;
@@ -45,10 +53,16 @@ export function LanguageProvider({ children }) {
             return key;
           }
         }
-        return typeof fallback === 'string' ? fallback : key;
+        if (typeof fallback === 'string') {
+          return interpolate(fallback, vars);
+        }
+        return key;
       }
     }
-    return typeof node === 'string' ? node : key;
+    if (typeof node === 'string') {
+      return interpolate(node, vars);
+    }
+    return key;
   }
 
   return (

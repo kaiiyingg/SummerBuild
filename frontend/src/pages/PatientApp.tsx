@@ -49,6 +49,15 @@ const TAB_DEFS: { id: Tab; key: string; icon: React.ReactNode }[] = [
   { id: "profile",     key: "nav.profile",      icon: <User size={22} /> },
 ];
 
+type NotificationItem = {
+  id: number;
+  dot: string;
+  title: string;
+  subtitle: string;
+  time: string;
+  read: boolean;
+};
+
 const NOTIFICATIONS = [
   { id: 1, dot: C.green, title: "Medication ready for collection", subtitle: "Your queue: B047",     time: "2 min ago", read: false },
   { id: 2, dot: C.amber, title: "Queue B041 now serving",          subtitle: "You are 6 ahead",      time: "5 min ago", read: false },
@@ -172,7 +181,7 @@ function LanguageDropdown({ onClose }: { onClose: () => void }) {
 }
 
 function NotificationDropdown({ notifications, onClose, onMarkAllRead }: {
-  notifications: typeof NOTIFICATIONS; onClose: () => void; onMarkAllRead: () => void;
+  notifications: NotificationItem[]; onClose: () => void; onMarkAllRead: () => void;
 }) {
   const { t } = useTranslation();
   return (
@@ -180,30 +189,72 @@ function NotificationDropdown({ notifications, onClose, onMarkAllRead }: {
       <div className="fixed inset-0 z-40" onClick={onClose} />
       <div
         className="absolute right-0 top-full mt-2 z-50 bg-white rounded-2xl overflow-hidden"
-        style={{ width: "320px", boxShadow: "0 4px 24px rgba(0,0,0,0.10)", border: `1px solid ${C.border}` }}
+        style={{
+          width: "min(360px, calc(100vw - 16px))",
+          maxHeight: "min(70vh, 500px)",
+          boxShadow: "0 4px 24px rgba(0,0,0,0.10)",
+          border: `1px solid ${C.border}`,
+        }}
       >
         <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: `1px solid ${C.border}` }}>
           <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "16px", fontWeight: 700, color: C.textPrimary }}>{t('notifications.title')}</span>
           <button onClick={onMarkAllRead} style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "13px", color: C.teal }}>{t('notifications.markAllRead')}</button>
         </div>
-        {notifications.map((n) => (
-          <div
-            key={n.id}
-            className="flex items-start gap-3 px-4 py-3"
-            style={{
-              background: n.read ? "white" : "#F8FAFC",
-              borderLeft: n.read ? `3px solid transparent` : `3px solid ${n.dot}`,
-              borderBottom: `1px solid ${C.border}`,
-            }}
-          >
-            <div className="w-2 h-2 rounded-full mt-1.5 shrink-0" style={{ background: n.dot }} />
-            <div className="flex-1">
-              <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "14px", fontWeight: 600, color: C.textPrimary }}>{n.title}</p>
-              <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "13px", color: C.textSecond }}>{n.subtitle}</p>
+        <div className="overflow-y-auto" style={{ maxHeight: "calc(min(70vh, 500px) - 52px)" }}>
+          {notifications.length === 0 ? (
+            <div className="px-4 py-6 text-center" style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "14px", color: C.textSecond }}>
+              {t("notifications.noNotifications")}
             </div>
-            <span style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "12px", color: C.textDisabled, whiteSpace: "nowrap" }}>{n.time}</span>
-          </div>
-        ))}
+          ) : (
+            notifications.map((n) => (
+              <div
+                key={n.id}
+                className="flex items-start gap-3 px-4 py-3"
+                style={{
+                  background: n.read ? "white" : "#F8FAFC",
+                  borderLeft: n.read ? `3px solid transparent` : `3px solid ${n.dot}`,
+                  borderBottom: `1px solid ${C.border}`,
+                }}
+              >
+                <div className="w-2 h-2 rounded-full mt-1.5 shrink-0" style={{ background: n.dot }} />
+                <div className="flex-1 min-w-0">
+                  <p
+                    style={{
+                      fontFamily: "'DM Sans', sans-serif",
+                      fontSize: "14px",
+                      fontWeight: 600,
+                      color: C.textPrimary,
+                      overflowWrap: "anywhere",
+                    }}
+                  >
+                    {n.title}
+                  </p>
+                  <p
+                    style={{
+                      fontFamily: "'Open Sans', sans-serif",
+                      fontSize: "13px",
+                      color: C.textSecond,
+                      overflowWrap: "anywhere",
+                    }}
+                  >
+                    {n.subtitle}
+                  </p>
+                </div>
+                <span
+                  style={{
+                    fontFamily: "'Open Sans', sans-serif",
+                    fontSize: "12px",
+                    color: C.textDisabled,
+                    whiteSpace: "nowrap",
+                    flexShrink: 0,
+                  }}
+                >
+                  {n.time}
+                </span>
+              </div>
+            ))
+          )}
+        </div>
       </div>
     </>
   );
@@ -323,32 +374,14 @@ export default function App() {
   const [showNotifications,  setShowNotifications]  = useState(false);
   const [showLangDropdown,   setShowLangDropdown]   = useState(false);
   const [showLogoutModal,    setShowLogoutModal]    = useState(false);
-  const [notifications,      setNotifications]      = useState(NOTIFICATIONS);
+  const [notifications,      setNotifications]      = useState<NotificationItem[]>(NOTIFICATIONS);
+  const [hasNewNotification, setHasNewNotification] = useState(false);
   const [delayedToastMsg,    setDelayedToastMsg]    = useState<string | null>(null);
   const [patientName,        setPatientName]        = useState("Patient");
-  const delayedNotifiedIds = useRef<Set<number>>(new Set());
 
   const unreadCount  = notifications.filter((n) => !n.read).length;
   const currentShort = LANG_SHORT[language] ?? 'EN';
   const markAllRead  = () => setNotifications((n) => n.map((x) => ({ ...x, read: true })));
-  const handleDelayedMedsDetected = (delayedMeds: Array<{ id: number; name: string }>) => {
-    const freshDelayedMeds = delayedMeds.filter((med) => !delayedNotifiedIds.current.has(med.id));
-    if (freshDelayedMeds.length === 0) return;
-
-    freshDelayedMeds.forEach((med) => delayedNotifiedIds.current.add(med.id));
-    setNotifications((prev) => ([
-      ...freshDelayedMeds.map((med) => ({
-        id: Date.now() + med.id,
-        dot: C.amber,
-        title: `${med.name} is delayed`,
-        subtitle: "Pharmacy is preparing your medicine. We will notify you when ready.",
-        time: "Just now",
-        read: false,
-      })),
-      ...prev,
-    ]));
-    setDelayedToastMsg(`${freshDelayedMeds[0].name} is delayed. Added to notifications.`);
-  };
   const handleLogout = async () => {
     await logout();
     setShowLogoutModal(false);
@@ -365,13 +398,18 @@ export default function App() {
     return subscribeToPatientChanges(loadPatientName);
   }, []);
 
+  useEffect(() => {
+    if (showNotifications) {
+      setHasNewNotification(false);
+    }
+  }, [showNotifications]);
+
   const renderScreen = () => {
     switch (activeTab) {
       case "home":        return <HomeScreen onTabChange={(t) => setActiveTab(t as Tab)} />;
       case "medications": return (
         <MedicationsScreen
           onTabChange={(t) => setActiveTab(t as Tab)}
-          onDelayedMedsDetected={handleDelayedMedsDetected}
         />
       );
       case "scan":        return <ScanScreen />;
@@ -385,6 +423,26 @@ export default function App() {
 
   return (
     <div className="w-full flex flex-col" style={{ height: "100svh", background: C.bg }}>
+      <style>{`
+        @keyframes bell-ring {
+          0%, 100% { transform: rotate(0deg); }
+          20% { transform: rotate(12deg); }
+          40% { transform: rotate(-10deg); }
+          60% { transform: rotate(8deg); }
+          80% { transform: rotate(-6deg); }
+        }
+        @keyframes bell-glow {
+          0%, 100% { box-shadow: 0 0 0 0 rgba(69, 197, 188, 0.35); }
+          50% { box-shadow: 0 0 0 8px rgba(69, 197, 188, 0.12); }
+        }
+        .bell-alert-active {
+          animation: bell-glow 1.3s ease-in-out infinite;
+        }
+        .bell-alert-active svg {
+          transform-origin: top center;
+          animation: bell-ring 0.9s ease-in-out infinite;
+        }
+      `}</style>
 
       {/* Header */}
       <header className="shrink-0 bg-white" style={{ height: "60px", borderBottom: `1px solid ${C.border}` }}>
@@ -420,8 +478,15 @@ export default function App() {
             {/* Bell */}
             <div className="relative">
               <button
-                onClick={() => { setShowNotifications(!showNotifications); setShowLangDropdown(false); }}
-                className="relative p-2 rounded-xl transition-colors hover:bg-[#F1F5F9]"
+                onClick={() => {
+                  setShowNotifications((prev) => {
+                    const next = !prev;
+                    if (next) setHasNewNotification(false);
+                    return next;
+                  });
+                  setShowLangDropdown(false);
+                }}
+                className={`relative p-2 rounded-xl transition-colors hover:bg-[#F1F5F9] ${hasNewNotification ? "bell-alert-active" : ""}`}
                 aria-label="Notifications"
               >
                 <Bell size={21} color={C.textSecond} />

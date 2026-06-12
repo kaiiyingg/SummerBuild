@@ -10,10 +10,6 @@ import {
   ChevronUp,
 } from "lucide-react";
 import { useTranslation } from "../../context/LanguageContext";
-import {
-  fetchCurrentPatientDetails,
-  subscribeToPatientChanges,
-} from "../../services/pharmacyData";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000";
 const SPEECH_API_URL = `${API_BASE_URL}/api/scan-medication-speech`;
@@ -78,25 +74,6 @@ const fallbackMedications = [
     status: "ready" as MedStatus,
   },
 ];
-
-const OVERALL_STATUS_STYLE: Record<
-  MedStatus,
-  { dot: string; badgeColor: string; badgeBg: string; badgeBorder: string; labelKey: string }
-> = {
-  ready: { dot: C.green, badgeColor: C.greenText, badgeBg: C.greenLight, badgeBorder: `${C.green}40`, labelKey: "medications.statusReadyBadge" },
-  packing: { dot: C.blue, badgeColor: C.blueText, badgeBg: C.blueLight, badgeBorder: `${C.blue}40`, labelKey: "medications.statusPackingBadge" },
-  delayed: { dot: C.amber, badgeColor: C.amberText, badgeBg: C.amberLight, badgeBorder: `${C.amber}40`, labelKey: "medications.statusDelayedBadge" },
-};
-
-function getMedStatus(med: { verified?: boolean }): MedStatus {
-  return med.verified ? "ready" : "packing";
-}
-
-function getOverallStatus(meds: Array<{ status: MedStatus }>): MedStatus {
-  if (meds.some((m) => m.status === "delayed")) return "delayed";
-  if (meds.some((m) => m.status === "packing")) return "packing";
-  return "ready";
-}
 
 const STATUS_BORDER: Record<MedStatus, string> = {
   ready: C.teal,
@@ -181,40 +158,18 @@ function MedCard({
   );
 }
 
-export function MedicationsScreen({ onTabChange }: { onTabChange: (tab: string) => void }) {
+export function MedicationsScreen({
+  onTabChange,
+}: {
+  onTabChange: (tab: string) => void;
+}) {
   const { t } = useTranslation();
-  const [medications, setMedications] = useState(
-    fallbackMedications.map((med) => ({ ...med, status: getMedStatus(med) }))
-  );
-  const overallStatus = getOverallStatus(medications);
-  const cfg = OVERALL_STATUS_STYLE[overallStatus];
+  const [medications] = useState(fallbackMedications);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const speechRequestRef = useRef<AbortController | null>(null);
   const speechCacheRef = useRef<Map<string, string>>(new Map());
   const [activeSpeechMedId, setActiveSpeechMedId] = useState<number | null>(null);
   const [audioError, setAudioError] = useState("");
-
-  useEffect(() => {
-    const loadMedications = async () => {
-      const patient = await fetchCurrentPatientDetails();
-      if (!patient?.medications?.length) return;
-
-      setMedications(
-        patient.medications.map((med) => ({
-          id: med.id,
-          name: med.name,
-          for: t("medications.todaysPrescription"),
-          how: "Follow the instructions provided on your medication label.",
-          caution: med.verified ? null : "This medication is still being prepared or verified.",
-          status: getMedStatus(med),
-          verified: med.verified,
-        }))
-      );
-    };
-
-    loadMedications();
-    return subscribeToPatientChanges(loadMedications);
-  }, [t]);
 
   useEffect(() => {
     return () => {
@@ -336,7 +291,7 @@ export function MedicationsScreen({ onTabChange }: { onTabChange: (tab: string) 
 
   return (
     <div className="p-4 md:p-6 space-y-4 overflow-y-auto h-full pb-6 max-w-4xl mx-auto w-full">
-      <div className="flex items-start justify-between">
+      <div>
         <div>
           <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "14px", color: C.textSecond }}>
             {t("medications.todaysPrescription")}
@@ -344,15 +299,6 @@ export function MedicationsScreen({ onTabChange }: { onTabChange: (tab: string) 
           <h1 style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "24px", fontWeight: 700, color: C.textPrimary }}>
             {medications.length} {t("medications.medicationsCount")}
           </h1>
-        </div>
-        <div
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full mt-1"
-          style={{ background: cfg.badgeBg, border: `1px solid ${cfg.badgeBorder}` }}
-        >
-          <div className="w-2 h-2 rounded-full" style={{ background: cfg.dot }} />
-          <span style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "13px", fontWeight: 600, color: cfg.badgeColor }}>
-            {t(cfg.labelKey)}
-          </span>
         </div>
       </div>
 
