@@ -86,7 +86,7 @@ function QueueStrip({ myNumber, servingNumber, secPerTurn = 120 }: {
           } else if (isAhead) {
             circleBg = "#F1F5F9"; circleText = "#64748B"; circleBorder = "1px solid #CBD5E1";
           } else if (isMe) {
-            circleBg = "#3B82F6"; circleText = "white"; topLabel = "YOU";
+            circleBg = "#3B82F6"; circleText = "white"; topLabel = t('queue.you');
           } else {
             circleBg = "#F8FAFC"; circleText = "#C4CFD9"; circleBorder = "1px solid #E2E8F0";
           }
@@ -428,7 +428,7 @@ export function HomeScreen({ onTabChange }: { onTabChange: (tab: string) => void
     isActive: true,
     delayed:
       pendingMedication && patient?.status !== "ready"
-        ? { med: pendingMedication.name, reason: "Being prepared or verified", eta: "~20 min" }
+        ? { med: pendingMedication.name, reason: t('queue.delayedReasonDefault'), eta: "~20 min" }
         : null,
   };
 

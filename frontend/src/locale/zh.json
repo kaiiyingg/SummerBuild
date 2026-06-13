@@ -44,6 +44,8 @@
     "refreshing": "正在更新队列...",
     "statusAlmost": "快到您了",
     "statusCompleted": "已完成",
+    "you": "您",
+    "delayedReasonDefault": "正在准备或核对中",
     "statusNow": "正在服务",
     "queueNumber": "排队号码",
     "nowCalling": "正在叫号",
@@ -217,9 +219,10 @@
     "tipUpload3": "保持图像清晰，以便读取剂量、副作用和注意事项",
     "tipUpload4": "支持格式：JPG、JPEG、PNG、WEBP（最大 10MB）",
     "scanEasyStepsTitle": "3个简单步骤",
-    "scanEasyStep1": "1. 选择“打开相机”或“上传照片”。",
+    "scanEasyStep1": "1. 选择「打开相机」或「上传照片」。",
     "scanEasyStep2": "2. 保持文字清晰，并确保光线充足。",
-    "scanEasyStep3": "3. 等待结果；需要时可点“朗读内容”。"
+    "scanEasyStep3": "3. 等待结果；需要时可点「朗读内容」。",
+    "askAiHelper": "向AI助手提问"
   },
   "chat": {
     "title": "药房用药帮助",
@@ -254,12 +257,20 @@
     "notifyDelaysDesc": "若您的药物有延误",
     "pastVisits": "历史就诊",
     "logout": "退出登录",
-    "logoutConfirm": "您确定要退出吗？"
+    "logoutConfirm": "您确定要退出吗？",
+    "logoutDesc": "您需要重新登录才能查看您的排队状态。",
+    "chooseLanguage": "选择您的首选语言",
+    "languageHint": "您可以稍后在【账号】中或使用右上角的地球图标更改此设置。"
   },
   "notifications": {
     "title": "通知",
     "medicationReady": "您的药物已准备好，可以取药",
+    "medicationReadySub": "您的排队号码：{{queue}}",
     "queueCalled": "您的号码已被叫到",
+    "queueServingTitle": "正在服务 {{queue}}",
+    "queueServingSub": "您前面还有 {{count}} 人",
+    "reminderTitle": "提醒：服用 {{med}}",
+    "reminderSub": "计划时间：{{time}}",
     "medicationDelayed": "{{medication}} 已延迟。原因：",
     "reminderTime": "该服药了",
     "noNotifications": "没有新通知",
@@ -271,6 +282,7 @@
     "save": "保存",
     "back": "返回",
     "close": "关闭",
+    "continue": "继续",
     "loading": "加载中...",
     "error": "出现错误，请重试。",
     "yes": "是",
@@ -279,6 +291,19 @@
     "now": "现在",
     "done": "完成",
     "other": "其他"
+  },
+  "meds": {
+    "metformin_for": "2型糖尿病",
+    "metformin_how": "每天两次，每次1片，随餐服用。请勿漏服。",
+    "metformin_caution": "空腹服用可能导致胃部不适。请整片吞服，不要压碎或咀嚼。",
+    "lisinopril_for": "高血压",
+    "lisinopril_how": "每天早上服用1片。请定期监测血压。",
+    "lisinopril_caution": "即使感觉良好，也不要在未咨询医生的情况下停药。",
+    "atorvastatin_for": "高胆固醇",
+    "atorvastatin_how": "每晚睡前服用1片。避免饮用葡萄柚汁。",
+    "atorvastatin_caution": "避免饮用葡萄柚汁。如有无法解释的肌肉疼痛或无力，请告知医生。",
+    "aspirin_for": "预防心脏病",
+    "aspirin_how": "每天早餐后服用1片，配一整杯水。"
   },
   "auth": {
     "welcomeBack": "欢迎回来",

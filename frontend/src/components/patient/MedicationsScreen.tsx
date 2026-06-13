@@ -39,40 +39,42 @@ const C = {
 
 type MedStatus = "ready" | "packing" | "delayed";
 
-const fallbackMedications = [
-  {
-    id: 1,
-    name: "Metformin 500mg",
-    for: "Type 2 Diabetes",
-    how: "Take 1 tablet twice daily with meals. Do not skip doses.",
-    caution: "May cause stomach upset if taken without food. Swallow whole, do not crush or chew.",
-    status: "ready" as MedStatus,
-  },
-  {
-    id: 2,
-    name: "Lisinopril 10mg",
-    for: "High Blood Pressure",
-    how: "Take 1 tablet once daily in the morning. Monitor blood pressure regularly.",
-    caution: "Do not stop taking without consulting your doctor, even if you feel well.",
-    status: "packing" as MedStatus,
-  },
-  {
-    id: 3,
-    name: "Atorvastatin 20mg",
-    for: "High Cholesterol",
-    how: "Take 1 tablet once daily at bedtime. Avoid grapefruit juice.",
-    caution: "Avoid grapefruit juice. Report any unexplained muscle pain or weakness to your doctor.",
-    status: "delayed" as MedStatus,
-  },
-  {
-    id: 4,
-    name: "Aspirin 100mg",
-    for: "Heart Disease Prevention",
-    how: "Take 1 tablet once daily after breakfast with a full glass of water.",
-    caution: null,
-    status: "ready" as MedStatus,
-  },
-];
+function getFallbackMedications(t: (key: string) => string) {
+  return [
+    {
+      id: 1,
+      name: "Metformin 500mg",
+      for: t("meds.metformin_for"),
+      how: t("meds.metformin_how"),
+      caution: t("meds.metformin_caution"),
+      status: "ready" as MedStatus,
+    },
+    {
+      id: 2,
+      name: "Lisinopril 10mg",
+      for: t("meds.lisinopril_for"),
+      how: t("meds.lisinopril_how"),
+      caution: t("meds.lisinopril_caution"),
+      status: "packing" as MedStatus,
+    },
+    {
+      id: 3,
+      name: "Atorvastatin 20mg",
+      for: t("meds.atorvastatin_for"),
+      how: t("meds.atorvastatin_how"),
+      caution: t("meds.atorvastatin_caution"),
+      status: "delayed" as MedStatus,
+    },
+    {
+      id: 4,
+      name: "Aspirin 100mg",
+      for: t("meds.aspirin_for"),
+      how: t("meds.aspirin_how"),
+      caution: null,
+      status: "ready" as MedStatus,
+    },
+  ];
+}
 
 const STATUS_BORDER: Record<MedStatus, string> = {
   ready: C.teal,
@@ -145,7 +147,7 @@ export function MedicationsScreen({
   onTabChange: (tab: string) => void;
 }) {
   const { t } = useTranslation();
-  const [medications] = useState(fallbackMedications);
+  const medications = getFallbackMedications(t);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const speechRequestRef = useRef<AbortController | null>(null);
   const speechCacheRef = useRef<Map<string, string>>(new Map());
@@ -349,7 +351,7 @@ export function MedicationsScreen({
               >
                 <span className="inline-flex items-center gap-2.5" style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "18px", fontWeight: 700, color: "white" }}>
                   <Camera size={18} color="white" />
-                  Open camera to scan
+                  {t("medications.openCamera")}
                 </span>
                 <ChevronRight size={21} color="white" />
               </button>
@@ -382,7 +384,7 @@ export function MedicationsScreen({
               >
                 <span className="inline-flex items-center gap-2.5" style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "18px", fontWeight: 700, color: "white" }}>
                   <MessageCircle size={18} color="white" />
-                  Ask the AI helper
+                  {t("medications.askAiHelper")}
                 </span>
                 <ChevronRight size={21} color="white" />
               </button>

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Bell, Users, Pill, ScanLine, AlarmClock, User, ChevronDown, Check, Globe, MessageCircle } from "lucide-react";
 import "./PatientApp.css";
@@ -62,11 +62,7 @@ type NotificationItem = {
   read: boolean;
 };
 
-const NOTIFICATIONS = [
-  { id: 1, dot: C.green, title: "Medication ready for collection", subtitle: "Your queue: B047",     time: "2 min ago", read: false },
-  { id: 2, dot: C.amber, title: "Queue B041 now serving",          subtitle: "You are 6 ahead",      time: "5 min ago", read: false },
-  { id: 3, dot: "#3B82F6", title: "Reminder: Take Metformin",      subtitle: "Scheduled for 8:00 PM",time: "1 hr ago",  read: true  },
-];
+const NOTIFICATION_READS: Record<number, boolean> = { 1: false, 2: false, 3: true };
 
 // ── sub-components ─────────────────────────────────────────────
 
@@ -273,7 +269,7 @@ function LogoutModal({ onConfirm, onCancel }: { onConfirm: () => void; onCancel:
           {t('profile.logoutConfirm')}
         </h2>
         <p className="mb-6" style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "15px", color: C.textSecond }}>
-          You will need to log in again to check your queue status.
+          {t('profile.logoutDesc')}
         </p>
         <div className="flex gap-3">
           <button onClick={onCancel} className="flex-1 py-3 rounded-xl hover:opacity-80 transition-opacity"
@@ -291,23 +287,16 @@ function LogoutModal({ onConfirm, onCancel }: { onConfirm: () => void; onCancel:
 }
 
 function LanguagePreferenceModal({ onContinue }: { onContinue: () => void }) {
-  const { language, setLanguage, LANGUAGES } = useTranslation();
+  const { language, setLanguage, LANGUAGES, t } = useTranslation();
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center px-6" style={{ background: "rgba(15,23,42,0.45)" }}>
       <div className="bg-white rounded-2xl p-6 w-full max-w-md" style={{ boxShadow: "0 8px 40px rgba(0,0,0,0.12)" }}>
         <h2 className="mb-2" style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "22px", fontWeight: 700, color: C.textPrimary }}>
-          Choose your preferred language
+          {t('profile.chooseLanguage')}
         </h2>
         <p className="mb-4" style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "15px", color: C.textSecond }}>
-          You can change this later in Profile or using the{" "}
-          <Globe
-            size={14}
-            color={C.textSecond}
-            style={{ display: "inline-block", verticalAlign: "-2px", margin: "0 2px" }}
-            aria-hidden="true"
-          />{" "}
-          icon in the top-right corner.
+          {t('profile.languageHint')}
         </p>
 
         <div className="grid gap-2 mb-5">
@@ -338,7 +327,7 @@ function LanguagePreferenceModal({ onContinue }: { onContinue: () => void }) {
           className="w-full py-3 rounded-xl text-white hover:opacity-80 transition-opacity"
           style={{ background: C.teal, fontFamily: "'DM Sans', sans-serif", fontSize: "15px", fontWeight: 700 }}
         >
-          Continue
+          {t('common.continue')}
         </button>
       </div>
     </div>
@@ -434,14 +423,20 @@ export default function App() {
   const [showLangDropdown,   setShowLangDropdown]   = useState(false);
   const [showLogoutModal,    setShowLogoutModal]    = useState(false);
   const [showLanguageModal,  setShowLanguageModal]  = useState(false);
-  const [notifications,      setNotifications]      = useState<NotificationItem[]>(NOTIFICATIONS);
+  const [readIds,            setReadIds]            = useState<Set<number>>(new Set([3]));
   const [hasNewNotification, setHasNewNotification] = useState(false);
   const [delayedToastMsg,    setDelayedToastMsg]    = useState<string | null>(null);
   const [patientName,        setPatientName]        = useState("Patient");
 
+  const notifications = useMemo<NotificationItem[]>(() => [
+    { id: 1, dot: C.green,   title: t('notifications.medicationReady'),                          subtitle: t('notifications.medicationReadySub', { queue: "B047" }), time: "2 min ago", read: readIds.has(1) },
+    { id: 2, dot: C.amber,   title: t('notifications.queueServingTitle', { queue: "B041" }),      subtitle: t('notifications.queueServingSub', { count: 6 }),          time: "5 min ago", read: readIds.has(2) },
+    { id: 3, dot: "#3B82F6", title: t('notifications.reminderTitle', { med: "Metformin" }),       subtitle: t('notifications.reminderSub', { time: "8:00 PM" }),       time: "1 hr ago",  read: readIds.has(3) },
+  ], [t, readIds]);
+
   const unreadCount  = notifications.filter((n) => !n.read).length;
   const currentShort = LANG_SHORT[language] ?? 'EN';
-  const markAllRead  = () => setNotifications((n) => n.map((x) => ({ ...x, read: true })));
+  const markAllRead  = () => setReadIds(new Set([1, 2, 3]));
   const handleLogout = async () => {
     await logout();
     setShowLogoutModal(false);

@@ -44,6 +44,8 @@
     "refreshing": "Mengemas kini giliran...",
     "statusAlmost": "Hampir Giliran Anda",
     "statusCompleted": "Selesai",
+    "you": "ANDA",
+    "delayedReasonDefault": "Sedang disiapkan atau disahkan",
     "statusNow": "Sedang Dilayan",
     "queueNumber": "Nombor Giliran",
     "nowCalling": "Kini memanggil",
@@ -219,7 +221,8 @@
     "scanEasyStepsTitle": "3 langkah mudah",
     "scanEasyStep1": "1. Pilih Buka Kamera atau Muat Naik Foto.",
     "scanEasyStep2": "2. Pastikan tulisan jelas dan gunakan cahaya terang.",
-    "scanEasyStep3": "3. Tunggu keputusan, kemudian tekan Baca dengan kuat jika perlu."
+    "scanEasyStep3": "3. Tunggu keputusan, kemudian tekan Baca dengan kuat jika perlu.",
+    "askAiHelper": "Tanya pembantu AI"
   },
   "chat": {
     "title": "Bantuan Farmasi",
@@ -254,12 +257,20 @@
     "notifyDelaysDesc": "Jika ubat anda ditangguhkan",
     "pastVisits": "Lawatan Lepas",
     "logout": "Log Keluar",
-    "logoutConfirm": "Adakah anda pasti mahu log keluar?"
+    "logoutConfirm": "Adakah anda pasti mahu log keluar?",
+    "logoutDesc": "Anda perlu log masuk semula untuk menyemak status giliran anda.",
+    "chooseLanguage": "Pilih bahasa pilihan anda",
+    "languageHint": "Anda boleh menukar ini kemudian dalam Profil atau menggunakan ikon glob di sudut kanan atas."
   },
   "notifications": {
     "title": "Pemberitahuan",
     "medicationReady": "Ubat anda sedia untuk diambil",
+    "medicationReadySub": "Giliran anda: {{queue}}",
     "queueCalled": "Nombor giliran anda telah dipanggil",
+    "queueServingTitle": "{{queue}} kini dilayan",
+    "queueServingSub": "Anda {{count}} orang di hadapan",
+    "reminderTitle": "Peringatan: Ambil {{med}}",
+    "reminderSub": "Dijadualkan pada {{time}}",
     "medicationDelayed": "{{medication}} ditangguhkan. Sebab:",
     "reminderTime": "Masa untuk ambil ubat anda",
     "noNotifications": "Tiada pemberitahuan baharu",
@@ -271,6 +282,7 @@
     "save": "Simpan",
     "back": "Kembali",
     "close": "Tutup",
+    "continue": "Teruskan",
     "loading": "Memuatkan...",
     "error": "Sesuatu telah berlaku. Sila cuba lagi.",
     "yes": "Ya",
@@ -279,6 +291,19 @@
     "now": "Sekarang",
     "done": "Selesai",
     "other": "Lain-lain"
+  },
+  "meds": {
+    "metformin_for": "Kencing Manis Jenis 2",
+    "metformin_how": "Ambil 1 tablet dua kali sehari bersama makanan. Jangan terlepas dos.",
+    "metformin_caution": "Boleh menyebabkan sakit perut jika diambil tanpa makanan. Telan keseluruhan, jangan dihancurkan atau dikunyah.",
+    "lisinopril_for": "Tekanan Darah Tinggi",
+    "lisinopril_how": "Ambil 1 tablet sekali sehari pada waktu pagi. Pantau tekanan darah secara berkala.",
+    "lisinopril_caution": "Jangan berhenti mengambil tanpa berunding dengan doktor anda, walaupun anda berasa sihat.",
+    "atorvastatin_for": "Kolesterol Tinggi",
+    "atorvastatin_how": "Ambil 1 tablet sekali sehari sebelum tidur. Elakkan jus limau gedang.",
+    "atorvastatin_caution": "Elakkan jus limau gedang. Laporkan sebarang sakit otot atau kelemahan yang tidak dapat dijelaskan kepada doktor anda.",
+    "aspirin_for": "Pencegahan Penyakit Jantung",
+    "aspirin_how": "Ambil 1 tablet sekali sehari selepas sarapan dengan segelas penuh air."
   },
   "auth": {
     "welcomeBack": "Selamat kembali",

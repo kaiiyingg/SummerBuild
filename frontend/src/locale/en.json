@@ -44,6 +44,8 @@
     "refreshing": "Updating queue...",
     "statusAlmost": "Almost Your Turn",
     "statusCompleted": "Completed",
+    "you": "YOU",
+    "delayedReasonDefault": "Being prepared or verified",
     "statusNow": "Now Serving",
     "queueNumber": "Queue Number",
     "nowCalling": "Now calling",
@@ -219,7 +221,8 @@
     "scanEasyStepsTitle": "3 easy steps",
     "scanEasyStep1": "1. Choose Open Camera or Upload Photo.",
     "scanEasyStep2": "2. Keep the words clear and use bright light.",
-    "scanEasyStep3": "3. Wait for results and tap Read Aloud if needed."
+    "scanEasyStep3": "3. Wait for results and tap Read Aloud if needed.",
+    "askAiHelper": "Ask the AI helper"
   },
   "chat": {
     "title": "Pharmacy Help",
@@ -254,12 +257,20 @@
     "notifyDelaysDesc": "If your medication is delayed",
     "pastVisits": "Past Visits",
     "logout": "Log Out",
-    "logoutConfirm": "Are you sure you want to log out?"
+    "logoutConfirm": "Are you sure you want to log out?",
+    "logoutDesc": "You will need to log in again to check your queue status.",
+    "chooseLanguage": "Choose your preferred language",
+    "languageHint": "You can change this later in Profile or using the globe icon in the top-right corner."
   },
   "notifications": {
     "title": "Notifications",
     "medicationReady": "Your medication is ready for collection",
+    "medicationReadySub": "Your queue: {{queue}}",
     "queueCalled": "Your queue number has been called",
+    "queueServingTitle": "{{queue}} now serving",
+    "queueServingSub": "You are {{count}} ahead",
+    "reminderTitle": "Reminder: Take {{med}}",
+    "reminderSub": "Scheduled for {{time}}",
     "medicationDelayed": "{{medication}} is delayed. Reason:",
     "reminderTime": "Time to take your medication",
     "noNotifications": "No new notifications",
@@ -271,6 +282,7 @@
     "save": "Save",
     "back": "Back",
     "close": "Close",
+    "continue": "Continue",
     "loading": "Loading...",
     "error": "Something went wrong. Please try again.",
     "yes": "Yes",
@@ -279,6 +291,19 @@
     "now": "Now",
     "done": "Done",
     "other": "Other"
+  },
+  "meds": {
+    "metformin_for": "Type 2 Diabetes",
+    "metformin_how": "Take 1 tablet twice daily with meals. Do not skip doses.",
+    "metformin_caution": "May cause stomach upset if taken without food. Swallow whole, do not crush or chew.",
+    "lisinopril_for": "High Blood Pressure",
+    "lisinopril_how": "Take 1 tablet once daily in the morning. Monitor blood pressure regularly.",
+    "lisinopril_caution": "Do not stop taking without consulting your doctor, even if you feel well.",
+    "atorvastatin_for": "High Cholesterol",
+    "atorvastatin_how": "Take 1 tablet once daily at bedtime. Avoid grapefruit juice.",
+    "atorvastatin_caution": "Avoid grapefruit juice. Report any unexplained muscle pain or weakness to your doctor.",
+    "aspirin_for": "Heart Disease Prevention",
+    "aspirin_how": "Take 1 tablet once daily after breakfast with a full glass of water."
   },
   "auth": {
     "welcomeBack": "Welcome back",
