@@ -4,13 +4,6 @@ import PillyLogoSmall from "./PillyLogoSmall";
 import { BasicToast } from "./ui/Toast";
 import "./Header.css";
 
-
-const URGENCY_LEGEND = [
-  { level: "A", color: "#DC2626", label: "High Priority",   desc: "Immediate attention required" },
-  { level: "B", color: "#D97706", label: "Medium Priority", desc: "Attend within 30 minutes" },
-  { level: "C", color: "#2563EB", label: "Routine",         desc: "Standard processing time" },
-];
-
 const NOTIFS = [
   { id: 1, color: "#EF4444", text: "Patient P002: Drug interaction question",   time: "5 min ago"  },
   { id: 2, color: "#F59E0B", text: "Low stock: Metformin 500mg — 8 units left", time: "20 min ago" },

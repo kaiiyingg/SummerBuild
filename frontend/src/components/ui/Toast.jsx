@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { AlertCircle, CheckCircle, Info, X, XCircle } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 
@@ -24,23 +24,18 @@ export function BasicToast({
   isVisible = true,
   className = "",
 }) {
-  const [visible, setVisible] = useState(isVisible);
-
-  useEffect(() => { setVisible(isVisible); }, [isVisible]);
-
   useEffect(() => {
-    if (visible && duration > 0) {
+    if (isVisible && duration > 0) {
       const timer = setTimeout(() => {
-        setVisible(false);
         onClose?.();
       }, duration);
       return () => clearTimeout(timer);
     }
-  }, [visible, duration, onClose]);
+  }, [isVisible, duration, onClose]);
 
   return (
     <AnimatePresence>
-      {visible && (
+      {isVisible && (
         <motion.div
           className={`fixed left-1/2 top-[calc(env(safe-area-inset-top)+72px)] z-50 flex w-[min(92vw,28rem)] -translate-x-1/2 items-center gap-3 rounded-lg border p-4 shadow-lg ${toastClasses[type]} ${className}`}
           initial={{ opacity: 0, y: -16, scale: 0.95 }}
@@ -51,7 +46,7 @@ export function BasicToast({
           <div className="flex-shrink-0">{toastIcons[type]}</div>
           <p className="flex-1 text-sm">{message}</p>
           <button
-            onClick={() => { setVisible(false); onClose?.(); }}
+            onClick={() => { onClose?.(); }}
             className="flex-shrink-0 rounded-full p-1 transition-colors hover:bg-black/5"
             aria-label="Dismiss"
           >

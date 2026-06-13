@@ -32,12 +32,37 @@ OPENAI_TTS_VOICE=marin
 OPENAI_TTS_SPEED=1.0
 ```
 
-### 4) Optional preflight check
+### 4) Add the frontend Supabase settings
+```bash
+cp frontend/.env.example frontend/.env
+```
+
+Then edit `frontend/.env`:
+```env
+VITE_API_BASE_URL=http://127.0.0.1:8000
+VITE_SUPABASE_URL=https://your-project-ref.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=your_supabase_publishable_key
+```
+
+### 5) Set up Supabase tables, auth profile sync, and demo data
+Run one of these SQL files in Supabase Dashboard > SQL Editor:
+
+- `backend/db/table.sql`
+  Use this for the base schema only.
+- `backend/db/supabase_pharmacy_seed.sql`
+  Use this when you also want the demo queue, medications, and reminder seed data.
+
+For the new email/password flow to feel seamless during demos:
+- In Supabase `Authentication > Providers > Email`, make sure Email auth is enabled.
+- If you want users to land in the app immediately after sign-up, disable email confirmation.
+- If you keep email confirmation enabled, registration will succeed but the user must confirm their email before first login.
+
+### 6) Optional preflight check
 ```bash
 npm run check:setup
 ```
 
-### 5) Run both apps together
+### 7) Run both apps together
 ```bash
 npm run dev
 ```
@@ -67,6 +92,6 @@ From `frontend/` you can still use:
 - `npm run lint`
 
 ## Environment files
-- Frontend: optional. Add `VITE_` variables in `frontend/.env` only if needed.
+- Frontend: add `VITE_API_BASE_URL`, `VITE_SUPABASE_URL`, and `VITE_SUPABASE_PUBLISHABLE_KEY` in `frontend/.env`.
 - Backend: requires `REKA_API_KEY` in `backend/.env`.
 - Backend TTS: patient medication read-aloud uses `OPENAI_API_KEY`. `OPENAI_TTS_MODEL`, `OPENAI_TTS_VOICE`, and `OPENAI_TTS_SPEED` are optional overrides.

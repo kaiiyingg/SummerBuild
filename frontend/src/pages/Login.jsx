@@ -5,23 +5,16 @@ import PillyLogo from "../components/PillyLogo";
 import { loginWithEmail, registerWithEmail } from "../services/authService";
 import "./Login.css";
 
-const USER_ROLE_KEY = "pilly-user-roles";
+function getVisibleAuthMessage(error, fallbackMessage) {
+  const message =
+    error instanceof Error
+      ? error.message
+      : typeof error === "string"
+        ? error
+        : "";
 
-function normalizeEmail(email) {
-  return email.trim().toLowerCase();
-}
-
-function getStoredRoles() {
-  try {
-    return JSON.parse(localStorage.getItem(USER_ROLE_KEY) || "{}");
-  } catch {
-    return {};
-  }
-}
-
-function getStoredRole(email) {
-  const roles = getStoredRoles();
-  return roles[normalizeEmail(email)] || null;
+  const trimmed = message.trim();
+  return trimmed && trimmed !== "[object Object]" ? trimmed : fallbackMessage;
 }
 
 function Login() {
@@ -36,14 +29,16 @@ function Login() {
   const [showRegConfirm, setShowRegConfirm] = useState(false);
 
   // Register form fields (controlled for real-time match validation)
+  const [regName, setRegName] = useState("");
   const [regEmail, setRegEmail] = useState("");
   const [regPassword, setRegPassword] = useState("");
   const [regConfirm, setRegConfirm] = useState("");
   const [regRole, setRegRole] = useState("pharmacist");
 
   // Login email (controlled so we can persist it on submit)
-  const [loginEmail, setLoginEmail] = useState("");
   const [loginRole, setLoginRole] = useState("pharmacist");
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
 
   // Language toggle (non-functional placeholder)
   const [lang, setLang] = useState("EN");
@@ -53,7 +48,10 @@ function Login() {
 
   const passwordsMismatch = regConfirm.length > 0 && regPassword !== regConfirm;
   const canRegister =
-    regPassword.length > 0 && regConfirm.length > 0 && !passwordsMismatch;
+    regName.trim().length > 0 &&
+    regPassword.length > 0 &&
+    regConfirm.length > 0 &&
+    !passwordsMismatch;
 
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
@@ -64,15 +62,17 @@ function Login() {
     try {
       const { role } = await loginWithEmail({
         email: loginEmail,
-        fallbackRole: getStoredRole(loginEmail) ?? loginRole,
+        password: loginPassword,
+        expectedRole: loginRole,
       });
 
       navigate(role === "patient" ? "/patient/app" : "/pharmacist/dashboard");
     } catch (error) {
       setAuthError(
-        error instanceof Error
-          ? error.message
-          : "Unable to sign in. Please check your email and password."
+        getVisibleAuthMessage(
+          error,
+          "Unable to sign in. Please check your email and password."
+        )
       );
     } finally {
       setAuthLoading(false);
@@ -88,17 +88,29 @@ function Login() {
     setAuthLoading(true);
 
     try {
-      const { role } = await registerWithEmail({
+      const { role, requiresEmailConfirmation } = await registerWithEmail({
+        name: regName,
         email: regEmail,
+        password: regPassword,
         role: regRole,
       });
+
+      if (requiresEmailConfirmation) {
+        setAuthNotice("Account created. Confirm your email, then sign in.");
+        setIsRegister(false);
+        setLoginRole(role);
+        setLoginEmail(regEmail.trim());
+        setLoginPassword("");
+        return;
+      }
 
       navigate(role === "patient" ? "/patient/app" : "/pharmacist/dashboard");
     } catch (error) {
       setAuthError(
-        error instanceof Error
-          ? error.message
-          : "Unable to create account. Please try another email or password."
+        getVisibleAuthMessage(
+          error,
+          "Unable to create account. Please try another email or password."
+        )
       );
     } finally {
       setAuthLoading(false);
@@ -155,9 +167,8 @@ function Login() {
               <PillyLogo size={56} showName={false} />
               <span className="brand-title">Pilly</span>
             </div>
-            <p className="form-subtitle">Pharmacist Portal</p>
+
             <div className="field">
-              <label>User Type</label>
               <div className="role-toggle" role="radiogroup" aria-label="Login user type">
                 <button
                   type="button"
@@ -190,7 +201,9 @@ function Login() {
                   type="email"
                   name="email"
                   autoComplete="email"
-                  placeholder="you@pharmacy.com"
+                  placeholder={
+                    loginRole === "patient" ? "you@email.com" : "you@pharmacy.com"
+                  }
                   value={loginEmail}
                   onChange={(e) => setLoginEmail(e.target.value)}
                   required
@@ -208,6 +221,8 @@ function Login() {
                   name="password"
                   autoComplete="current-password"
                   placeholder="••••••••"
+                  value={loginPassword}
+                  onChange={(e) => setLoginPassword(e.target.value)}
                   required
                   tabIndex={isRegister ? -1 : 0}
                 />
@@ -265,10 +280,9 @@ function Login() {
               <PillyLogo size={56} showName={false} />
               <h2 className="form-heading">Create Account</h2>
             </div>
-            <p className="form-subtitle">Set up your account</p>
+            <p className="form-subtitle">Set up your Pilly account</p>
 
             <div className="field">
-              <label>User Type</label>
               <div className="role-toggle" role="radiogroup" aria-label="Registration user type">
                 <button
                   type="button"
@@ -290,6 +304,23 @@ function Login() {
                 >
                   Patient
                 </button>
+              </div>
+            </div>
+
+            <div className="field">
+              <label htmlFor="reg-name">Full Name</label>
+              <div className="input-wrap">
+                <input
+                  id="reg-name"
+                  type="text"
+                  name="name"
+                  autoComplete="name"
+                  placeholder="Tan Wei Ming"
+                  value={regName}
+                  onChange={(e) => setRegName(e.target.value)}
+                  required
+                  tabIndex={isRegister ? 0 : -1}
+                />
               </div>
             </div>
 

@@ -87,14 +87,25 @@ export default function PharmacistDashboard() {
   const [searchQuery, setSearchQuery] = useState("");
   const [livePatients, setLivePatients] = useState([]);
 
-  const loadPatients = async () => {
-    const nextPatients = await fetchPatients();
-    setLivePatients(nextPatients);
-  };
-
   useEffect(() => {
-    loadPatients();
-    return subscribeToPatientChanges(loadPatients);
+    let isActive = true;
+
+    const syncPatients = async () => {
+      const nextPatients = await fetchPatients();
+      if (isActive) {
+        setLivePatients(nextPatients);
+      }
+    };
+
+    void syncPatients();
+    const unsubscribe = subscribeToPatientChanges(() => {
+      void syncPatients();
+    });
+
+    return () => {
+      isActive = false;
+      unsubscribe();
+    };
   }, []);
 
   const statusCounts = livePatients.reduce(
@@ -145,7 +156,10 @@ export default function PharmacistDashboard() {
     window.location.reload();
   };
 
-  const displayName = localStorage.getItem("pilly-user-email") || "jw@email.com";
+  const displayName =
+    localStorage.getItem("pilly-user-name") ||
+    localStorage.getItem("pilly-user-email") ||
+    "Pharmacist";
 
   return (
     <div className="pharm-dash">

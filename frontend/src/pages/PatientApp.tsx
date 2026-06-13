@@ -426,7 +426,9 @@ export default function App() {
   const [readIds,            setReadIds]            = useState<Set<number>>(new Set([3]));
   const [hasNewNotification, setHasNewNotification] = useState(false);
   const [delayedToastMsg,    setDelayedToastMsg]    = useState<string | null>(null);
-  const [patientName,        setPatientName]        = useState("Patient");
+  const [patientName,        setPatientName]        = useState(
+    localStorage.getItem("pilly-user-name") || "Patient"
+  );
 
   const notifications = useMemo<NotificationItem[]>(() => [
     { id: 1, dot: C.green,   title: t('notifications.medicationReady'),                          subtitle: t('notifications.medicationReadySub', { queue: "B047" }), time: "2 min ago", read: readIds.has(1) },
@@ -446,7 +448,9 @@ export default function App() {
   useEffect(() => {
     const loadPatientName = async () => {
       const patient = await fetchCurrentPatientDetails();
-      setPatientName(patient?.name || "Patient");
+      setPatientName(
+        patient?.name || localStorage.getItem("pilly-user-name") || "Patient"
+      );
     };
 
     loadPatientName();
