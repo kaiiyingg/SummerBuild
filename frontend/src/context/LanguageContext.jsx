@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState } from 'react';
+/* eslint-disable react-refresh/only-export-components */
+import { createContext, useContext, useState } from 'react';
 import en from '../locale/en.json';
 import zh from '../locale/zh.json';
 import ms from '../locale/ms.json';
@@ -15,9 +16,9 @@ const locales = { en, zh, ms, ta };
 
 const LanguageContext = createContext({
   language: 'en',
-  setLanguage: (_code) => {},
-  t: (_key) => '',
-  getLanguageLabel: (_code) => '',
+  setLanguage: () => {},
+  t: () => '',
+  getLanguageLabel: () => '',
   LANGUAGES,
 });
 

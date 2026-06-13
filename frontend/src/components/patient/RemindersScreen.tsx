@@ -28,14 +28,14 @@ const medicationOptions = [
   { name: "Aspirin 100mg",     for: "Heart Disease Prevention" },
 ];
 
-type Reminder = { id: number; name: string; time: string; taken: boolean };
-
-const initialReminders: Reminder[] = [
-  { id: 1, name: "Metformin 500mg",   time: "8:00 AM",  taken: true  },
-  { id: 2, name: "Lisinopril 10mg",   time: "9:00 AM",  taken: true  },
-  { id: 3, name: "Metformin 500mg",   time: "8:00 PM",  taken: false },
-  { id: 4, name: "Atorvastatin 20mg", time: "10:00 PM", taken: false },
-];
+type Reminder = {
+  id: number | string;
+  name: string;
+  time: string;
+  taken: boolean;
+  createdByName?: string | null;
+  createdByRole?: string | null;
+};
 
 type MedRec = { freq: string; times: { hour: string; period: string; label: string }[] };
 
@@ -67,6 +67,13 @@ const ALL_HOURS = [
 ];
 
 function ReminderRow({ reminder, onToggle }: { reminder: Reminder; onToggle: () => void }) {
+  const sourceLabel =
+    reminder.createdByRole === "pharmacist"
+      ? `Shared by ${reminder.createdByName || "your pharmacist"}`
+      : reminder.createdByName
+        ? `Added by ${reminder.createdByName}`
+        : null;
+
   return (
     <div className="flex items-center gap-4 py-4" style={{ borderBottom: `1px solid ${C.border}` }}>
       <div className="h-11 w-11 rounded-full flex items-center justify-center shrink-0" style={{ background: C.tealLight }}>
@@ -77,6 +84,11 @@ function ReminderRow({ reminder, onToggle }: { reminder: Reminder; onToggle: () 
           {reminder.name}
         </p>
         <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "16px", color: C.textSecond, marginTop: "3px" }}>{reminder.time}</p>
+        {sourceLabel && (
+          <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "13px", color: C.textDisabled, marginTop: "3px" }}>
+            {sourceLabel}
+          </p>
+        )}
       </div>
       <button onClick={onToggle} className="h-9 w-9 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors"
         style={{ borderColor: reminder.taken ? C.teal : C.border, background: reminder.taken ? C.teal : "white" }}>
@@ -297,7 +309,7 @@ function AddReminderSheet({ onClose, onAdd }: {
 
 export function RemindersScreen() {
   const { t } = useTranslation();
-  const [reminders,    setReminders]    = useState(initialReminders);
+  const [reminders,    setReminders]    = useState<Reminder[]>([]);
   const [showAddSheet, setShowAddSheet] = useState(false);
 
   const takenCount = reminders.filter((r) => r.taken).length;
@@ -350,7 +362,9 @@ export function RemindersScreen() {
           <div className="h-full rounded-full transition-all" style={{ width: `${(takenCount / Math.max(reminders.length, 1)) * 100}%`, background: C.teal }} />
         </div>
         <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "17px", color: C.textSecond, marginTop: "10px", lineHeight: "1.5" }}>
-          {takenCount === reminders.length
+          {reminders.length === 0
+            ? "No reminders yet. Your pharmacist can add medication reminders for you here."
+            : takenCount === reminders.length
             ? t('medications.allDosesTaken')
             : `${reminders.length - takenCount} ${reminders.length - takenCount === 1 ? t('medications.doseRemaining') : t('medications.dosesRemaining')}`}
         </p>
@@ -363,9 +377,15 @@ export function RemindersScreen() {
         </p>
         <div className="bg-white rounded-xl px-4" style={{ border: `1px solid ${C.border}` }}>
           <div className="overflow-y-auto" style={{ maxHeight: "min(50vh, 460px)" }}>
-            {reminders.map((r) => (
-              <ReminderRow key={r.id} reminder={r} onToggle={() => void toggleReminder(r.id)} />
-            ))}
+            {reminders.length === 0 ? (
+              <div className="py-10 text-center" style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "15px", color: C.textSecond }}>
+                No reminders scheduled yet.
+              </div>
+            ) : (
+              reminders.map((r) => (
+                <ReminderRow key={r.id} reminder={r} onToggle={() => void toggleReminder(r.id)} />
+              ))
+            )}
           </div>
           <div className="py-4 text-center">
             <button onClick={() => setShowAddSheet(true)}

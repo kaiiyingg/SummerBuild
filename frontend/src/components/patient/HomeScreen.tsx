@@ -29,6 +29,11 @@ function shouldShowHeaderBadge(status: QueueStatus) {
   return status === "now" || status === "done";
 }
 
+function maskNric(nric: string | null | undefined) {
+  if (!nric) return "Not provided";
+  return `${nric[0]}****${nric.slice(-4)}`;
+}
+
 // ── Header status badge (white pill on teal/green header) ──
 function HeaderBadge({ status }: { status: QueueStatus }) {
   const { t } = useTranslation();
@@ -284,6 +289,9 @@ function ReRegisterSheet({ onClose, patient }: { onClose: () => void; patient?: 
   const [confirmed, setConfirmed] = useState(false);
   const [newQueue]  = useState("B052");
   const reasonForVisit = patient?.reasonForVisit ?? patient?.reason_for_visit ?? t('queue.reasonFollowUp');
+  const displayName =
+    patient?.name ?? localStorage.getItem("pilly-user-name") ?? "Patient";
+  const nricLabel = maskNric(patient?.nric);
 
   if (confirmed) return (
     <div className="fixed inset-0 z-50 flex items-end justify-center" style={{ background: "rgba(15,23,42,0.45)" }} onClick={onClose}>
@@ -349,8 +357,8 @@ function ReRegisterSheet({ onClose, patient }: { onClose: () => void; patient?: 
               </p>
             </div>
             {[
-              { icon: <User size={15} color={C.textSecond} />,    label: t('profile.name'),   value: "Mdm. Tan Mei Ling" },
-              { icon: <Hash size={15} color={C.textSecond} />,    label: t('queue.nric'),     value: "SXXXXXX1A" },
+              { icon: <User size={15} color={C.textSecond} />,    label: t('profile.name'),   value: displayName },
+              { icon: <Hash size={15} color={C.textSecond} />,    label: t('queue.nric'),     value: nricLabel },
               { icon: <MapPin size={15} color={C.textSecond} />,  label: t('queue.counter'),  value: "Level 1, Pharmacy A" },
             ].map((row) => (
               <div key={row.label} className="flex items-center gap-3 px-5 py-4" style={{ borderBottom: `1px solid ${C.border}` }}>
@@ -411,6 +419,8 @@ export function HomeScreen({ onTabChange }: { onTabChange: (tab: string) => void
     completedAt: "9:15 AM",
   };
   const pendingMedication = patient?.medications?.find((med: any) => !med.verified);
+  const displayName =
+    patient?.name ?? localStorage.getItem("pilly-user-name") ?? "Patient";
   const queueNumber = patient?.queueNo ?? "A024";
   const queueDigits = Number.parseInt(queueNumber.replace(/\D/g, ""), 10) || 24;
   const servingNum = Math.max(1, queueDigits - 6);
@@ -443,13 +453,18 @@ export function HomeScreen({ onTabChange }: { onTabChange: (tab: string) => void
     <div className="p-4 md:p-6 space-y-4 overflow-y-auto h-full max-w-4xl mx-auto w-full">
 
       {/* ── Page header ── */}
-      <div className="flex items-center justify-between">
-        <h1 style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "22px", fontWeight: 800, color: C.textPrimary, letterSpacing: "0.4px" }}>
-          {t('home.yourQueueStatus')}
-        </h1>
-        <span style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "16px", color: C.textSecond }}>
-          {t('queue.updatedAt')} {updatedTime}
-        </span>
+      <div className="space-y-1">
+        <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "15px", color: C.textSecond, fontWeight: 600 }}>
+          Hello, {displayName}
+        </p>
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <h1 style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "22px", fontWeight: 800, color: C.textPrimary, letterSpacing: "0.4px" }}>
+            {t('home.yourQueueStatus')}
+          </h1>
+          <span style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "16px", color: C.textSecond }}>
+            {t('queue.updatedAt')} {updatedTime}
+          </span>
+        </div>
       </div>
 
       {/* Missed queue alert */}

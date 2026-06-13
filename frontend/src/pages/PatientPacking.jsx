@@ -2,11 +2,14 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import PillyLogo from "../components/PillyLogo";
 import {
+  addPatientReminder,
   addHoldReason,
   fetchPatientDetails,
+  fetchPatientReminders,
   setMedicationVerified,
   setPatientStatus,
   subscribeToPatientChanges,
+  subscribeToReminderChanges,
 } from "../services/pharmacyData";
 import "./PatientPacking.css";
 
@@ -33,6 +36,7 @@ function VerifyingOverlay() {
 }
 
 function maskNric(nric) {
+  if (!nric) return "Not provided";
   return `${nric[0]}****${nric.slice(-4)}`;
 }
 
@@ -40,6 +44,31 @@ function formatImageType(type) {
   if (type === "packaged") return "Packaged medication";
   if (type === "loose") return "Loose pills";
   return "Unclear image";
+}
+
+function formatReminderTime(value) {
+  const [hourText = "08", minute = "00"] = String(value || "").split(":");
+  const rawHour = Number(hourText);
+  const hour = Number.isNaN(rawHour) ? 8 : rawHour;
+  const suffix = hour >= 12 ? "PM" : "AM";
+  const hour12 = hour % 12 || 12;
+  return `${hour12}:${minute} ${suffix}`;
+}
+
+function toTimeInputValue(value) {
+  if (/^\d{2}:\d{2}$/.test(String(value || ""))) {
+    return String(value);
+  }
+
+  const match = String(value || "").match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+  if (!match) return "08:00";
+
+  let hour = Number(match[1]) % 12;
+  if (match[3].toUpperCase() === "PM") {
+    hour += 12;
+  }
+
+  return `${String(hour).padStart(2, "0")}:${match[2]}`;
 }
 
 function PatientPacking() {
@@ -53,6 +82,13 @@ function PatientPacking() {
   const [holdOpen, setHoldOpen] = useState(false);
   const [holdReason, setHoldReason] = useState("");
   const [incompleteOpen, setIncompleteOpen] = useState(false);
+  const [reminders, setReminders] = useState([]);
+  const [loadingReminders, setLoadingReminders] = useState(true);
+  const [reminderOpen, setReminderOpen] = useState(false);
+  const [reminderMedication, setReminderMedication] = useState("");
+  const [reminderTime, setReminderTime] = useState("08:00");
+  const [reminderSaving, setReminderSaving] = useState(false);
+  const [reminderError, setReminderError] = useState("");
   
 
   const [verifying, setVerifying] = useState(false);
@@ -74,31 +110,56 @@ function PatientPacking() {
     return {};
   });
 
-  const loadPatient = async () => {
-    setLoadingPatient(true);
-    const nextPatient = await fetchPatientDetails(patientId);
-    setPatient(nextPatient);
-    setLoadingPatient(false);
-  };
-
   useEffect(() => {
-    loadPatient();
-    return subscribeToPatientChanges(loadPatient);
+    let isActive = true;
+
+    const syncPatient = async () => {
+      setLoadingPatient(true);
+      const nextPatient = await fetchPatientDetails(patientId);
+
+      if (!isActive) return;
+
+      setPatient(nextPatient);
+      setVerifiedMeds((current) => {
+        const next = { ...current };
+        nextPatient?.medications?.forEach((med) => {
+          if (med.verified) {
+            next[med.id] = true;
+          }
+        });
+        return next;
+      });
+      setLoadingPatient(false);
+    };
+
+    void syncPatient();
+    const unsubscribe = subscribeToPatientChanges(() => {
+      void syncPatient();
+    });
+
+    return () => {
+      isActive = false;
+      unsubscribe();
+    };
   }, [patientId]);
 
   useEffect(() => {
-    if (!patient) return;
+    const loadReminders = async () => {
+      if (!patientId) {
+        setReminders([]);
+        setLoadingReminders(false);
+        return;
+      }
 
-    setVerifiedMeds((current) => {
-      const next = { ...current };
-      patient.medications.forEach((med) => {
-        if (med.verified) {
-          next[med.id] = true;
-        }
-      });
-      return next;
-    });
-  }, [patient]);
+      setLoadingReminders(true);
+      const nextReminders = await fetchPatientReminders(patientId);
+      setReminders(nextReminders);
+      setLoadingReminders(false);
+    };
+
+    loadReminders();
+    return subscribeToReminderChanges(loadReminders);
+  }, [patientId]);
 
   useEffect(() => {
     if (cameraVideoRef.current && cameraStream) {
@@ -174,6 +235,56 @@ function PatientPacking() {
   }, 100);
 };
 
+  const openReminderModal = () => {
+    setReminderError("");
+    setReminderMedication(patient?.medications?.[0]?.name || "");
+    setReminderTime("08:00");
+    setReminderOpen(true);
+  };
+
+  const closeReminderModal = () => {
+    if (reminderSaving) return;
+    setReminderOpen(false);
+    setReminderError("");
+  };
+
+  const sendPatientReminder = async () => {
+    if (!patient?.id) return;
+    if (!reminderMedication) {
+      setReminderError("Select a medication before sending a reminder.");
+      return;
+    }
+
+    setReminderSaving(true);
+    setReminderError("");
+
+    try {
+      await addPatientReminder({
+        patientId: patient.id,
+        name: reminderMedication,
+        time: formatReminderTime(reminderTime),
+        createdByName:
+          localStorage.getItem("pilly-user-name") ||
+          localStorage.getItem("pilly-user-email") ||
+          "Pharmacist",
+        createdByRole: "pharmacist",
+        createdByUserId: localStorage.getItem("pilly-user-id"),
+      });
+
+      const nextReminders = await fetchPatientReminders(patient.id);
+      setReminders(nextReminders);
+      setReminderOpen(false);
+    } catch (error) {
+      setReminderError(
+        error instanceof Error
+          ? error.message
+          : "Unable to send the reminder right now."
+      );
+    } finally {
+      setReminderSaving(false);
+    }
+  };
+
   const confirmMedicationVerification = async () => {
     if (!selectedMed || !patient) return;
 
@@ -194,7 +305,8 @@ function PatientPacking() {
     }
 
     resetScanner();
-    loadPatient();
+    const nextPatient = await fetchPatientDetails(patient.id);
+    setPatient(nextPatient);
   };
 
   const analyzeMedicationIdentity = async (identityFile) => {
@@ -493,7 +605,108 @@ function PatientPacking() {
             </button>
           </div>
         </section>
+
+        <section className="pack-reminder-card">
+          <div className="pack-section-head">
+            <div>
+              <p className="pack-label">Patient Reminders</p>
+              <h2>
+                {reminders.length} active reminder{reminders.length === 1 ? "" : "s"}
+              </h2>
+            </div>
+
+            <button
+              className="pack-ai-row-btn"
+              onClick={openReminderModal}
+              disabled={!patient.medications.length}
+            >
+              Send Reminder
+            </button>
+          </div>
+
+          {loadingReminders ? (
+            <p className="pack-empty-state">Loading reminders...</p>
+          ) : reminders.length === 0 ? (
+            <p className="pack-empty-state">
+              No reminders sent yet. Add the first reminder for this patient.
+            </p>
+          ) : (
+            <div className="pack-reminder-list">
+              {reminders.map((reminder) => (
+                <div key={reminder.id} className="pack-reminder-item">
+                  <div>
+                    <p className="pack-reminder-name">{reminder.name}</p>
+                    <p className="pack-reminder-meta">
+                      {reminder.time}
+                      {reminder.createdByName ? ` · ${reminder.createdByName}` : ""}
+                    </p>
+                  </div>
+                  <span
+                    className={`pack-reminder-status ${
+                      reminder.taken ? "taken" : "pending"
+                    }`}
+                  >
+                    {reminder.taken ? "Taken" : "Pending"}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
       </main>
+
+      {reminderOpen && (
+        <div className="scanner-modal-overlay" onClick={closeReminderModal}>
+          <div className="reminder-modal" onClick={(e) => e.stopPropagation()}>
+            <button className="scanner-close" onClick={closeReminderModal}>
+              ×
+            </button>
+
+            <h2>Send Medication Reminder</h2>
+            <p>
+              This reminder will show up instantly on {patient.name}&apos;s
+              reminder screen when Supabase is connected.
+            </p>
+
+            <label className="manual-select-label">
+              Medication
+              <select
+                className="manual-select"
+                value={reminderMedication}
+                onChange={(e) => setReminderMedication(e.target.value)}
+              >
+                {patient.medications.map((med) => (
+                  <option key={med.id} value={med.name}>
+                    {med.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="manual-select-label">
+              Reminder time
+              <input
+                type="time"
+                className="manual-select"
+                value={toTimeInputValue(reminderTime)}
+                onChange={(e) => setReminderTime(e.target.value)}
+              />
+            </label>
+
+            {reminderError && (
+              <div className="verification-error">{reminderError}</div>
+            )}
+
+            <button
+              className="scanner-confirm pharmacist-confirm"
+              onClick={sendPatientReminder}
+              disabled={reminderSaving || !reminderMedication}
+            >
+              {reminderSaving ? "Sending..." : "Send Reminder to Patient"}
+            </button>
+          </div>
+        </div>
+      )}
 
       {scannerOpen && (
         <div className="scanner-modal-overlay" onClick={resetScanner}>

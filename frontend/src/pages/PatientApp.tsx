@@ -437,7 +437,9 @@ export default function App() {
   const [notifications,      setNotifications]      = useState<NotificationItem[]>(NOTIFICATIONS);
   const [hasNewNotification, setHasNewNotification] = useState(false);
   const [delayedToastMsg,    setDelayedToastMsg]    = useState<string | null>(null);
-  const [patientName,        setPatientName]        = useState("Patient");
+  const [patientName,        setPatientName]        = useState(
+    localStorage.getItem("pilly-user-name") || "Patient"
+  );
 
   const unreadCount  = notifications.filter((n) => !n.read).length;
   const currentShort = LANG_SHORT[language] ?? 'EN';
@@ -451,7 +453,9 @@ export default function App() {
   useEffect(() => {
     const loadPatientName = async () => {
       const patient = await fetchCurrentPatientDetails();
-      setPatientName(patient?.name || "Patient");
+      setPatientName(
+        patient?.name || localStorage.getItem("pilly-user-name") || "Patient"
+      );
     };
 
     loadPatientName();
