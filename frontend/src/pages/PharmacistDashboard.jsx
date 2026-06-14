@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { FaChevronRight } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 import { fetchPatients, subscribeToPatientChanges } from "../services/pharmacyData";
+import { supabase } from "../lib/supabaseClient";
 import "./PharmacistDashboard.css";
 
 function useCountUp(target) {
@@ -81,6 +82,17 @@ function getFormattedDate() {
 export default function PharmacistDashboard() {
   const navigate = useNavigate();
 
+  const handleSignOut = async () => {
+  await supabase.auth.signOut();
+
+  localStorage.removeItem("pilly-user-id");
+  localStorage.removeItem("pilly-user-email");
+  localStorage.removeItem("pilly-user-name");
+  localStorage.removeItem("pilly-user-role");
+
+  navigate("/");
+};
+
   const [activeTab, setActiveTab] = useState("all");
   const [sort, setSort] = useState("urgency_ac");
 
@@ -152,32 +164,40 @@ export default function PharmacistDashboard() {
 
       <div className="pd-layout">
         <aside className="pd-sidebar">
-          <section className="pd-session">
-            <p className="pd-sidebar-label">Session</p>
-            <h1>
-              {getGreeting()},<br />
-              {displayName}
-            </h1>
-            <p>{getFormattedDate()}</p>
-          </section>
+          <div>
+            <section className="pd-session">
+              <p className="pd-sidebar-label">Session</p>
+              <h1>
+                {getGreeting()},<br />
+                {displayName}
+              </h1>
+              <p>{getFormattedDate()}</p>
+            </section>
 
-          <section>
-            <p className="pd-sidebar-label">Queue Status</p>
+            <section>
+              <p className="pd-sidebar-label">Queue Status</p>
 
-            <div className="pd-stat-cards">
-              {Object.entries(STAT_CONFIG).map(([key, cfg]) => (
-                <StatCard
-                  key={key}
-                  cfg={cfg}
-                  count={statusCounts[key]}
-                  isActive={activeTab === cfg.tab}
-                  onClick={() =>
-                    setActiveTab(activeTab === cfg.tab ? "all" : cfg.tab)
-                  }
-                />
-              ))}
-            </div>
-          </section>
+              <div className="pd-stat-cards">
+                {Object.entries(STAT_CONFIG).map(([key, cfg]) => (
+                  <StatCard
+                    key={key}
+                    cfg={cfg}
+                    count={statusCounts[key]}
+                    isActive={activeTab === cfg.tab}
+                    onClick={() =>
+                      setActiveTab(activeTab === cfg.tab ? "all" : cfg.tab)
+                    }
+                  />
+                ))}
+              </div>
+            </section>
+          </div>
+
+          <div className="pd-signout-section">
+            <button className="pd-signout-btn" onClick={handleSignOut}>
+              Sign Out
+            </button>
+          </div>
         </aside>
 
         <main className="pd-main">

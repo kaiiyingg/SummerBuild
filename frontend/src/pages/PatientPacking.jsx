@@ -103,6 +103,8 @@ function PatientPacking() {
   const [pendingScanQuantity, setPendingScanQuantity] = useState(0);
   const [stripMultiplier, setStripMultiplier] = useState("");
 
+  const [manualReason, setManualReason] = useState("");
+
   const cameraVideoRef = useRef(null);
 
   const [verifiedMeds, setVerifiedMeds] = useState(() => {
@@ -223,6 +225,7 @@ function PatientPacking() {
   setVerificationResult(null);
   setVerificationError("");
   setVerifying(false);
+  setManualReason("");
 };
 
   const openScanner = async (med) => {
@@ -235,10 +238,20 @@ function PatientPacking() {
   setScannerOpen(true);
   setCumulativeQuantity(0);
   setPendingScanQuantity(0);
+  setManualReason("");
 
   setTimeout(() => {
     openCamera();
   }, 100);
+};
+
+  const completeManualVerification = async () => {
+  if (!manualReason) {
+    setVerificationError("Please select a manual verification reason first.");
+    return;
+  }
+
+  await confirmMedicationVerification();
 };
 
   const openReminderModal = () => {
@@ -1086,17 +1099,28 @@ function PatientPacking() {
 
             <label className="manual-select-label">
               Unable to perform AI verification?
-              <select className="manual-select">
+              <select
+                className="manual-select"
+                value={manualReason}
+                onChange={(e) => setManualReason(e.target.value)}
+              >
                 <option value="">Select an action</option>
                 <option value="manual_label">Label cannot be read</option>
-                <option value="manual_mismatch">
-                  Medication mismatch detected
-                </option>
-                <option value="manual_quantity">
-                  Quantity discrepancy found
-                </option>
+                <option value="manual_mismatch">Medication mismatch detected</option>
+                <option value="manual_quantity">Quantity discrepancy found</option>
+                <option value="manual_ai_failed">AI verification unavailable</option>
               </select>
             </label>
+
+            {manualReason && (
+              <button
+                type="button"
+                className="scanner-confirm pharmacist-confirm"
+                onClick={completeManualVerification}
+              >
+                Manual Verification Completed
+              </button>
+            )}
           </div>
         </div>
       )}

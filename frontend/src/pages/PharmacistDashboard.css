@@ -52,6 +52,34 @@
   background: var(--white);
   border-right: 1px solid var(--border);
   padding: 28px 26px;
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 58px);
+  position: sticky;
+  top: 58px;
+}
+
+.pd-signout-section {
+  margin-top: auto;
+  padding-top: 24px;
+}
+
+.pd-signout-btn {
+  width: 100%;
+  border: 1.5px solid #ef4444;
+  background: white;
+  color: #dc2626;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  padding: 12px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.pd-signout-btn:hover {
+  background: #ef4444;
+  color: white;
 }
 
 .pd-session {
