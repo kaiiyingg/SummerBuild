@@ -434,27 +434,6 @@
   box-shadow: none;
 }
 
-/* ---------- Guest button ---------- */
-.btn-guest {
-  width: 100%;
-  padding: 12px 18px;
-  font: inherit;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--muted);
-  background: transparent;
-  border: 1.5px dashed var(--border);
-  border-radius: 12px;
-  cursor: pointer;
-  transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
-}
-
-.btn-guest:hover {
-  border-color: var(--turquoise);
-  color: var(--turquoise-dark);
-  background: rgba(64, 224, 208, 0.05);
-}
-
 /* ---------- Footer switch line ---------- */
 .switch-line {
   margin-top: 22px;
