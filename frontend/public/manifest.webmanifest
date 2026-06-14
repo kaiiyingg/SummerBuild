@@ -1,0 +1,18 @@
+{
+  "name": "Pilly Hospital Pharmacy",
+  "short_name": "Pilly",
+  "description": "Hospital pharmacy queue, medication, reminder, and patient assistant app.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#F8FAFC",
+  "theme_color": "#45C5BC",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

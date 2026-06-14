@@ -5,6 +5,7 @@ import {
   fetchCurrentPatientDetails,
   subscribeToPatientChanges,
 } from "../../services/pharmacyData";
+import { ensurePushSubscription } from "../../services/pushNotifications";
 
 const C = {
   teal:        "#45C5BC",
@@ -42,12 +43,30 @@ function Toggle({ on, onToggle }: { on: boolean; onToggle: () => void }) {
   );
 }
 
+function getInitialNotificationSettings() {
+  const enabled =
+    typeof Notification !== "undefined" && Notification.permission === "granted";
+
+  return { queue: enabled, reminders: enabled, delays: enabled };
+}
+
 export function ProfileScreen() {
   const { language, setLanguage, t } = useTranslation();
-  const [notifs,        setNotifs]        = useState({ queue: true, reminders: true, delays: false });
+  const [notifs,        setNotifs]        = useState(getInitialNotificationSettings);
   const [expandedVisit, setExpandedVisit] = useState<number | null>(null);
   const [patient,       setPatient]       = useState<any>(null);
-  const toggleNotif = (key: keyof typeof notifs) => setNotifs((n) => ({ ...n, [key]: !n[key] }));
+  const toggleNotif = async (key: keyof typeof notifs) => {
+    const nextValue = !notifs[key];
+    setNotifs((n) => ({ ...n, [key]: nextValue }));
+
+    if (!nextValue) return;
+
+    const result = await ensurePushSubscription();
+    if (!result.ok) {
+      console.warn("Push notifications not enabled:", result.reason);
+      setNotifs((n) => ({ ...n, [key]: false }));
+    }
+  };
   const patientName = patient?.name || localStorage.getItem("pilly-user-name") || "Patient";
   const patientNric = patient?.nric ? `NRIC: ${patient.nric}` : `${t("profile.patientId")}: ${patient?.id ?? "-"}`;
   const patientInitials = getInitials(patientName);
@@ -126,7 +145,7 @@ export function ProfileScreen() {
                 <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "16px", fontWeight: 600, color: C.textPrimary }}>{item.label}</p>
                 <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "14px", color: C.textSecond, marginTop: "2px" }}>{item.desc}</p>
               </div>
-              <Toggle on={notifs[item.key]} onToggle={() => toggleNotif(item.key)} />
+              <Toggle on={notifs[item.key]} onToggle={() => void toggleNotif(item.key)} />
             </div>
           ))}
         </div>

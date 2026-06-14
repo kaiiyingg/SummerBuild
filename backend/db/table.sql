@@ -130,6 +130,18 @@ create table if not exists public.patient_reminders (
   created_at timestamptz not null default now()
 );
 
+create table if not exists public.push_subscriptions (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references auth.users(id) on delete cascade,
+  patient_id text references public.patients(id) on delete cascade,
+  endpoint text not null unique,
+  p256dh text not null,
+  auth text not null,
+  user_agent text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
 alter table public.patient_reminders
   add column if not exists created_by_user_id uuid,
   add column if not exists created_by_name text,
@@ -287,6 +299,7 @@ alter table public.patient_medications enable row level security;
 alter table public.hold_reasons enable row level security;
 alter table public.notifications enable row level security;
 alter table public.patient_reminders enable row level security;
+alter table public.push_subscriptions enable row level security;
 alter table public.user_profiles enable row level security;
 
 drop policy if exists "demo read patients" on public.patients;
@@ -302,6 +315,10 @@ drop policy if exists "demo update notifications" on public.notifications;
 drop policy if exists "demo read reminders" on public.patient_reminders;
 drop policy if exists "demo insert reminders" on public.patient_reminders;
 drop policy if exists "demo update reminders" on public.patient_reminders;
+drop policy if exists "users read own push subscriptions" on public.push_subscriptions;
+drop policy if exists "users insert own push subscriptions" on public.push_subscriptions;
+drop policy if exists "users update own push subscriptions" on public.push_subscriptions;
+drop policy if exists "users delete own push subscriptions" on public.push_subscriptions;
 drop policy if exists "users read own profile" on public.user_profiles;
 drop policy if exists "users insert own profile" on public.user_profiles;
 drop policy if exists "users update own profile" on public.user_profiles;
@@ -345,6 +362,18 @@ on public.patient_reminders for insert to anon, authenticated with check (true);
 create policy "demo update reminders"
 on public.patient_reminders for update to anon, authenticated using (true) with check (true);
 
+create policy "users read own push subscriptions"
+on public.push_subscriptions for select to authenticated using (auth.uid() = user_id);
+
+create policy "users insert own push subscriptions"
+on public.push_subscriptions for insert to authenticated with check (auth.uid() = user_id);
+
+create policy "users update own push subscriptions"
+on public.push_subscriptions for update to authenticated using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+create policy "users delete own push subscriptions"
+on public.push_subscriptions for delete to authenticated using (auth.uid() = user_id);
+
 create policy "users read own profile"
 on public.user_profiles for select to authenticated using (auth.uid() = id);
 
@@ -359,6 +388,7 @@ grant select, update on public.patient_medications to anon, authenticated;
 grant select, insert on public.hold_reasons to anon, authenticated;
 grant select, insert, update on public.notifications to anon, authenticated;
 grant select, insert, update on public.patient_reminders to anon, authenticated;
+grant select, insert, update, delete on public.push_subscriptions to authenticated;
 grant select, insert, update on public.user_profiles to authenticated;
 
 grant usage on sequence public.patient_id_seq to anon, authenticated;
@@ -372,6 +402,7 @@ alter table public.patients replica identity full;
 alter table public.patient_medications replica identity full;
 alter table public.notifications replica identity full;
 alter table public.patient_reminders replica identity full;
+alter table public.push_subscriptions replica identity full;
 
 do $$
 begin

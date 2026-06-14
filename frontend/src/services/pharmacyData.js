@@ -1,6 +1,7 @@
 import { PATIENT_DETAILS } from "../data/patientData";
 import { hasSupabaseConfig, supabase } from "../lib/supabaseClient";
 import { syncStoredSessionFromSupabase } from "./authService";
+import { sendPatientPushNotification } from "./pushNotifications";
 
 const LOCAL_PATIENTS_KEY = "pilly-local-patients";
 const LOCAL_REMINDERS_KEY = "pilly-local-reminders";
@@ -295,6 +296,14 @@ function fromSupabaseNotification(row) {
   };
 }
 
+function getPushNotificationBody(type, body) {
+  if (type === "medication_on_hold") {
+    return body;
+  }
+
+  return body || "Your pharmacy has an update. Tap to view details.";
+}
+
 export async function createNotification({
   recipientRole,
   patientId = null,
@@ -318,6 +327,15 @@ export async function createNotification({
       createdAt: new Date().toISOString(),
     };
     saveLocalNotifications([notification, ...getLocalNotifications()]);
+    if (recipientRole === "patient" && patientId) {
+      await sendPatientPushNotification({
+        patientId,
+        title,
+        body: getPushNotificationBody(type, body),
+        url: "/patient/app",
+        type,
+      });
+    }
     return notification;
   }
 
@@ -336,7 +354,19 @@ export async function createNotification({
     .single();
 
   if (error) throw error;
-  return fromSupabaseNotification(data);
+  const notification = fromSupabaseNotification(data);
+
+  if (recipientRole === "patient" && patientId) {
+    await sendPatientPushNotification({
+      patientId,
+      title,
+      body: getPushNotificationBody(type, body),
+      url: "/patient/app",
+      type,
+    });
+  }
+
+  return notification;
 }
 
 export async function fetchNotifications({ recipientRole, patientId = null } = {}) {
