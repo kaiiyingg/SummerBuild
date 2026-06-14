@@ -13,10 +13,11 @@ const C = {
   border: "#E2E8F0",
 };
 
-type Message = { id: number; role: "bot" | "user"; text: string; time: string };
 type ChatApiResponse = { reply: string; source?: "faq" | "redirect" | "reka" };
 type AttachmentType = "image" | "video";
 type MediaAttachment = { file: File; kind: AttachmentType; previewUrl: string };
+type SentAttachment = { kind: AttachmentType; name: string };
+type Message = { id: number; role: "bot" | "user"; text: string; time: string; attachment?: SentAttachment };
 
 const GREETING_TEMPLATES: Record<string, string> = {
   en:
@@ -464,12 +465,26 @@ export function AskPillyScreen() {
   }
 
   const sendMessage = async (text: string) => {
-    if ((!text.trim() && !attachment) || isSending) return;
-
     const outboundText = text.trim();
+    const currentAttachment = attachment;
+    if ((!outboundText && !currentAttachment) || isSending) return;
+
     const now = new Date().toLocaleTimeString("en-SG", { hour: "2-digit", minute: "2-digit" });
-    const userBubbleText = text.trim() || attachment?.file.name || "Attachment";
-    const userMessage: Message = { id: messages.length + 1, role: "user", text: userBubbleText, time: now };
+    const userBubbleText =
+      outboundText ||
+      (currentAttachment?.kind === "video" ? t("chat.attachedVideo") : t("chat.attachedImage"));
+    const userMessage: Message = {
+      id: messages.length + 1,
+      role: "user",
+      text: userBubbleText,
+      time: now,
+      attachment: currentAttachment
+        ? {
+            kind: currentAttachment.kind,
+            name: currentAttachment.file.name,
+          }
+        : undefined,
+    };
     const history = messages.map((msg) => ({
       role: msg.role === "user" ? "user" : "assistant",
       content: msg.text,
@@ -478,7 +493,7 @@ export function AskPillyScreen() {
     setMessages((m) => [...m, userMessage]);
     setInputText("");
 
-    const smallTalkIntent = attachment ? null : detectSmallTalkIntent(text);
+    const smallTalkIntent = currentAttachment ? null : detectSmallTalkIntent(text);
     if (smallTalkIntent) {
       const smallTalkReply = smallTalkIntent === "greeting" ? greetingForLanguage : endingForLanguage;
       setMessages((m) => [...m, { id: m.length + 1, role: "bot", text: smallTalkReply, time: now }]);
@@ -488,12 +503,12 @@ export function AskPillyScreen() {
     setIsSending(true);
     try {
       let res: Response;
-      if (attachment) {
+      if (currentAttachment) {
         const formData = new FormData();
         formData.append("message", outboundText);
         formData.append("language", language);
         formData.append("history_json", JSON.stringify(history));
-        formData.append(attachment.kind, attachment.file);
+        formData.append(currentAttachment.kind, currentAttachment.file);
 
         res = await fetch(`${API_BASE_URL}/api/chat-with-media`, {
           method: "POST",
@@ -721,7 +736,24 @@ export function AskPillyScreen() {
                     border: msg.role === "bot" ? `1px solid ${C.border}` : "none",
                   }}
                 >
-                  {msg.role === "bot" ? renderBotFormattedText(msg.text) : msg.text}
+                  {msg.role === "bot" ? (
+                    renderBotFormattedText(msg.text)
+                  ) : (
+                    <div>
+                      <p>{msg.text}</p>
+                      {msg.attachment ? (
+                        <div
+                          className="mt-2 flex items-center gap-2 rounded-lg px-2.5 py-2"
+                          style={{ background: "rgba(255,255,255,0.18)", border: "1px solid rgba(255,255,255,0.28)" }}
+                        >
+                          {msg.attachment.kind === "video" ? <Video size={14} color="white" /> : <Camera size={14} color="white" />}
+                          <span style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "13px", color: "white" }}>
+                            {msg.attachment.name}
+                          </span>
+                        </div>
+                      ) : null}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
