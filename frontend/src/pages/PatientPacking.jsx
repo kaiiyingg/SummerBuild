@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import PillyLogo from "../components/PillyLogo";
 import {
   addPatientReminder,
@@ -74,9 +74,11 @@ function toTimeInputValue(value) {
 function PatientPacking() {
   const { patientId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const initialPatient = location.state?.patient ?? null;
 
-  const [patient, setPatient] = useState(null);
-  const [loadingPatient, setLoadingPatient] = useState(true);
+  const [patient, setPatient] = useState(initialPatient);
+  const [loadingPatient, setLoadingPatient] = useState(!initialPatient);
   const [scannerOpen, setScannerOpen] = useState(false);
   const [selectedMed, setSelectedMed] = useState(null);
   const [holdOpen, setHoldOpen] = useState(false);
@@ -120,7 +122,9 @@ function PatientPacking() {
     let isActive = true;
 
     const syncPatient = async () => {
-      setLoadingPatient(true);
+      if (!patient) {
+        setLoadingPatient(true);
+      }
       const nextPatient = await fetchPatientDetails(patientId);
 
       if (!isActive) return;

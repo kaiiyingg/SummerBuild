@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo} from "react";
 import { useNavigate } from "react-router-dom";
 import { FaChevronRight } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
-import { fetchPatients, subscribeToPatientChanges } from "../services/pharmacyData";
+import { fetchPatientDetails, fetchPatients, subscribeToPatientChanges } from "../services/pharmacyData";
 import { supabase } from "../lib/supabaseClient";
 import "./PharmacistDashboard.css";
 
@@ -98,6 +98,18 @@ export default function PharmacistDashboard() {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [livePatients, setLivePatients] = useState([]);
+
+  const openPatientPacking = async (patient) => {
+    try {
+      const patientDetails = await fetchPatientDetails(patient.id);
+      navigate(`/pharmacist/pack/${patient.id}`, {
+        state: { patient: patientDetails ?? patient },
+      });
+    } catch (error) {
+      console.warn("Unable to prefetch patient details:", error);
+      navigate(`/pharmacist/pack/${patient.id}`, { state: { patient } });
+    }
+  };
 
   useEffect(() => {
     let isActive = true;
@@ -274,7 +286,7 @@ export default function PharmacistDashboard() {
                       key={p.id}
                       type="button"
                       className="pd-card"
-                      onClick={() => navigate(`/pharmacist/pack/${p.id}`)}
+                      onClick={() => void openPatientPacking(p)}
                     >
                       <div className="pd-type-cell">
                         <span
