@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { LogOut, ChevronDown, ChevronUp, Bell, BellRing, AlertTriangle } from "lucide-react";
+import { ChevronDown, ChevronUp, Bell, BellRing, AlertTriangle } from "lucide-react";
 import { useTranslation, LANGUAGES } from "../../context/LanguageContext";
 import {
   fetchCurrentPatientDetails,
@@ -15,7 +15,6 @@ const C = {
   textDisabled:"#94A3B8",
   border:      "#E2E8F0",
   amber:       "#F59E0B",
-  red:         "#EF4444",
 };
 
 const pastVisits = [
@@ -43,7 +42,7 @@ function Toggle({ on, onToggle }: { on: boolean; onToggle: () => void }) {
   );
 }
 
-export function ProfileScreen({ onLogout }: { onLogout: () => void }) {
+export function ProfileScreen() {
   const { language, setLanguage, t } = useTranslation();
   const [notifs,        setNotifs]        = useState({ queue: true, reminders: true, delays: false });
   const [expandedVisit, setExpandedVisit] = useState<number | null>(null);
@@ -159,13 +158,6 @@ export function ProfileScreen({ onLogout }: { onLogout: () => void }) {
           })}
         </div>
       </div>
-
-      {/* Logout */}
-      <button onClick={onLogout}
-        className="w-full flex items-center justify-center gap-2 py-3 rounded-xl hover:opacity-80 transition-opacity"
-        style={{ border: `1.5px solid ${C.red}`, color: C.red, background: "white", fontFamily: "'DM Sans', sans-serif", fontSize: "16px", fontWeight: 600, height: "52px" }}>
-        <LogOut size={18} />{t('profile.logout')}
-      </button>
 
     </div>
   );

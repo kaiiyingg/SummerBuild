@@ -262,7 +262,6 @@ function RescheduleSheet({ onClose, patient }: { onClose: () => void; patient?: 
         <h2 style={{ fontFamily:"'DM Sans',sans-serif", fontSize:"22px", fontWeight:700, color:C.textPrimary, marginBottom:"8px" }}>{t('queue.collectionRescheduled')}</h2>
         <p style={{ fontFamily:"'Open Sans',sans-serif", fontSize:"16px", color:C.textSecond, marginBottom:"6px" }}>{MONTHS[viewMonth]} {selectedDate}, {viewYear}</p>
         <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:"20px", fontWeight:700, color:C.teal, marginBottom:"24px" }}>{selectedSlot}</p>
-        <p style={{ fontFamily:"'Open Sans',sans-serif", fontSize:"15px", color:C.textSecond, marginBottom:"28px" }}>{t('queue.rescheduleConfirmMsg')}</p>
         <button onClick={onClose} className="w-full py-3.5 rounded-xl text-white" style={{ background:C.teal, fontFamily:"'DM Sans',sans-serif", fontSize:"16px", fontWeight:700 }}>{t('common.done')}</button>
       </div>
     </div>
@@ -389,16 +388,10 @@ function ReRegisterSheet({ onClose, patient }: { onClose: () => void; patient?: 
         <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ background: C.tealLight }}>
           <Check size={30} color={C.teal} strokeWidth={2.5} />
         </div>
-        <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "14px", color: C.textSecond, marginBottom: "4px" }}>{t('queue.newQueueNumber')}</p>
-        <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "56px", fontWeight: 800, color: C.tealDark, lineHeight: 1, marginBottom: "8px" }}>
+        <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "18px", color: C.textSecond, marginBottom: "8px", fontWeight: 600 }}>{t('queue.newQueueNumber')}</p>
+        <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "72px", fontWeight: 800, color: C.tealDark, lineHeight: 1, letterSpacing: "1.5px", marginBottom: "28px" }}>
           {newQueue}
         </div>
-        <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "15px", color: C.textSecond, marginBottom: "6px" }}>
-          {t('queue.proceedToPharmacy')}
-        </p>
-        <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "14px", color: C.textDisabled, marginBottom: "28px" }}>
-          {t('queue.notifyWhenCalled')}
-        </p>
         <button onClick={onClose} className="w-full py-3.5 rounded-xl text-white"
           style={{ background: C.teal, fontFamily: "'DM Sans', sans-serif", fontSize: "16px", fontWeight: 700 }}>
           {t('common.done')}

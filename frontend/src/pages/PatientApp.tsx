@@ -527,9 +527,7 @@ export default function App() {
       case "scan":        return <ScanScreen />;
       case "reminders":   return <RemindersScreen />;
       case "askpilly":    return <AskPillyScreen />;
-      case "profile":     return (
-        <ProfileScreen onLogout={() => setShowLogoutModal(true)} />
-      );
+      case "profile":     return <ProfileScreen />;
     }
   };
 
