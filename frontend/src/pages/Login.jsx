@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 import PillyLogo from "../components/PillyLogo";
@@ -91,6 +91,19 @@ function Login() {
   const [loginPassword, setLoginPassword] = useState("");
 
   const languageOptions = LANGUAGES;
+  const [langOpen, setLangOpen] = useState(false);
+  const langRef = useRef(null);
+
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (langRef.current && !langRef.current.contains(e.target)) {
+        setLangOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   const [authError, setAuthError] = useState("");
   const [authNotice, setAuthNotice] = useState("");
   const [authLoading, setAuthLoading] = useState(false);
@@ -170,18 +183,32 @@ function Login() {
 
   return (
     <div className={`auth-page ${isRegister ? "register-active" : ""}`}>
-      <div className="lang-toggle" role="group" aria-label={t("auth.language")}>
-        {languageOptions.map((option) => (
-          <button
-            key={option.code}
-            type="button"
-            className={language === option.code ? "active" : ""}
-            aria-pressed={language === option.code}
-            onClick={() => setLanguage(option.code)}
-          >
-            {option.nativeLabel}
-          </button>
-        ))}
+      <div className="lang-toggle" ref={langRef}>
+        <button
+          type="button"
+          className="lang-toggle__trigger"
+          aria-haspopup="listbox"
+          aria-expanded={langOpen}
+          onClick={() => setLangOpen((o) => !o)}
+        >
+          {language.toUpperCase()}
+          <span className="lang-toggle__chevron" aria-hidden="true" />
+        </button>
+        {langOpen && (
+          <ul className="lang-toggle__menu" role="listbox" aria-label={t("auth.language")}>
+            {languageOptions.map((option) => (
+              <li
+                key={option.code}
+                role="option"
+                aria-selected={language === option.code}
+                className={language === option.code ? "active" : ""}
+                onClick={() => { setLanguage(option.code); setLangOpen(false); }}
+              >
+                {option.nativeLabel}
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
 
       <div className="auth-shell">
