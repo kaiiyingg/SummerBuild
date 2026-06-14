@@ -443,7 +443,7 @@ export async function loginWithEmail({ email, password, expectedRole = null }) {
       throw new Error("Unable to sign in right now. Please try again.");
     }
 
-    const role = getUserRole(data.user);
+    const role = getUserRole(data.user, expectedRole || "patient");
     const name = getUserName(data.user, cleanEmail);
     const profile = await ensureSupabaseProfile({
       user: data.user,

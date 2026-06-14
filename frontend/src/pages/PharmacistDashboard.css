@@ -123,24 +123,6 @@
   color: var(--ink);
 }
 
-.reset-demo-btn {
-  width: 100%;
-  margin-top: 24px;
-  border: 1px solid #fecaca;
-  background: #fef2f2;
-  color: #dc2626;
-  font: inherit;
-  font-size: 13px;
-  font-weight: 800;
-  padding: 10px 12px;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-.reset-demo-btn:hover {
-  background: #fee2e2;
-}
-
 /* Main */
 .pd-main {
   padding: 26px 34px 64px;

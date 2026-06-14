@@ -142,20 +142,6 @@ export default function PharmacistDashboard() {
     });
   }, [activeTab, sort, livePatients, searchQuery]);
 
-  const resetDemoData = () => {
-    Object.keys(localStorage).forEach((key) => {
-      if (
-        key.startsWith("patient-status-") ||
-        key.startsWith("verified-meds-") ||
-        key.startsWith("hold-reason-")
-      ) {
-        localStorage.removeItem(key);
-      }
-    });
-
-    window.location.reload();
-  };
-
   const displayName =
     localStorage.getItem("pilly-user-name") ||
     localStorage.getItem("pilly-user-email") ||
@@ -192,14 +178,6 @@ export default function PharmacistDashboard() {
               ))}
             </div>
           </section>
-
-          <button
-            type="button"
-            className="reset-demo-btn"
-            onClick={resetDemoData}
-          >
-            Reset Demo Data
-          </button>
         </aside>
 
         <main className="pd-main">

@@ -15,6 +15,8 @@ class Settings(BaseModel):
     OPENAI_TTS_MODEL: str = "gpt-4o-mini-tts"
     OPENAI_TTS_VOICE: str = "marin"
     OPENAI_TTS_SPEED: float = 1.0
+    OPENAI_QUANTITY_MODEL: str = "gpt-4o"
+    
 
 
 reka_api_key = os.getenv("REKA_API_KEY")
@@ -35,4 +37,5 @@ settings = Settings(
     OPENAI_TTS_MODEL=os.getenv("OPENAI_TTS_MODEL", "gpt-4o-mini-tts"),
     OPENAI_TTS_VOICE=os.getenv("OPENAI_TTS_VOICE", "marin"),
     OPENAI_TTS_SPEED=max(0.25, min(4.0, openai_tts_speed)),
+    OPENAI_QUANTITY_MODEL=os.getenv("OPENAI_QUANTITY_MODEL", "gpt-4o"),
 )

@@ -111,7 +111,10 @@ function getFallbackCurrentPatient() {
 }
 
 export async function fetchPatients() {
-  if (!hasSupabaseConfig || !supabase) return getLocalPatientsWithSeed();
+
+  if (!hasSupabaseConfig || !supabase) {
+    return getLocalPatientsWithSeed();
+  }
 
   const { data, error } = await supabase
     .from("patients")

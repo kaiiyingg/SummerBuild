@@ -99,6 +99,10 @@ function PatientPacking() {
   const [verificationResult, setVerificationResult] = useState(null);
   const [verificationError, setVerificationError] = useState("");
 
+  const [cumulativeQuantity, setCumulativeQuantity] = useState(0);
+  const [pendingScanQuantity, setPendingScanQuantity] = useState(0);
+  const [stripMultiplier, setStripMultiplier] = useState("");
+
   const cameraVideoRef = useRef(null);
 
   const [verifiedMeds, setVerifiedMeds] = useState(() => {
@@ -229,6 +233,8 @@ function PatientPacking() {
   setVerificationError("");
   setCameraError("");
   setScannerOpen(true);
+  setCumulativeQuantity(0);
+  setPendingScanQuantity(0);
 
   setTimeout(() => {
     openCamera();
@@ -307,6 +313,8 @@ function PatientPacking() {
     resetScanner();
     const nextPatient = await fetchPatientDetails(patient.id);
     setPatient(nextPatient);
+    setCumulativeQuantity(0);
+    setPendingScanQuantity(0);
   };
 
   const analyzeMedicationIdentity = async (identityFile) => {
@@ -417,10 +425,20 @@ function PatientPacking() {
     }
 
     const data = await response.json();
-    setVerificationResult(data);
 
-    if (data.medication_match && data.quantity_match) {
-      confirmMedicationVerification();
+    const detectedQuantity = Number(data.detected_quantity || 0);
+    const expectedQuantity = Number(selectedMed.quantity);
+    const nextTotal = cumulativeQuantity + detectedQuantity;
+
+    setPendingScanQuantity(detectedQuantity);
+
+    setVerificationResult({
+      ...data,
+      quantity_match: nextTotal === expectedQuantity,
+    });
+
+    if (nextTotal === expectedQuantity) {
+      await confirmMedicationVerification();
     }
   } catch (error) {
     setVerificationError(
@@ -433,6 +451,47 @@ function PatientPacking() {
   }
 };
 
+  const clearCumulativeScan = () => {
+  setPendingScanQuantity(0);
+  setVerificationResult(null);
+  setVerificationError("");
+};
+
+  const applyStripMultiplier = async () => {
+  if (!selectedMed || !verificationResult || pendingScanQuantity <= 0) return;
+
+  const strips = Number(stripMultiplier);
+
+  if (!Number.isFinite(strips) || strips <= 0) return;
+
+  const expectedQuantity = Number(selectedMed.quantity);
+  const addedQuantity = pendingScanQuantity * strips;
+  const nextTotal = cumulativeQuantity + addedQuantity;
+
+  setCumulativeQuantity(nextTotal);
+  setPendingScanQuantity(0);
+  setStripMultiplier("");
+  setVerificationResult(null);
+
+  if (nextTotal === expectedQuantity) {
+    await confirmMedicationVerification();
+  }
+};
+
+  const continueQuantityScan = async () => {
+  if (!selectedMed || !patient || !verificationResult) return;
+
+  const expectedQuantity = Number(selectedMed.quantity);
+  const nextTotal = cumulativeQuantity + pendingScanQuantity;
+
+  setCumulativeQuantity(nextTotal);
+  setPendingScanQuantity(0);
+  setVerificationResult(null);
+
+  if (nextTotal === expectedQuantity) {
+    await confirmMedicationVerification();
+  }
+};
   const captureAndAnalyze = () => {
   const video = cameraVideoRef.current;
 
@@ -505,6 +564,10 @@ function PatientPacking() {
       </div>
     );
   }
+
+  const expectedQuantity = Number(selectedMed?.quantity || 0);
+  const currentDisplayedTotal = cumulativeQuantity + pendingScanQuantity;
+  const remainingQuantity = Math.max(expectedQuantity - currentDisplayedTotal, 0);
 
   return (
     <div className="pack-page">
@@ -771,18 +834,42 @@ function PatientPacking() {
                     muted
                   />
 
-                  <button
-                    type="button"
-                    className="scanner-confirm camera-capture-btn"
-                    onClick={captureAndAnalyze}
-                    disabled={verifying}
-                  >
-                    {verifying
+                  {scanPhase === "quantity" && verificationResult?.medication_match ? (
+                    <div className="quantity-action-row camera-quantity-actions">
+                      <button
+                        type="button"
+                        className="scanner-confirm scanner-secondary"
+                        onClick={clearCumulativeScan}
+                        disabled={verifying}
+                      >
+                        Clear & Rescan Quantity
+                      </button>
+
+                      <button
+                        type="button"
+                        className="scanner-confirm pharmacist-confirm"
+                        onClick={continueQuantityScan}
+                        disabled={verifying || pendingScanQuantity <= 0}
+                      >
+                        Continue Quantity Scan
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      className="scanner-confirm camera-capture-btn"
+                      onClick={captureAndAnalyze}
+                      disabled={verifying}
+                    >
+                      {verifying
                         ? "Analyzing..."
                         : scanPhase === "identity"
                         ? "Scan Medication Label"
+                        : cumulativeQuantity > 0
+                        ? "Scan Next Batch"
                         : "Scan Quantity"}
-                  </button>
+                    </button>
+                  )}
                 </>
               ) : (
                 <div className="scanner-preview">
@@ -891,8 +978,48 @@ function PatientPacking() {
                         </div>
 
                         <div>
-                        <span className="scanner-label">Detected Quantity</span>
-                        <strong>{verificationResult.detected_quantity ?? "Unclear"}</strong>
+                          <span className="scanner-label">Detected Quantity Per Strip</span>
+                          <strong>{verificationResult.detected_quantity ?? "Unclear"}</strong>
+
+                          {scanPhase === "quantity" && (
+                            <>
+                              <div className="quantity-progress-mini">
+                                Total: {currentDisplayedTotal} / {expectedQuantity}
+                                <br />
+                                Remaining: {remainingQuantity}
+                              </div>
+
+                              {pendingScanQuantity > 0 && (
+                                <div className="strip-multiplier-box">
+                                  <label>
+                                    Number of identical strips
+                                    <input
+                                      type="number"
+                                      min="1"
+                                      value={stripMultiplier}
+                                      onChange={(e) => setStripMultiplier(e.target.value)}
+                                      placeholder="e.g. 8"
+                                    />
+                                  </label>
+
+                                  <button
+                                    type="button"
+                                    onClick={applyStripMultiplier}
+                                    disabled={!stripMultiplier}
+                                  >
+                                    Apply Strip Count
+                                  </button>
+
+                                  {stripMultiplier && (
+                                    <p>
+                                      {pendingScanQuantity} × {stripMultiplier} ={" "}
+                                      {pendingScanQuantity * Number(stripMultiplier || 0)}
+                                    </p>
+                                  )}
+                                </div>
+                              )}
+                            </>
+                          )}
                         </div>
 
                         <div>
@@ -945,22 +1072,14 @@ function PatientPacking() {
                 >
                     Continue to Quantity Scan
                 </button>
-                ) : verificationResult.medication_match &&
-                verificationResult.quantity_match ? (
-                <button
-                    className="scanner-confirm pharmacist-confirm"
-                    onClick={confirmMedicationVerification}
-                >
-                    Complete Verification
-                </button>
-                ) : (
-                <button
+                ) : scanPhase === "quantity" && verificationResult.medication_match ? null : (
+                  <button
                     className="scanner-confirm"
-                    onClick={captureAndAnalyze}
-                    disabled={verifying || !cameraStream}
-                >
-                    Scan Again
-                </button>
+                    onClick={() => setVerificationResult(null)}
+                    disabled={verifying}
+                  >
+                    Rescan
+                  </button>
                 )}
               </section>
             )}

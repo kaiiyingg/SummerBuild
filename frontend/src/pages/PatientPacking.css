@@ -949,3 +949,57 @@
   border-radius: 16px;
   padding: 18px;
 }
+
+.camera-quantity-actions {
+  margin-top: 16px;
+  display: flex;
+  gap: 14px;
+  align-items: stretch;
+}
+
+.camera-quantity-actions .scanner-confirm {
+  flex: 1;
+  height: 58px;
+  margin-top: 0;
+  padding: 0 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.strip-multiplier-box {
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #f8fafc;
+}
+
+.strip-multiplier-box label {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.strip-multiplier-box input {
+  width: 100%;
+  margin-top: 6px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font: inherit;
+}
+
+.strip-multiplier-box button {
+  width: 100%;
+  margin-top: 10px;
+  border: none;
+  background: var(--accent);
+  color: white;
+  font: inherit;
+  font-weight: 800;
+  padding: 10px;
+  border-radius: 8px;
+  cursor: pointer;
+}

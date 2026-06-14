@@ -8,8 +8,14 @@ from openai import AsyncOpenAI
 from app.core.config import settings
 from app.schemas.medication_verification import MedicationVerificationResponse
 
+reka_client = AsyncOpenAI(
+    api_key=settings.REKA_API_KEY,
+    base_url="https://api.reka.ai/v1",
+)
 
-client = AsyncOpenAI(api_key=settings.REKA_API_KEY, base_url="https://api.reka.ai/v1")
+openai_client = AsyncOpenAI(
+    api_key=settings.OPENAI_API_KEY,
+) if settings.OPENAI_API_KEY else None
 
 
 SYSTEM_PROMPT = """You are an AI assistant helping a pharmacist verify medication packing.
@@ -281,7 +287,7 @@ Rules:
 """
 
     try:
-        response = await client.chat.completions.create(
+        response = await reka_client.chat.completions.create(
             model="reka-flash",
             messages=[
                 {
@@ -386,7 +392,7 @@ async def verify_medication_image(
         ]
     )
 
-    response = await client.chat.completions.create(
+    response = await reka_client.chat.completions.create(
         model="reka-flash",
         messages=[
             {"role": "system", "content": SYSTEM_PROMPT},
@@ -404,4 +410,305 @@ async def verify_medication_image(
         has_identity_image=identity_image_bytes is not None,
     )
 
+    openai_quantity = await count_quantity_with_openai(
+    image_bytes=image_bytes,
+    filename=filename,
+    content_type=content_type,
+    expected_quantity=expected_quantity,
+    )
+
+    parsed["detected_quantity"] = openai_quantity["detected_quantity"]
+    parsed["quantity_confidence"] = openai_quantity["quantity_confidence"]
+    parsed["quantity_match"] = openai_quantity["quantity_match"]
+    parsed["quantity_evidence"] = openai_quantity["quantity_evidence"]
+
+    parsed["notes"] = openai_quantity["notes"] or parsed.get("notes", "")
+
     return MedicationVerificationResponse(**parsed)
+
+async def count_quantity_with_openai(
+    *,
+    image_bytes: bytes,
+    filename: str | None,
+    content_type: str | None,
+    expected_quantity: int,
+) -> dict:
+    if not openai_client:
+        return {
+            "detected_quantity": None,
+            "quantity_confidence": 0,
+            "quantity_match": False,
+            "quantity_evidence": "",
+            "notes": "OpenAI quantity counting is not configured.",
+        }
+
+    image_url = _as_data_url(image_bytes, filename, content_type)
+
+    prompt = """
+You are a pharmacy medication quantity verification assistant.
+
+Your task is to count the visible medication quantity shown in the image.
+
+==================================================
+PRIMARY OBJECTIVE
+==================================================
+
+Count what is visible.
+
+Use the image itself.
+
+Do not estimate hidden items.
+
+Do not reconstruct missing portions.
+
+Do not complete patterns.
+
+Do not use packaging layouts to predict missing items.
+
+Count what can actually be seen.
+
+==================================================
+EXPECTED QUANTITY
+==================================================
+
+Ignore any expected quantity.
+
+Determine the count independently from the image.
+
+Never modify the count to match an expected quantity.
+
+==================================================
+BLISTER PACK COUNTING
+==================================================
+
+For blister packs:
+
+The item being counted is the visible blister pop-up.
+
+A visible blister pop-up counts as 1.
+
+Count every visible blister pop-up individually.
+
+Do NOT count:
+- missing positions
+- blank spaces
+- flat foil areas
+- theoretical compartments
+- expected compartments
+- invisible compartments
+- reconstructed compartments
+
+IMPORTANT:
+
+Only count visible blister pop-ups.
+
+Do not determine how many pop-ups should exist.
+
+Do not reconstruct the original blister layout.
+
+Do not complete rows.
+
+Do not complete columns.
+
+Do not assume symmetry.
+
+==================================================
+EXAMPLE
+==================================================
+
+Visible blister pop-ups:
+
+● ●
+●
+● ●
+● ●
+
+Count:
+
+1. Top-left
+2. Top-right
+3. Middle-left
+4. Lower-left
+5. Lower-right
+6. Bottom-left
+7. Bottom-right
+
+Detected quantity = 7
+
+NOT 8.
+
+The missing position is not counted.
+
+==================================================
+EMPTY SPACE RULE
+==================================================
+
+Do NOT count:
+
+- blank foil
+- flat packaging
+- gaps
+- empty spaces
+- missing positions
+- invisible locations
+- theoretical locations
+
+Only count visible blister pop-ups.
+
+==================================================
+OBSTRUCTIONS
+==================================================
+
+Fingers, hands, shadows, glare, labels, blur, reflections, folds, and image edges may appear.
+
+A finger appearing in the image does NOT automatically invalidate the count.
+
+Count a blister pop-up if the pop-up itself remains mostly visible and identifiable.
+
+Only exclude a pop-up when it cannot be visually identified.
+
+Do not guess what exists behind an obstruction.
+
+==================================================
+LOOSE PILLS
+==================================================
+
+For loose tablets or capsules:
+
+Count each visible pill individually.
+
+Do not estimate pills hidden underneath other pills.
+
+Do not estimate pills outside the image.
+
+==================================================
+COUNTING PROCEDURE
+==================================================
+
+1. Locate every visible blister pop-up or visible pill.
+2. Assign a number to each visible item.
+3. Create a numbered list.
+4. Count the numbered entries.
+5. Set detected_quantity equal to the number of numbered entries.
+6. Verify that the count matches the numbered list.
+
+==================================================
+IMPORTANT
+==================================================
+
+Do NOT return 0 unless:
+
+- no visible blister pop-ups exist
+OR
+- no visible pills exist
+
+If visible blister pop-ups are present, count them.
+
+If some pop-ups are visible, return the best count based on visible evidence.
+
+==================================================
+CONFIDENCE RULES
+==================================================
+
+quantity_confidence must be a number between 0 and 1.
+
+Use:
+
+0.95 - 1.00
+When most visible items are clear.
+
+0.80 - 0.94
+When minor glare, shadows, fingers, or image imperfections exist.
+
+0.60 - 0.79
+When visibility is reduced but a count is still possible.
+
+Below 0.60
+Only when the image genuinely prevents counting.
+
+Do NOT automatically return null because confidence is below 0.80.
+
+Only return null if the image genuinely cannot be counted.
+
+==================================================
+OUTPUT FORMAT
+==================================================
+
+Return ONLY valid JSON:
+
+{
+  "detected_quantity": 0,
+  "quantity_confidence": 0.0,
+  "quantity_match": false,
+  "quantity_evidence": "",
+  "notes": ""
+}
+
+==================================================
+QUANTITY EVIDENCE
+==================================================
+
+quantity_evidence must contain the numbered list used to determine the count.
+
+Example:
+
+1. Top-left pop-up
+2. Top-right pop-up
+3. Middle-left pop-up
+4. Bottom-left pop-up
+5. Bottom-right pop-up
+
+Total visible pop-ups: 5
+
+detected_quantity must equal the number of numbered entries.
+"""
+
+    response = await openai_client.chat.completions.create(
+        model=settings.OPENAI_QUANTITY_MODEL,
+        messages=[
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": prompt},
+                    {"type": "image_url", "image_url": {"url": image_url}},
+                ],
+            }
+        ],
+        temperature=0,
+        max_tokens=400,
+        response_format={"type": "json_object"},
+    )
+
+    raw_reply = (response.choices[0].message.content or "").strip()
+    data = _extract_json(raw_reply)
+
+    detected_quantity = data.get("detected_quantity")
+
+    try:
+        detected_quantity = int(detected_quantity)
+    except (TypeError, ValueError):
+        detected_quantity = None
+
+    raw_confidence = data.get("quantity_confidence", 0)
+
+    if isinstance(raw_confidence, str):
+        confidence_text = raw_confidence.strip().lower()
+
+        if confidence_text in {"high", "very high"}:
+            confidence = 0.95
+        elif confidence_text in {"medium", "moderate"}:
+            confidence = 0.7
+        elif confidence_text == "low":
+            confidence = 0.4
+        else:
+            confidence = 0.0
+    else:
+        confidence = float(raw_confidence or 0)
+
+    return {
+        "detected_quantity": detected_quantity,
+        "quantity_confidence": confidence,
+        "quantity_match": detected_quantity == expected_quantity,
+        "quantity_evidence": data.get("quantity_evidence", ""),
+        "notes": data.get("notes", ""),
+    }
