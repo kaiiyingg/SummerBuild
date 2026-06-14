@@ -260,7 +260,11 @@
     "attachedImage": "已附加图片",
     "removeAttachment": "移除附件",
     "attachMedia": "附加图片或视频",
-    "openCamera": "打开相机"
+    "openCamera": "打开相机",
+    "voiceInput": "语音输入",
+    "voiceRecording": "录音中……点击停止",
+    "voiceTranscribing": "转录中……",
+    "voiceError": "无法转录音频，请重试。"
   },
   "profile": {
     "title": "我的账号",

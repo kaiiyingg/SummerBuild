@@ -267,7 +267,11 @@
     "attachedImage": "Imej dilampirkan",
     "removeAttachment": "Buang lampiran",
     "attachMedia": "Lampirkan imej atau video",
-    "openCamera": "Buka kamera"
+    "openCamera": "Buka kamera",
+    "voiceInput": "Input suara",
+    "voiceRecording": "Merakam… ketik untuk berhenti",
+    "voiceTranscribing": "Menyalin…",
+    "voiceError": "Tidak dapat menyalin audio. Sila cuba lagi."
   },
   "profile": {
     "title": "Profil",

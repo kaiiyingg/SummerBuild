@@ -267,7 +267,11 @@
     "attachedImage": "Attached image",
     "removeAttachment": "Remove attachment",
     "attachMedia": "Attach image or video",
-    "openCamera": "Open camera"
+    "openCamera": "Open camera",
+    "voiceInput": "Voice input",
+    "voiceRecording": "Recording… tap to stop",
+    "voiceTranscribing": "Transcribing…",
+    "voiceError": "Unable to transcribe audio. Please try again."
   },
   "profile": {
     "title": "Profile",

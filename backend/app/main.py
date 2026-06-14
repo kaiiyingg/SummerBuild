@@ -7,6 +7,7 @@ from app.routers import (
     patient_medication_scan,
     patient_medication_speech,
     patient_video_workflows,
+    speech_to_text,
 )
 
 
@@ -25,3 +26,4 @@ app.include_router(medication_verification.router, prefix="/api", tags=["medicat
 app.include_router(patient_medication_scan.router, prefix="/api", tags=["patient-medication-scan"])
 app.include_router(patient_medication_speech.router, prefix="/api", tags=["patient-medication-speech"])
 app.include_router(patient_video_workflows.router, prefix="/api", tags=["patient-video-workflows"])
+app.include_router(speech_to_text.router, prefix="/api", tags=["speech-to-text"])

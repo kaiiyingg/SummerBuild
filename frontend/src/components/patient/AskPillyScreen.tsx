@@ -175,12 +175,17 @@ export function AskPillyScreen() {
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
   const [cameraError, setCameraError] = useState("");
   const [isRecording, setIsRecording] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const [sttTranscribing, setSttTranscribing] = useState(false);
 
   const bottomRef = useRef<HTMLDivElement>(null);
   const uploadInputRef = useRef<HTMLInputElement>(null);
   const cameraVideoRef = useRef<HTMLVideoElement | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordingChunksRef = useRef<Blob[]>([]);
+  const micStreamRef = useRef<MediaStream | null>(null);
+  const micRecorderRef = useRef<MediaRecorder | null>(null);
+  const micChunksRef = useRef<Blob[]>([]);
 
   useEffect(() => {
     setMessages([{ id: 1, role: "bot", text: greetingForLanguage, time: "2:34 PM" }]);
@@ -202,6 +207,7 @@ export function AskPillyScreen() {
         URL.revokeObjectURL(attachment.previewUrl);
       }
       cameraStream?.getTracks().forEach((track) => track.stop());
+      micStreamRef.current?.getTracks().forEach((track) => track.stop());
     };
   }, [attachment, cameraStream]);
 
@@ -390,6 +396,70 @@ export function AskPillyScreen() {
       setCameraError("");
     } catch {
       setCameraError(t("chat.cameraRecordError"));
+    }
+  }
+
+  async function toggleMicRecording() {
+    if (isListening) {
+      micRecorderRef.current?.stop();
+      return;
+    }
+
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setComposerError(t("chat.voiceError"));
+      return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      micStreamRef.current = stream;
+      micChunksRef.current = [];
+
+      const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
+        ? "audio/webm;codecs=opus"
+        : "audio/webm";
+
+      const recorder = new MediaRecorder(stream, { mimeType });
+
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) micChunksRef.current.push(e.data);
+      };
+
+      recorder.onstop = async () => {
+        stream.getTracks().forEach((tr) => tr.stop());
+        micStreamRef.current = null;
+        setIsListening(false);
+        setSttTranscribing(true);
+
+        const blob = new Blob(micChunksRef.current, { type: mimeType });
+        try {
+          const formData = new FormData();
+          formData.append("audio", blob, `voice-${Date.now()}.webm`);
+          formData.append("language", language);
+
+          const res = await fetch(`${API_BASE_URL}/api/speech-to-text`, {
+            method: "POST",
+            body: formData,
+          });
+
+          if (!res.ok) throw new Error("Transcription failed");
+          const data = (await res.json()) as { text: string };
+          if (data.text) {
+            setInputText((prev) => (prev ? `${prev} ${data.text}` : data.text));
+          }
+        } catch {
+          setComposerError(t("chat.voiceError"));
+        } finally {
+          setSttTranscribing(false);
+        }
+      };
+
+      recorder.start();
+      micRecorderRef.current = recorder;
+      setIsListening(true);
+      setComposerError("");
+    } catch {
+      setComposerError(t("chat.voiceError"));
     }
   }
 
@@ -770,11 +840,21 @@ export function AskPillyScreen() {
           </div>
 
           <button
-            aria-label="Voice input"
-            className="w-11 h-11 rounded-full flex items-center justify-center shrink-0 hover:opacity-80 transition-opacity"
-            style={{ background: C.muted, border: `1px solid ${C.border}` }}
+            type="button"
+            onClick={() => void toggleMicRecording()}
+            aria-label={isListening ? t("chat.voiceRecording") : sttTranscribing ? t("chat.voiceTranscribing") : t("chat.voiceInput")}
+            disabled={sttTranscribing}
+            className="w-11 h-11 rounded-full flex items-center justify-center shrink-0 transition-all disabled:opacity-50"
+            style={{
+              background: isListening ? "#EF4444" : C.muted,
+              border: `1px solid ${isListening ? "#EF4444" : C.border}`,
+            }}
           >
-            <Mic size={20} color={C.textSecond} />
+            <Mic
+              size={20}
+              color={isListening ? "white" : sttTranscribing ? C.teal : C.textSecond}
+              className={isListening ? "animate-pulse" : ""}
+            />
           </button>
 
           <button
