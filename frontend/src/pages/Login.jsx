@@ -1,11 +1,56 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 import PillyLogo from "../components/PillyLogo";
 import { loginWithEmail, registerWithEmail } from "../services/authService";
+import { useTranslation } from "../context/LanguageContext";
 import "./Login.css";
 
-function getVisibleAuthMessage(error, fallbackMessage) {
+function localizeAuthMessage(message, t) {
+  const normalizedMessage = message.toLowerCase();
+
+  if (
+    normalizedMessage.includes("invalid login credentials") ||
+    normalizedMessage.includes("incorrect email or password")
+  ) {
+    return t("auth.errors.incorrectCredentials");
+  }
+
+  if (normalizedMessage.includes("email not confirmed")) {
+    return t("auth.errors.emailNotConfirmed");
+  }
+
+  if (
+    normalizedMessage.includes("user already registered") ||
+    normalizedMessage.includes("already registered") ||
+    normalizedMessage.includes("already exists") ||
+    normalizedMessage.includes("duplicate key value")
+  ) {
+    return t("auth.errors.accountExists");
+  }
+
+  if (normalizedMessage.includes("please enter your name before creating an account")) {
+    return t("auth.errors.nameRequired");
+  }
+
+  if (normalizedMessage.includes("supabase profile table is missing or incomplete")) {
+    return t("auth.errors.profileSetupMissing");
+  }
+
+  const roleMismatchMatch = message.match(
+    /This account is registered as a (pharmacist|patient)\. Please switch to the (pharmacist|patient) login tab\./i
+  );
+  if (roleMismatchMatch) {
+    const resolvedRole = roleMismatchMatch[1]?.toLowerCase() === "pharmacist" ? "pharmacist" : "patient";
+    return t("auth.errors.roleMismatch", {
+      role: t(`auth.roles.${resolvedRole}`),
+    });
+  }
+
+  return message;
+}
+
+function getVisibleAuthMessage(error, fallbackKey, t) {
   const message =
     error instanceof Error
       ? error.message
@@ -14,11 +59,16 @@ function getVisibleAuthMessage(error, fallbackMessage) {
         : "";
 
   const trimmed = message.trim();
-  return trimmed && trimmed !== "[object Object]" ? trimmed : fallbackMessage;
+  if (!trimmed || trimmed === "[object Object]") {
+    return t(fallbackKey);
+  }
+
+  return localizeAuthMessage(trimmed, t);
 }
 
 function Login() {
   const navigate = useNavigate();
+  const { language, setLanguage, t, LANGUAGES } = useTranslation();
 
   // View state: false = login, true = register
   const [isRegister, setIsRegister] = useState(false);
@@ -40,8 +90,20 @@ function Login() {
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
 
-  // Language toggle (non-functional placeholder)
-  const [lang, setLang] = useState("EN");
+  const languageOptions = LANGUAGES;
+  const [langOpen, setLangOpen] = useState(false);
+  const langRef = useRef(null);
+
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (langRef.current && !langRef.current.contains(e.target)) {
+        setLangOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   const [authError, setAuthError] = useState("");
   const [authNotice, setAuthNotice] = useState("");
   const [authLoading, setAuthLoading] = useState(false);
@@ -71,7 +133,8 @@ function Login() {
       setAuthError(
         getVisibleAuthMessage(
           error,
-          "Unable to sign in. Please check your email and password."
+          "auth.errors.unableToSignIn",
+          t
         )
       );
     } finally {
@@ -96,7 +159,7 @@ function Login() {
       });
 
       if (requiresEmailConfirmation) {
-        setAuthNotice("Account created. Confirm your email, then sign in.");
+        setAuthNotice(t("auth.notices.accountCreatedConfirmEmail"));
         setIsRegister(false);
         setLoginRole(role);
         setLoginEmail(regEmail.trim());
@@ -109,7 +172,8 @@ function Login() {
       setAuthError(
         getVisibleAuthMessage(
           error,
-          "Unable to create account. Please try another email or password."
+          "auth.errors.unableToCreateAccount",
+          t
         )
       );
     } finally {
@@ -119,27 +183,32 @@ function Login() {
 
   return (
     <div className={`auth-page ${isRegister ? "register-active" : ""}`}>
-      {/* Language toggle — placeholder only */}
-      <div className="lang-toggle" role="group" aria-label="Language">
+      <div className="lang-toggle" ref={langRef}>
         <button
           type="button"
-          className={lang === "EN" ? "active" : ""}
-          aria-pressed={lang === "EN"}
-          onClick={() => setLang("EN")}
+          className="lang-toggle__trigger"
+          aria-haspopup="listbox"
+          aria-expanded={langOpen}
+          onClick={() => setLangOpen((o) => !o)}
         >
-          EN
+          {language.toUpperCase()}
+          <span className="lang-toggle__chevron" aria-hidden="true" />
         </button>
-        <span className="lang-sep" aria-hidden="true">
-          |
-        </span>
-        <button
-          type="button"
-          className={lang === "中文" ? "active" : ""}
-          aria-pressed={lang === "中文"}
-          onClick={() => setLang("中文")}
-        >
-          中文
-        </button>
+        {langOpen && (
+          <ul className="lang-toggle__menu" role="listbox" aria-label={t("auth.language")}>
+            {languageOptions.map((option) => (
+              <li
+                key={option.code}
+                role="option"
+                aria-selected={language === option.code}
+                className={language === option.code ? "active" : ""}
+                onClick={() => { setLanguage(option.code); setLangOpen(false); }}
+              >
+                {option.nativeLabel}
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
 
       <div className="auth-shell">
@@ -169,7 +238,7 @@ function Login() {
             </div>
 
             <div className="field">
-              <div className="role-toggle" role="radiogroup" aria-label="Login user type">
+              <div className="role-toggle" role="radiogroup" aria-label={t("auth.loginUserType")}>
                 <button
                   type="button"
                   className={loginRole === "pharmacist" ? "active" : ""}
@@ -178,7 +247,7 @@ function Login() {
                   aria-checked={loginRole === "pharmacist"}
                   tabIndex={isRegister ? -1 : 0}
                 >
-                  Pharmacist
+                  {t("auth.roles.pharmacist")}
                 </button>
                 <button
                   type="button"
@@ -188,13 +257,13 @@ function Login() {
                   aria-checked={loginRole === "patient"}
                   tabIndex={isRegister ? -1 : 0}
                 >
-                  Patient
+                  {t("auth.roles.patient")}
                 </button>
               </div>
             </div>
 
             <div className="field">
-              <label htmlFor="login-email">Email Address</label>
+              <label htmlFor="login-email">{t("auth.email")}</label>
               <div className="input-wrap">
                 <input
                   id="login-email"
@@ -202,7 +271,7 @@ function Login() {
                   name="email"
                   autoComplete="email"
                   placeholder={
-                    loginRole === "patient" ? "you@email.com" : "you@pharmacy.com"
+                    loginRole === "patient" ? t("auth.placeholders.patientEmail") : t("auth.placeholders.pharmacistEmail")
                   }
                   value={loginEmail}
                   onChange={(e) => setLoginEmail(e.target.value)}
@@ -213,7 +282,7 @@ function Login() {
             </div>
 
             <div className="field">
-              <label htmlFor="login-password">Password</label>
+              <label htmlFor="login-password">{t("auth.password")}</label>
               <div className="input-wrap has-toggle">
                 <input
                   id="login-password"
@@ -230,7 +299,7 @@ function Login() {
                   type="button"
                   className="toggle-eye"
                   onClick={() => setShowLoginPw((s) => !s)}
-                  aria-label={showLoginPw ? "Hide password" : "Show password"}
+                  aria-label={showLoginPw ? t("auth.hidePassword") : t("auth.showPassword")}
                   aria-pressed={showLoginPw}
                   tabIndex={isRegister ? -1 : 0}
                 >
@@ -240,7 +309,7 @@ function Login() {
             </div>
 
             <div className="forgot-row">
-              <a href="#forgot">Forgot password?</a>
+              <a href="#forgot">{t("auth.forgotPassword")}</a>
             </div>
 
             <button
@@ -249,7 +318,7 @@ function Login() {
               tabIndex={isRegister ? -1 : 0}
               disabled={authLoading}
             >
-              {authLoading ? "Signing In..." : "Sign In"}
+              {authLoading ? t("auth.signingIn") : t("auth.signIn")}
             </button>
 
             {(authError || authNotice) && (
@@ -259,13 +328,13 @@ function Login() {
             )}
 
             <p className="switch-line">
-              New to Pilly?{" "}
+              {t("auth.newToPilly")}{" "}
               <button
                 type="button"
                 onClick={() => setIsRegister(true)}
                 tabIndex={isRegister ? -1 : 0}
               >
-                Register here for a new account
+                {t("auth.registerHereForNewAccount")}
               </button>
             </p>
           </form>
@@ -278,12 +347,12 @@ function Login() {
           >
             <div className="brand-row">
               <PillyLogo size={56} showName={false} />
-              <h2 className="form-heading">Create Account</h2>
+              <h2 className="form-heading">{t("auth.createAccount")}</h2>
             </div>
-            <p className="form-subtitle">Set up your Pilly account</p>
+            <p className="form-subtitle">{t("auth.setupAccount")}</p>
 
             <div className="field">
-              <div className="role-toggle" role="radiogroup" aria-label="Registration user type">
+              <div className="role-toggle" role="radiogroup" aria-label={t("auth.registrationUserType")}>
                 <button
                   type="button"
                   className={regRole === "pharmacist" ? "active" : ""}
@@ -292,7 +361,7 @@ function Login() {
                   aria-checked={regRole === "pharmacist"}
                   tabIndex={isRegister ? 0 : -1}
                 >
-                  Pharmacist
+                  {t("auth.roles.pharmacist")}
                 </button>
                 <button
                   type="button"
@@ -302,20 +371,20 @@ function Login() {
                   aria-checked={regRole === "patient"}
                   tabIndex={isRegister ? 0 : -1}
                 >
-                  Patient
+                  {t("auth.roles.patient")}
                 </button>
               </div>
             </div>
 
             <div className="field">
-              <label htmlFor="reg-name">Full Name</label>
+              <label htmlFor="reg-name">{t("auth.fullName")}</label>
               <div className="input-wrap">
                 <input
                   id="reg-name"
                   type="text"
                   name="name"
                   autoComplete="name"
-                  placeholder="Tan Wei Ming"
+                  placeholder={t("auth.placeholders.fullName")}
                   value={regName}
                   onChange={(e) => setRegName(e.target.value)}
                   required
@@ -325,14 +394,14 @@ function Login() {
             </div>
 
             <div className="field">
-              <label htmlFor="reg-email">Email Address</label>
+              <label htmlFor="reg-email">{t("auth.email")}</label>
               <div className="input-wrap">
                 <input
                   id="reg-email"
                   type="email"
                   name="email"
                   autoComplete="email"
-                  placeholder={regRole === "patient" ? "you@email.com" : "you@pharmacy.com"}
+                  placeholder={regRole === "patient" ? t("auth.placeholders.patientEmail") : t("auth.placeholders.pharmacistEmail")}
                   value={regEmail}
                   onChange={(e) => setRegEmail(e.target.value)}
                   required
@@ -342,14 +411,14 @@ function Login() {
             </div>
 
             <div className="field">
-              <label htmlFor="reg-password">Password</label>
+              <label htmlFor="reg-password">{t("auth.password")}</label>
               <div className="input-wrap has-toggle">
                 <input
                   id="reg-password"
                   type={showRegPw ? "text" : "password"}
                   name="password"
                   autoComplete="new-password"
-                  placeholder="Create a password"
+                  placeholder={t("auth.placeholders.createPassword")}
                   value={regPassword}
                   onChange={(e) => setRegPassword(e.target.value)}
                   required
@@ -359,7 +428,7 @@ function Login() {
                   type="button"
                   className="toggle-eye"
                   onClick={() => setShowRegPw((s) => !s)}
-                  aria-label={showRegPw ? "Hide password" : "Show password"}
+                  aria-label={showRegPw ? t("auth.hidePassword") : t("auth.showPassword")}
                   aria-pressed={showRegPw}
                   tabIndex={isRegister ? 0 : -1}
                 >
@@ -369,14 +438,14 @@ function Login() {
             </div>
 
             <div className="field">
-              <label htmlFor="reg-confirm">Confirm Password</label>
+              <label htmlFor="reg-confirm">{t("auth.confirmPassword")}</label>
               <div className="input-wrap has-toggle">
                 <input
                   id="reg-confirm"
                   type={showRegConfirm ? "text" : "password"}
                   name="confirmPassword"
                   autoComplete="new-password"
-                  placeholder="Re-enter your password"
+                  placeholder={t("auth.placeholders.reenterPassword")}
                   value={regConfirm}
                   onChange={(e) => setRegConfirm(e.target.value)}
                   className={passwordsMismatch ? "invalid" : ""}
@@ -390,7 +459,7 @@ function Login() {
                   className="toggle-eye"
                   onClick={() => setShowRegConfirm((s) => !s)}
                   aria-label={
-                    showRegConfirm ? "Hide password" : "Show password"
+                    showRegConfirm ? t("auth.hidePassword") : t("auth.showPassword")
                   }
                   aria-pressed={showRegConfirm}
                   tabIndex={isRegister ? 0 : -1}
@@ -399,7 +468,7 @@ function Login() {
                 </button>
               </div>
               <span id="reg-confirm-error" className="field-error" role="alert">
-                {passwordsMismatch ? "Passwords do not match" : ""}
+                {passwordsMismatch ? t("auth.errors.passwordsDoNotMatch") : ""}
               </span>
             </div>
 
@@ -409,7 +478,7 @@ function Login() {
               disabled={!canRegister || authLoading}
               tabIndex={isRegister ? 0 : -1}
             >
-              {authLoading ? "Creating..." : "Create Account"}
+              {authLoading ? t("auth.creating") : t("auth.createAccount")}
             </button>
 
             {(authError || authNotice) && (
@@ -419,13 +488,13 @@ function Login() {
             )}
 
             <p className="switch-line">
-              Already have an account?{" "}
+              {t("auth.alreadyHaveAccount")}{" "}
               <button
                 type="button"
                 onClick={() => setIsRegister(false)}
                 tabIndex={isRegister ? 0 : -1}
               >
-                Sign in here.
+                {t("auth.signInHere")}
               </button>
             </p>
           </form>

@@ -33,39 +33,73 @@
   top: 22px;
   right: 26px;
   z-index: 50;
+}
+
+.lang-toggle__trigger {
   display: inline-flex;
   align-items: center;
-  gap: 2px;
-  padding: 6px 8px;
-  background: rgba(255, 255, 255, 0.85);
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08);
-  backdrop-filter: blur(6px);
+  gap: 6px;
   font-family: inherit;
-}
-
-.lang-toggle button {
-  border: none;
-  background: transparent;
-  font: inherit;
   font-size: 13px;
   font-weight: 600;
-  color: var(--muted);
-  padding: 4px 12px;
+  color: #ffffff;
+  background: var(--turquoise);
+  border: none;
   border-radius: 999px;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08);
+  padding: 6px 14px;
   cursor: pointer;
-  transition: background 0.2s ease, color 0.2s ease;
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-.lang-toggle button.active {
+.lang-toggle__trigger:hover,
+.lang-toggle__trigger:focus {
+  background-color: var(--turquoise-dark);
+  outline: none;
+}
+
+.lang-toggle__chevron {
+  display: inline-block;
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 5px solid #ffffff;
+}
+
+.lang-toggle__menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  list-style: none;
+  margin: 0;
+  padding: 4px;
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+  min-width: 140px;
+}
+
+.lang-toggle__menu li {
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink);
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.lang-toggle__menu li:hover {
+  background: var(--input-bg);
+}
+
+.lang-toggle__menu li.active {
   background: var(--turquoise);
   color: #ffffff;
-}
-
-.lang-toggle .lang-sep {
-  color: var(--border);
-  font-size: 13px;
+  font-weight: 600;
 }
 
 /* ---------- Shell that holds the two halves ---------- */
@@ -427,6 +461,11 @@
    Responsive — stack vertically on mobile
    ============================================================ */
 @media (max-width: 768px) {
+  .lang-toggle {
+    top: 14px;
+    right: 12px;
+  }
+
   .image-panel {
     display: none;
   }

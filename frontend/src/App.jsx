@@ -55,44 +55,46 @@ class RouteErrorBoundary extends Component {
 
 function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Login />} />
-        <Route path="/patient/app" element={<LanguageProvider><RouteErrorBoundary><PatientApp /></RouteErrorBoundary></LanguageProvider>} />
-        <Route
-          path="/pharmacist/dashboard"
-          element={
-            <WithHeader>
-              <PharmacistDashboard />
-            </WithHeader>
-          }
-        />
-        <Route
-          path="/pharmacist/pack/:patientId"
-          element={
-            <WithHeader>
-              <PatientPacking />
-            </WithHeader>
-          }
-        />
-        <Route
-          path="/queue"
-          element={
-            <WithHeader>
-              <Queue />
-            </WithHeader>
-          }
-        />
-        <Route
-          path="/assistant"
-          element={
-            <WithHeader>
-              <Assistant />
-            </WithHeader>
-          }
-        />
-      </Routes>
-    </BrowserRouter>
+    <LanguageProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Login />} />
+          <Route path="/patient/app" element={<RouteErrorBoundary><PatientApp /></RouteErrorBoundary>} />
+          <Route
+            path="/pharmacist/dashboard"
+            element={
+              <WithHeader>
+                <PharmacistDashboard />
+              </WithHeader>
+            }
+          />
+          <Route
+            path="/pharmacist/pack/:patientId"
+            element={
+              <WithHeader>
+                <PatientPacking />
+              </WithHeader>
+            }
+          />
+          <Route
+            path="/queue"
+            element={
+              <WithHeader>
+                <Queue />
+              </WithHeader>
+            }
+          />
+          <Route
+            path="/assistant"
+            element={
+              <WithHeader>
+                <Assistant />
+              </WithHeader>
+            }
+          />
+        </Routes>
+      </BrowserRouter>
+    </LanguageProvider>
   );
 }
 

@@ -219,6 +219,21 @@ function formatAuthError(error, fallbackMessage) {
   return message;
 }
 
+function isProfileSetupError(error) {
+  const normalizedMessage = extractAuthErrorMessage(error).toLowerCase();
+
+  return (
+    normalizedMessage.includes("supabase profile table is missing or incomplete") ||
+    normalizedMessage.includes("database error saving new user") ||
+    normalizedMessage.includes("user_profiles") ||
+    normalizedMessage.includes("profiles") ||
+    normalizedMessage.includes("schema cache") ||
+    normalizedMessage.includes("does not exist") ||
+    normalizedMessage.includes("column") ||
+    normalizedMessage.includes("full_name")
+  );
+}
+
 function shouldFallbackToAlternateProfileTable(error) {
   const message = extractAuthErrorMessage(error).toLowerCase();
 
@@ -445,12 +460,19 @@ export async function loginWithEmail({ email, password, expectedRole = null }) {
 
     const role = getUserRole(data.user, expectedRole || "patient");
     const name = getUserName(data.user, cleanEmail);
-    const profile = await ensureSupabaseProfile({
-      user: data.user,
-      email: cleanEmail,
-      name,
-      role,
-    });
+    let profile = null;
+    try {
+      profile = await ensureSupabaseProfile({
+        user: data.user,
+        email: cleanEmail,
+        name,
+        role,
+      });
+    } catch (profileError) {
+      if (!isProfileSetupError(profileError)) {
+        throw profileError;
+      }
+    }
 
     saveLocalSession({
       userId: data.user.id,
@@ -549,12 +571,19 @@ export async function registerWithEmail({ name, email, password, role }) {
       };
     }
 
-    const profile = await ensureSupabaseProfile({
-      user: data.user,
-      email: cleanEmail,
-      name: cleanName,
-      role,
-    });
+    let profile = null;
+    try {
+      profile = await ensureSupabaseProfile({
+        user: data.user,
+        email: cleanEmail,
+        name: cleanName,
+        role,
+      });
+    } catch (profileError) {
+      if (!isProfileSetupError(profileError)) {
+        throw profileError;
+      }
+    }
 
     saveLocalSession({
       userId: data.user.id,
@@ -605,8 +634,10 @@ export async function syncStoredSessionFromSupabase() {
       name: resolvedName,
       role: resolvedRole,
     });
-  } catch {
-    profile = null;
+  } catch (profileError) {
+    if (!isProfileSetupError(profileError)) {
+      throw profileError;
+    }
   }
 
   const nextSession = {

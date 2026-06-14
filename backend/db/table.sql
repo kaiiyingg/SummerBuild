@@ -90,9 +90,51 @@ create table if not exists public.user_profiles (
 alter table public.user_profiles
   add column if not exists email text,
   add column if not exists full_name text,
+  add column if not exists name text,
   add column if not exists role text,
   add column if not exists patient_id text,
   add column if not exists created_at timestamptz not null default now();
+
+update public.user_profiles
+set full_name = nullif(trim(name), '')
+where (full_name is null or trim(full_name) = '')
+  and name is not null
+  and trim(name) <> '';
+
+update public.user_profiles as up
+set email = au.email
+from auth.users as au
+where up.id = au.id
+  and (up.email is null or trim(up.email) = '');
+
+update public.user_profiles
+set full_name = split_part(coalesce(email, cast(id as text)), '@', 1)
+where full_name is null or trim(full_name) = '';
+
+update public.user_profiles
+set role = 'patient'
+where role is null or role not in ('patient', 'pharmacist');
+
+alter table public.user_profiles
+  alter column email set not null,
+  alter column full_name set not null,
+  alter column role set not null;
+
+create unique index if not exists user_profiles_email_key
+  on public.user_profiles (email);
+
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'user_profiles_role_check'
+  ) then
+    alter table public.user_profiles
+      add constraint user_profiles_role_check
+      check (role in ('patient', 'pharmacist'));
+  end if;
+end $$;
 
 do $$
 begin
@@ -169,6 +211,11 @@ begin
         patient_id = coalesce(public.user_profiles.patient_id, excluded.patient_id);
 
   return new;
+exception
+  when others then
+    -- Keep auth signup successful even if profile sync is temporarily misconfigured.
+    raise warning 'handle_new_auth_user failed for %: %', new.id, sqlerrm;
+    return new;
 end;
 $$;
 

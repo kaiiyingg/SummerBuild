@@ -306,13 +306,52 @@
     "aspirin_how": "Take 1 tablet once daily after breakfast with a full glass of water."
   },
   "auth": {
+    "language": "Language",
     "welcomeBack": "Welcome back",
     "signIn": "Sign In",
     "register": "Register",
+    "createAccount": "Create Account",
+    "setupAccount": "Set up your Pilly account",
     "email": "Email Address",
+    "fullName": "Full Name",
     "password": "Password",
     "confirmPassword": "Confirm Password",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password",
+    "signingIn": "Signing In...",
+    "creating": "Creating...",
     "forgotPassword": "Forgot password?",
+    "newToPilly": "New to Pilly?",
+    "registerHereForNewAccount": "Register here for a new account",
+    "alreadyHaveAccount": "Already have an account?",
+    "signInHere": "Sign in here.",
+    "loginUserType": "Login user type",
+    "registrationUserType": "Registration user type",
+    "roles": {
+      "pharmacist": "Pharmacist",
+      "patient": "Patient"
+    },
+    "placeholders": {
+      "patientEmail": "you@email.com",
+      "pharmacistEmail": "you@pharmacy.com",
+      "fullName": "Tan Wei Ming",
+      "createPassword": "Create a password",
+      "reenterPassword": "Re-enter your password"
+    },
+    "notices": {
+      "accountCreatedConfirmEmail": "Account created. Confirm your email, then sign in."
+    },
+    "errors": {
+      "passwordsDoNotMatch": "Passwords do not match",
+      "incorrectCredentials": "Incorrect email or password. Please try again.",
+      "emailNotConfirmed": "Please confirm your email first, then sign in again.",
+      "accountExists": "An account with this email already exists. Please sign in instead.",
+      "nameRequired": "Please enter your name before creating an account.",
+      "roleMismatch": "This account is registered as {{role}}. Please switch to the {{role}} login tab.",
+      "profileSetupMissing": "Supabase profile table is missing or incomplete. Run the SQL setup in backend/db/table.sql.",
+      "unableToSignIn": "Unable to sign in. Please check your email and password.",
+      "unableToCreateAccount": "Unable to create account. Please try another email or password."
+    },
     "noAccount": "New here? Register for a new account",
     "haveAccount": "Already have an account? Sign in here"
   }

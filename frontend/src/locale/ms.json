@@ -306,13 +306,52 @@
     "aspirin_how": "Ambil 1 tablet sekali sehari selepas sarapan dengan segelas penuh air."
   },
   "auth": {
+    "language": "Bahasa",
     "welcomeBack": "Selamat kembali",
     "signIn": "Log Masuk",
     "register": "Daftar",
+    "createAccount": "Cipta Akaun",
+    "setupAccount": "Sediakan akaun Pilly anda",
     "email": "Alamat E-mel",
+    "fullName": "Nama Penuh",
     "password": "Kata Laluan",
     "confirmPassword": "Sahkan Kata Laluan",
+    "showPassword": "Tunjuk kata laluan",
+    "hidePassword": "Sembunyikan kata laluan",
+    "signingIn": "Sedang log masuk...",
+    "creating": "Sedang mencipta...",
     "forgotPassword": "Lupa kata laluan?",
+    "newToPilly": "Baru di Pilly?",
+    "registerHereForNewAccount": "Daftar di sini untuk akaun baru",
+    "alreadyHaveAccount": "Sudah ada akaun?",
+    "signInHere": "Log masuk di sini.",
+    "loginUserType": "Jenis pengguna log masuk",
+    "registrationUserType": "Jenis pengguna pendaftaran",
+    "roles": {
+      "pharmacist": "Farmasis",
+      "patient": "Pesakit"
+    },
+    "placeholders": {
+      "patientEmail": "you@email.com",
+      "pharmacistEmail": "you@pharmacy.com",
+      "fullName": "Tan Wei Ming",
+      "createPassword": "Cipta kata laluan",
+      "reenterPassword": "Masukkan semula kata laluan"
+    },
+    "notices": {
+      "accountCreatedConfirmEmail": "Akaun berjaya dicipta. Sahkan e-mel anda, kemudian log masuk."
+    },
+    "errors": {
+      "passwordsDoNotMatch": "Kata laluan tidak sepadan",
+      "incorrectCredentials": "E-mel atau kata laluan salah. Sila cuba lagi.",
+      "emailNotConfirmed": "Sila sahkan e-mel anda dahulu, kemudian log masuk semula.",
+      "accountExists": "Akaun dengan e-mel ini sudah wujud. Sila log masuk.",
+      "nameRequired": "Sila masukkan nama anda sebelum mencipta akaun.",
+      "roleMismatch": "Akaun ini didaftarkan sebagai {{role}}. Sila tukar ke tab log masuk {{role}}.",
+      "profileSetupMissing": "Jadual profil Supabase tiada atau tidak lengkap. Jalankan tetapan SQL dalam backend/db/table.sql.",
+      "unableToSignIn": "Tidak dapat log masuk. Sila semak e-mel dan kata laluan anda.",
+      "unableToCreateAccount": "Tidak dapat mencipta akaun. Sila cuba e-mel atau kata laluan lain."
+    },
     "noAccount": "Baru di sini? Daftar akaun baru",
     "haveAccount": "Sudah ada akaun? Log masuk di sini"
   }
