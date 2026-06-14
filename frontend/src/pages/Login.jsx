@@ -5,6 +5,9 @@ import PillyLogo from "../components/PillyLogo";
 import { loginWithEmail, registerWithEmail } from "../services/authService";
 import { useTranslation } from "../context/LanguageContext";
 import "./Login.css";
+import pharmacistAuthImage from "../assets/auth/IMG_1565.PNG";
+import patientAuthImage from "../assets/auth/IMG_1566.PNG";
+import loginImage from "../assets/auth/login.png";
 
 function localizeAuthMessage(message, t) {
   const normalizedMessage = message.toLowerCase();
@@ -85,8 +88,10 @@ function Login() {
   const [regConfirm, setRegConfirm] = useState("");
   const [regRole, setRegRole] = useState("pharmacist");
 
+  const [staffInviteCode, setStaffInviteCode] = useState("");
+  const PHARMACIST_INVITE_CODE = "PILLY-STAFF-2026";
+
   // Login email (controlled so we can persist it on submit)
-  const [loginRole, setLoginRole] = useState("pharmacist");
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
 
@@ -109,11 +114,16 @@ function Login() {
   const [authLoading, setAuthLoading] = useState(false);
 
   const passwordsMismatch = regConfirm.length > 0 && regPassword !== regConfirm;
+  const pharmacistInviteValid =
+    regRole !== "pharmacist" ||
+    staffInviteCode.trim() === PHARMACIST_INVITE_CODE;
+
   const canRegister =
     regName.trim().length > 0 &&
     regPassword.length > 0 &&
     regConfirm.length > 0 &&
-    !passwordsMismatch;
+    !passwordsMismatch &&
+    pharmacistInviteValid;
 
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
@@ -125,7 +135,6 @@ function Login() {
       const { role } = await loginWithEmail({
         email: loginEmail,
         password: loginPassword,
-        expectedRole: loginRole,
       });
 
       navigate(role === "patient" ? "/patient/app" : "/pharmacist/dashboard");
@@ -146,6 +155,11 @@ function Login() {
     e.preventDefault();
     if (!canRegister) return;
 
+    if (regRole === "pharmacist" && !pharmacistInviteValid) {
+      setAuthError("Invalid staff invite code.");
+      return;
+}
+
     setAuthError("");
     setAuthNotice("");
     setAuthLoading(true);
@@ -161,7 +175,6 @@ function Login() {
       if (requiresEmailConfirmation) {
         setAuthNotice(t("auth.notices.accountCreatedConfirmEmail"));
         setIsRegister(false);
-        setLoginRole(role);
         setLoginEmail(regEmail.trim());
         setLoginPassword("");
         return;
@@ -214,14 +227,18 @@ function Login() {
       <div className="auth-shell">
         {/* Sliding image panel — replace gradients with images via .left-image / .right-image */}
         <div className="image-panel" aria-hidden="true">
-          <div className="image-layer left-image">
-            <span className="image-overlay-text">
-              Pilly — Smarter Pharmacy Care
-            </span>
-          </div>
-          <div className="image-layer right-image">
-            <span className="image-overlay-text">Join Pilly Today</span>
-          </div>
+          <div
+            className="image-layer auth-photo-layer"
+            style={{
+              backgroundImage: `url(${
+                !isRegister
+                  ? loginImage
+                  : regRole === "pharmacist"
+                  ? pharmacistAuthImage
+                  : patientAuthImage
+              })`,
+            }}
+          />
         </div>
 
         {/* Form side — holds both forms, swaps sides with the image panel */}
@@ -238,31 +255,6 @@ function Login() {
             </div>
 
             <div className="field">
-              <div className="role-toggle" role="radiogroup" aria-label={t("auth.loginUserType")}>
-                <button
-                  type="button"
-                  className={loginRole === "pharmacist" ? "active" : ""}
-                  onClick={() => setLoginRole("pharmacist")}
-                  role="radio"
-                  aria-checked={loginRole === "pharmacist"}
-                  tabIndex={isRegister ? -1 : 0}
-                >
-                  {t("auth.roles.pharmacist")}
-                </button>
-                <button
-                  type="button"
-                  className={loginRole === "patient" ? "active" : ""}
-                  onClick={() => setLoginRole("patient")}
-                  role="radio"
-                  aria-checked={loginRole === "patient"}
-                  tabIndex={isRegister ? -1 : 0}
-                >
-                  {t("auth.roles.patient")}
-                </button>
-              </div>
-            </div>
-
-            <div className="field">
               <label htmlFor="login-email">{t("auth.email")}</label>
               <div className="input-wrap">
                 <input
@@ -270,9 +262,7 @@ function Login() {
                   type="email"
                   name="email"
                   autoComplete="email"
-                  placeholder={
-                    loginRole === "patient" ? t("auth.placeholders.patientEmail") : t("auth.placeholders.pharmacistEmail")
-                  }
+                  placeholder="you@email.com"
                   value={loginEmail}
                   onChange={(e) => setLoginEmail(e.target.value)}
                   required
@@ -375,6 +365,29 @@ function Login() {
                 </button>
               </div>
             </div>
+
+            {regRole === "pharmacist" && (
+              <div className="field">
+                <label htmlFor="staff-invite-code">Staff Invite Code</label>
+                <div className="input-wrap">
+                  <input
+                    id="staff-invite-code"
+                    type="text"
+                    placeholder="Enter staff invite code"
+                    value={staffInviteCode}
+                    onChange={(e) => setStaffInviteCode(e.target.value)}
+                    required
+                    tabIndex={isRegister ? 0 : -1}
+                  />
+                </div>
+
+                {staffInviteCode && !pharmacistInviteValid && (
+                  <span className="field-error">
+                    Invalid staff invite code.
+                  </span>
+                )}
+              </div>
+            )}
 
             <div className="field">
               <label htmlFor="reg-name">{t("auth.fullName")}</label>
