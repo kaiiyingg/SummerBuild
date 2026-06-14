@@ -202,8 +202,11 @@ function LanguageDropdown({ onClose }: { onClose: () => void }) {
   );
 }
 
-function NotificationDropdown({ notifications, onClose, onMarkAllRead }: {
-  notifications: NotificationItem[]; onClose: () => void; onMarkAllRead: () => void;
+function NotificationDropdown({ notifications, onClose, onMarkAllRead, onMarkRead }: {
+  notifications: NotificationItem[];
+  onClose: () => void;
+  onMarkAllRead: () => void;
+  onMarkRead: (id: string | number) => void;
 }) {
   const { t } = useTranslation();
   return (
@@ -229,13 +232,18 @@ function NotificationDropdown({ notifications, onClose, onMarkAllRead }: {
             </div>
           ) : (
             notifications.map((n) => (
-              <div
+              <button
                 key={n.id}
-                className="flex items-start gap-3 px-4 py-3"
+                type="button"
+                onClick={() => {
+                  if (!n.read) onMarkRead(n.id);
+                }}
+                className="flex w-full items-start gap-3 px-4 py-3 text-left"
                 style={{
                   background: n.read ? "white" : "#F8FAFC",
                   borderLeft: n.read ? `3px solid transparent` : `3px solid ${n.dot}`,
                   borderBottom: `1px solid ${C.border}`,
+                  cursor: n.read ? "default" : "pointer",
                 }}
               >
                 <div className="w-2 h-2 rounded-full mt-1.5 shrink-0" style={{ background: n.dot }} />
@@ -273,7 +281,7 @@ function NotificationDropdown({ notifications, onClose, onMarkAllRead }: {
                 >
                   {n.time}
                 </span>
-              </div>
+              </button>
             ))
           )}
         </div>
@@ -446,7 +454,6 @@ export default function App() {
   const [showLogoutModal,    setShowLogoutModal]    = useState(false);
   const [showLanguageModal,  setShowLanguageModal]  = useState(false);
   const [notifications,      setNotifications]      = useState<NotificationItem[]>([]);
-  const [hasNewNotification, setHasNewNotification] = useState(false);
   const [delayedToastMsg,    setDelayedToastMsg]    = useState<string | null>(null);
   const [patientName,        setPatientName]        = useState(
     localStorage.getItem("pilly-user-name") || "Patient"
@@ -476,6 +483,10 @@ export default function App() {
     await markNotificationsRead(unreadIds);
     await loadNotifications();
   };
+  const markOneRead = async (id: string | number) => {
+    await markNotificationsRead([id]);
+    await loadNotifications();
+  };
   const handleLogout = async () => {
     await logout();
     setShowLogoutModal(false);
@@ -498,15 +509,8 @@ export default function App() {
     void loadNotifications();
     return subscribeToNotifications(() => {
       void loadNotifications();
-      setHasNewNotification(true);
     });
   }, []);
-
-  useEffect(() => {
-    if (showNotifications) {
-      setHasNewNotification(false);
-    }
-  }, [showNotifications]);
 
   useEffect(() => {
     const email = localStorage.getItem("pilly-user-email");
@@ -589,14 +593,10 @@ export default function App() {
             <div className="relative">
               <button
                 onClick={() => {
-                  setShowNotifications((prev) => {
-                    const next = !prev;
-                    if (next) setHasNewNotification(false);
-                    return next;
-                  });
+                  setShowNotifications((prev) => !prev);
                   setShowLangDropdown(false);
                 }}
-                className={`relative flex h-[46px] w-[46px] items-center justify-center rounded-xl transition-colors hover:bg-[#F1F5F9] ${hasNewNotification ? "bell-alert-active" : ""}`}
+                className={`relative flex h-[46px] w-[46px] items-center justify-center rounded-xl transition-colors hover:bg-[#F1F5F9] ${unreadCount > 0 ? "bell-alert-active" : ""}`}
                 aria-label="Notifications"
               >
                 <Bell size={23} color={C.textSecond} />
@@ -608,7 +608,12 @@ export default function App() {
                 )}
               </button>
               {showNotifications && (
-                <NotificationDropdown notifications={notifications} onClose={() => setShowNotifications(false)} onMarkAllRead={markAllRead} />
+                <NotificationDropdown
+                  notifications={notifications}
+                  onClose={() => setShowNotifications(false)}
+                  onMarkAllRead={markAllRead}
+                  onMarkRead={markOneRead}
+                />
               )}
             </div>
 

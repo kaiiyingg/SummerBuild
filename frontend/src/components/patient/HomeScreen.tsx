@@ -494,6 +494,7 @@ export function HomeScreen({ onTabChange }: { onTabChange: (tab: string) => void
   const [notifyToggle,     setNotifyToggle]     = useState(true);
   const [showReschedule,   setShowReschedule]   = useState(false);
   const [registrationQueueNo, setRegistrationQueueNo] = useState("B047");
+  const [latestHoldReason, setLatestHoldReason] = useState("");
 
   const now = new Date();
   const updatedTime = now.toLocaleTimeString("en-SG", { hour: "numeric", minute: "2-digit", hour12: true });
@@ -507,6 +508,22 @@ export function HomeScreen({ onTabChange }: { onTabChange: (tab: string) => void
     loadPatient();
     return subscribeToPatientChanges(loadPatient);
   }, []);
+
+  useEffect(() => {
+    const loadHoldReason = async () => {
+      const patientId = patient?.id ?? getCurrentPatientId();
+      if (!patientId) {
+        setLatestHoldReason("");
+        return;
+      }
+
+      const rows = await fetchNotifications({ recipientRole: "patient", patientId });
+      const holdNotification = rows.find((row: any) => row.type === "medication_on_hold");
+      setLatestHoldReason(holdNotification?.body ?? "");
+    };
+
+    void loadHoldReason();
+  }, [patient?.id, patient?.status]);
 
   const registrationQueueDigits = Number.parseInt(registrationQueueNo.replace(/\D/g, ""), 10) || 47;
   const registrationServingNum = Math.max(1, registrationQueueDigits - 6);
@@ -535,7 +552,7 @@ export function HomeScreen({ onTabChange }: { onTabChange: (tab: string) => void
     pendingMedication && patient?.status !== "ready"
       ? {
           med: pendingMedication.name,
-          reason: t('queue.delayedReasonDefault'),
+          reason: latestHoldReason || t('queue.delayedReasonDefault'),
           eta: "20 min",
         }
       : null;
