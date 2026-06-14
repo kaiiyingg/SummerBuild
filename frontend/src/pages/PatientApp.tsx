@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Bell, Users, Pill, ScanLine, AlarmClock, User, ChevronDown, Check, Globe, MessageCircle } from "lucide-react";
 import "./PatientApp.css";
@@ -17,7 +17,11 @@ import {
 } from "../services/authService";
 import {
   fetchCurrentPatientDetails,
+  fetchNotifications,
+  getCurrentPatientId,
+  markNotificationsRead,
   subscribeToPatientChanges,
+  subscribeToNotifications,
 } from "../services/pharmacyData";
 import { BasicToast } from "../components/ui/Toast";
 
@@ -54,7 +58,7 @@ const TAB_DEFS: { id: Tab; key: string; icon: React.ReactNode }[] = [
 ];
 
 type NotificationItem = {
-  id: number;
+  id: number | string;
   dot: string;
   title: string;
   subtitle: string;
@@ -62,7 +66,25 @@ type NotificationItem = {
   read: boolean;
 };
 
-const NOTIFICATION_READS: Record<number, boolean> = { 1: false, 2: false, 3: true };
+function formatTimeAgo(createdAt: string) {
+  const diffMs = Date.now() - new Date(createdAt).getTime();
+  const diffMins = Math.max(0, Math.floor(diffMs / 60000));
+
+  if (diffMins < 1) return "Just now";
+  if (diffMins < 60) return `${diffMins} min ago`;
+
+  const diffHours = Math.floor(diffMins / 60);
+  if (diffHours < 24) return `${diffHours} hr ago`;
+
+  const diffDays = Math.floor(diffHours / 24);
+  return `${diffDays} day${diffDays === 1 ? "" : "s"} ago`;
+}
+
+function notificationDot(type: string) {
+  if (type === "medication_on_hold") return C.red;
+  if (type === "medication_ready") return C.green;
+  return "#3B82F6";
+}
 
 // ── sub-components ─────────────────────────────────────────────
 
@@ -423,22 +445,37 @@ export default function App() {
   const [showLangDropdown,   setShowLangDropdown]   = useState(false);
   const [showLogoutModal,    setShowLogoutModal]    = useState(false);
   const [showLanguageModal,  setShowLanguageModal]  = useState(false);
-  const [readIds,            setReadIds]            = useState<Set<number>>(new Set([3]));
+  const [notifications,      setNotifications]      = useState<NotificationItem[]>([]);
   const [hasNewNotification, setHasNewNotification] = useState(false);
   const [delayedToastMsg,    setDelayedToastMsg]    = useState<string | null>(null);
   const [patientName,        setPatientName]        = useState(
     localStorage.getItem("pilly-user-name") || "Patient"
   );
 
-  const notifications = useMemo<NotificationItem[]>(() => [
-    { id: 1, dot: C.green,   title: t('notifications.medicationReady'),                          subtitle: t('notifications.medicationReadySub', { queue: "B047" }), time: "2 min ago", read: readIds.has(1) },
-    { id: 2, dot: C.amber,   title: t('notifications.queueServingTitle', { queue: "B041" }),      subtitle: t('notifications.queueServingSub', { count: 6 }),          time: "5 min ago", read: readIds.has(2) },
-    { id: 3, dot: "#3B82F6", title: t('notifications.reminderTitle', { med: "Metformin" }),       subtitle: t('notifications.reminderSub', { time: "8:00 PM" }),       time: "1 hr ago",  read: readIds.has(3) },
-  ], [t, readIds]);
-
   const unreadCount  = notifications.filter((n) => !n.read).length;
   const currentShort = LANG_SHORT[language] ?? 'EN';
-  const markAllRead  = () => setReadIds(new Set([1, 2, 3]));
+  const loadNotifications = async () => {
+    const patientId = getCurrentPatientId();
+    if (!patientId) {
+      setNotifications([]);
+      return;
+    }
+
+    const rows = await fetchNotifications({ recipientRole: "patient", patientId });
+    setNotifications(rows.filter((row: any) => row.type === "medication_on_hold").map((row: any) => ({
+      id: row.id,
+      dot: notificationDot(row.type),
+      title: row.title,
+      subtitle: row.body,
+      time: formatTimeAgo(row.createdAt),
+      read: row.read,
+    })));
+  };
+  const markAllRead  = async () => {
+    const unreadIds = notifications.filter((n) => !n.read).map((n) => n.id);
+    await markNotificationsRead(unreadIds);
+    await loadNotifications();
+  };
   const handleLogout = async () => {
     await logout();
     setShowLogoutModal(false);
@@ -455,6 +492,14 @@ export default function App() {
 
     loadPatientName();
     return subscribeToPatientChanges(loadPatientName);
+  }, []);
+
+  useEffect(() => {
+    void loadNotifications();
+    return subscribeToNotifications(() => {
+      void loadNotifications();
+      setHasNewNotification(true);
+    });
   }, []);
 
   useEffect(() => {

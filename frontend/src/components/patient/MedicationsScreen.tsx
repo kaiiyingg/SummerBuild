@@ -9,6 +9,10 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { useTranslation } from "../../context/LanguageContext";
+import {
+  fetchCurrentPatientDetails,
+  subscribeToPatientChanges,
+} from "../../services/pharmacyData";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000";
 const SPEECH_API_URL = `${API_BASE_URL}/api/scan-medication-speech`;
@@ -38,6 +42,15 @@ const C = {
 };
 
 type MedStatus = "ready" | "packing" | "delayed";
+type MedicationCardData = {
+  id: number | string;
+  name: string;
+  for: string;
+  how: string;
+  caution: string | null;
+  status: MedStatus;
+  verified?: boolean;
+};
 
 function getFallbackMedications(t: (key: string) => string) {
   return [
@@ -87,7 +100,7 @@ function MedCard({
   isSpeaking,
   onSpeakCard,
 }: {
-  med: typeof fallbackMedications[number] & { verified?: boolean };
+  med: MedicationCardData;
   isSpeaking: boolean;
   onSpeakCard: () => void;
 }) {
@@ -149,12 +162,58 @@ export function MedicationsScreen({
   onTabChange: (tab: string) => void;
 }) {
   const { t, language } = useTranslation();
-  const medications = getFallbackMedications(t);
+  const fallbackMedications = getFallbackMedications(t);
+  const [medications, setMedications] = useState<MedicationCardData[]>(fallbackMedications);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const speechRequestRef = useRef<AbortController | null>(null);
   const speechCacheRef = useRef<Map<string, string>>(new Map());
-  const [activeSpeechMedId, setActiveSpeechMedId] = useState<number | null>(null);
+  const [activeSpeechMedId, setActiveSpeechMedId] = useState<number | string | null>(null);
   const [audioError, setAudioError] = useState("");
+
+  useEffect(() => {
+    const fallbackByName = new Map(
+      fallbackMedications.map((med) => [med.name.toLowerCase(), med])
+    );
+
+    const medicationStatusForPatient = (patient: any, med: any): MedStatus => {
+      const status = String(patient?.status || "").toLowerCase();
+      if (status.includes("hold") || status.includes("delay")) return "delayed";
+      if (med?.verified || status.includes("ready") || status.includes("collect")) return "ready";
+      return "packing";
+    };
+
+    const loadPatientMedications = async () => {
+      const patient = await fetchCurrentPatientDetails();
+      const patientMedications = Array.isArray(patient?.medications)
+        ? patient.medications
+        : [];
+
+      if (!patientMedications.length) {
+        setMedications([]);
+        return;
+      }
+
+      setMedications(patientMedications.map((med: any) => {
+        const fallback = fallbackByName.get(String(med.name || "").toLowerCase());
+        const quantity = med.quantity ? `${t("medications.scanQuantity")}: ${med.quantity}` : "";
+
+        return {
+          id: med.id,
+          name: med.name,
+          for: fallback?.for ?? quantity,
+          how: fallback?.how ?? quantity,
+          caution: fallback?.caution ?? null,
+          status: medicationStatusForPatient(patient, med),
+          verified: med.verified,
+        };
+      }));
+    };
+
+    void loadPatientMedications();
+    return subscribeToPatientChanges(() => {
+      void loadPatientMedications();
+    });
+  }, [t, language]);
 
   useEffect(() => {
     return () => {
@@ -232,7 +291,7 @@ export function MedicationsScreen({
     }
   }
 
-  async function speakMedicationCard(med: typeof fallbackMedications[number]) {
+  async function speakMedicationCard(med: MedicationCardData) {
     if (activeSpeechMedId === med.id) {
       stopSpeaking();
       return;
