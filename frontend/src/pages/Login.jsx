@@ -321,6 +321,15 @@ function Login() {
               {authLoading ? t("auth.signingIn") : t("auth.signIn")}
             </button>
 
+            <button
+              type="button"
+              className="btn-guest"
+              tabIndex={isRegister ? -1 : 0}
+              onClick={() => navigate("/patient/app")}
+            >
+              Continue as Guest (Patient Preview)
+            </button>
+
             {(authError || authNotice) && (
               <p className={authError ? "field-error" : "form-subtitle"} role="alert">
                 {authError || authNotice}
