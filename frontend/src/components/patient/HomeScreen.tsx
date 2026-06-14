@@ -372,7 +372,15 @@ function RescheduleSheet({ onClose, patient }: { onClose: () => void; patient?: 
 }
 
 
-function ReRegisterSheet({ onClose, patient }: { onClose: () => void; patient?: any }) {
+function ReRegisterSheet({
+  onClose,
+  patient,
+  onRegistered,
+}: {
+  onClose: () => void;
+  patient?: any;
+  onRegistered: (queueNo: string) => void;
+}) {
   const { t } = useTranslation();
   const [confirmed, setConfirmed] = useState(false);
   const [newQueue]  = useState("B052");
@@ -461,7 +469,10 @@ function ReRegisterSheet({ onClose, patient }: { onClose: () => void; patient?: 
           </div>
 
           {/* Confirm */}
-          <button onClick={() => setConfirmed(true)}
+          <button onClick={() => {
+            onRegistered(newQueue);
+            setConfirmed(true);
+          }}
             className="w-full py-4 rounded-2xl text-white flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
             style={{ background: C.teal, fontFamily: "'DM Sans', sans-serif", fontSize: "20px", fontWeight: 700 }}>
             <RefreshCw size={20} color="white" />
@@ -477,10 +488,12 @@ function ReRegisterSheet({ onClose, patient }: { onClose: () => void; patient?: 
 export function HomeScreen({ onTabChange }: { onTabChange: (tab: string) => void }) {
   const { t } = useTranslation();
   const [patient, setPatient] = useState<any>(null);
+  const [patientLoaded, setPatientLoaded] = useState(false);
   const [showMissedQueue,  setShowMissedQueue]  = useState(true);
   const [showReRegister,   setShowReRegister]   = useState(false);
   const [notifyToggle,     setNotifyToggle]     = useState(true);
   const [showReschedule,   setShowReschedule]   = useState(false);
+  const [registrationQueueNo, setRegistrationQueueNo] = useState("B047");
 
   const now = new Date();
   const updatedTime = now.toLocaleTimeString("en-SG", { hour: "numeric", minute: "2-digit", hour12: true });
@@ -488,14 +501,20 @@ export function HomeScreen({ onTabChange }: { onTabChange: (tab: string) => void
   useEffect(() => {
     const loadPatient = async () => {
       setPatient(await fetchCurrentPatientDetails());
+      setPatientLoaded(true);
     };
 
     loadPatient();
     return subscribeToPatientChanges(loadPatient);
   }, []);
 
+  const registrationQueueDigits = Number.parseInt(registrationQueueNo.replace(/\D/g, ""), 10) || 47;
+  const registrationServingNum = Math.max(1, registrationQueueDigits - 6);
   const regQueue = {
-    number: 47, label: "B047", serving: "B041", servingNum: 41,
+    number: registrationQueueDigits,
+    label: registrationQueueNo,
+    serving: `${registrationQueueNo[0] ?? "B"}${String(registrationServingNum).padStart(3, "0")}`,
+    servingNum: registrationServingNum,
     waitTime: "12 to 15 min", ahead: 6,
     status: "waiting" as QueueStatus, counter: "Level 1, Pharmacy A", date: "Tuesday, 3 June 2026",
     completedAt: "9:15 AM",
@@ -503,9 +522,12 @@ export function HomeScreen({ onTabChange }: { onTabChange: (tab: string) => void
   const pendingMedication = patient?.medications?.find((med: any) => !med.verified);
   const displayName =
     patient?.name ?? localStorage.getItem("pilly-user-name") ?? "Patient";
-  const queueNumber = patient?.queueNo ?? "A024";
-  const queueDigits = Number.parseInt(queueNumber.replace(/\D/g, ""), 10) || 24;
+  const queueNumber = patientLoaded && patient?.queueNo && patient.queueNo !== "-"
+    ? String(patient.queueNo)
+    : "";
+  const queueDigits = Number.parseInt(queueNumber.replace(/\D/g, ""), 10) || 0;
   const servingNum = Math.max(1, queueDigits - 6);
+  const hasCollectionQueue = Boolean(queueNumber && queueDigits);
   const allMedicationReady = patient?.medications?.length
     ? patient.medications.every((med: any) => med.verified)
     : false;
@@ -520,12 +542,12 @@ export function HomeScreen({ onTabChange }: { onTabChange: (tab: string) => void
   const colQueue = {
     number: queueDigits,
     label: queueNumber,
-    serving: `${queueNumber[0] ?? "A"}${String(servingNum).padStart(3, "0")}`,
+    serving: `${queueNumber[0] ?? ""}${String(servingNum).padStart(3, "0")}`,
     servingNum,
     waitTime: delayedInfo ? delayedInfo.eta : patient?.status === "ready" ? "Ready now" : "8-12 min",
     ahead: Math.max(0, queueDigits - servingNum),
     status: (patient?.status === "ready" || allMedicationReady ? "now" : "almost") as QueueStatus,
-    isActive: true,
+    isActive: hasCollectionQueue,
     delayed: delayedInfo,
   };
 
@@ -731,7 +753,13 @@ export function HomeScreen({ onTabChange }: { onTabChange: (tab: string) => void
       )}
 
       {showReschedule   && <RescheduleSheet   patient={patient} onClose={() => setShowReschedule(false)} />}
-      {showReRegister   && <ReRegisterSheet   patient={patient} onClose={() => { setShowReRegister(false); setShowMissedQueue(false); }} />}
+      {showReRegister   && (
+        <ReRegisterSheet
+          patient={patient}
+          onRegistered={setRegistrationQueueNo}
+          onClose={() => { setShowReRegister(false); setShowMissedQueue(false); }}
+        />
+      )}
     </div>
   );
 }

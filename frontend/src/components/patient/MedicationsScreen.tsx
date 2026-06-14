@@ -163,7 +163,7 @@ export function MedicationsScreen({
 }) {
   const { t, language } = useTranslation();
   const fallbackMedications = getFallbackMedications(t);
-  const [medications, setMedications] = useState<MedicationCardData[]>(fallbackMedications);
+  const [medications, setMedications] = useState<MedicationCardData[]>([]);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const speechRequestRef = useRef<AbortController | null>(null);
   const speechCacheRef = useRef<Map<string, string>>(new Map());
@@ -195,14 +195,13 @@ export function MedicationsScreen({
 
       setMedications(patientMedications.map((med: any) => {
         const fallback = fallbackByName.get(String(med.name || "").toLowerCase());
-        const quantity = med.quantity ? `${t("medications.scanQuantity")}: ${med.quantity}` : "";
 
         return {
           id: med.id,
           name: med.name,
-          for: fallback?.for ?? quantity,
-          how: fallback?.how ?? quantity,
-          caution: fallback?.caution ?? null,
+          for: med.purpose ?? fallback?.for ?? "Medication listed on your prescription",
+          how: med.instructions ?? fallback?.how ?? "Take exactly as prescribed on your medication label.",
+          caution: med.caution ?? fallback?.caution ?? null,
           status: medicationStatusForPatient(patient, med),
           verified: med.verified,
         };

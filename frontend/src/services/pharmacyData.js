@@ -80,6 +80,9 @@ function fromSupabasePatient(row) {
       id: med.id,
       name: med.name,
       quantity: med.quantity,
+      purpose: med.purpose ?? null,
+      instructions: med.instructions ?? null,
+      caution: med.caution ?? null,
       verified: med.verified,
     })),
   };
@@ -103,6 +106,9 @@ function getLocalPatientsWithSeed() {
       meds: patient.medications?.length ?? 0,
       medications: (patient.medications ?? []).map((med) => ({
         ...med,
+        purpose: med.purpose ?? null,
+        instructions: med.instructions ?? null,
+        caution: med.caution ?? null,
         verified: Boolean(
           JSON.parse(localStorage.getItem(`verified-meds-${patient.id}`) || "{}")[
             med.id
