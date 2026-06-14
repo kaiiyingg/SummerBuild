@@ -306,13 +306,52 @@
     "aspirin_how": "每天早餐后服用1片，配一整杯水。"
   },
   "auth": {
+    "language": "语言",
     "welcomeBack": "欢迎回来",
     "signIn": "登录",
     "register": "注册",
+    "createAccount": "创建账号",
+    "setupAccount": "设置您的 Pilly 账号",
     "email": "电子邮件",
+    "fullName": "姓名",
     "password": "密码",
     "confirmPassword": "确认密码",
+    "showPassword": "显示密码",
+    "hidePassword": "隐藏密码",
+    "signingIn": "登录中...",
+    "creating": "创建中...",
     "forgotPassword": "忘记密码？",
+    "newToPilly": "刚来 Pilly？",
+    "registerHereForNewAccount": "在这里注册新账号",
+    "alreadyHaveAccount": "已有账号？",
+    "signInHere": "在这里登录。",
+    "loginUserType": "登录用户类型",
+    "registrationUserType": "注册用户类型",
+    "roles": {
+      "pharmacist": "药剂师",
+      "patient": "病人"
+    },
+    "placeholders": {
+      "patientEmail": "you@email.com",
+      "pharmacistEmail": "you@pharmacy.com",
+      "fullName": "Tan Wei Ming",
+      "createPassword": "创建密码",
+      "reenterPassword": "再次输入密码"
+    },
+    "notices": {
+      "accountCreatedConfirmEmail": "账号已创建。请先确认邮箱，然后再登录。"
+    },
+    "errors": {
+      "passwordsDoNotMatch": "两次输入的密码不一致",
+      "incorrectCredentials": "邮箱或密码错误。请重试。",
+      "emailNotConfirmed": "请先确认您的邮箱，然后再登录。",
+      "accountExists": "该邮箱已注册账号。请直接登录。",
+      "nameRequired": "创建账号前请输入您的姓名。",
+      "roleMismatch": "该账号注册身份为 {{role}}。请切换到 {{role}} 登录标签。",
+      "profileSetupMissing": "Supabase 用户资料表缺失或不完整。请运行 backend/db/table.sql 中的 SQL 设置。",
+      "unableToSignIn": "无法登录。请检查您的邮箱和密码。",
+      "unableToCreateAccount": "无法创建账号。请尝试其他邮箱或密码。"
+    },
     "noAccount": "还没有账号？注册新账号",
     "haveAccount": "已有账号？在此登录"
   }

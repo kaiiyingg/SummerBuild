@@ -35,8 +35,11 @@
   z-index: 50;
   display: inline-flex;
   align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 2px;
   padding: 6px 8px;
+  max-width: min(460px, calc(100vw - 32px));
   background: rgba(255, 255, 255, 0.85);
   border: 1px solid var(--border);
   border-radius: 999px;
@@ -51,6 +54,7 @@
   font: inherit;
   font-size: 13px;
   font-weight: 600;
+  white-space: nowrap;
   color: var(--muted);
   padding: 4px 12px;
   border-radius: 999px;
@@ -427,6 +431,12 @@
    Responsive — stack vertically on mobile
    ============================================================ */
 @media (max-width: 768px) {
+  .lang-toggle {
+    top: 14px;
+    right: 12px;
+    max-width: calc(100vw - 24px);
+  }
+
   .image-panel {
     display: none;
   }

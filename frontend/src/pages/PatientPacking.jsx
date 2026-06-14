@@ -804,7 +804,7 @@ function PatientPacking() {
               >
                 <div className="verification-result-head">
                   <div>
-                    <span className="scanner-label">Reka AI Result</span>
+                    <span className="scanner-label">Powered by Reka AI</span>
                     <strong>{formatImageType(verificationResult.image_type)}</strong>
                   </div>
 
