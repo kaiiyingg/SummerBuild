@@ -4,6 +4,8 @@ import { syncStoredSessionFromSupabase } from "./authService";
 
 const LOCAL_PATIENTS_KEY = "pilly-local-patients";
 const LOCAL_REMINDERS_KEY = "pilly-local-reminders";
+const LOCAL_NOTIFICATIONS_KEY = "pilly-local-notifications";
+const LOCAL_NOTIFICATIONS_EVENT = "pilly-local-notifications-changed";
 
 function toStatusKey(status) {
   return String(status || "")
@@ -39,6 +41,26 @@ function getLocalReminderOverrides() {
 
 function saveLocalReminderOverrides(reminders) {
   writeJson(LOCAL_REMINDERS_KEY, reminders);
+}
+
+function getLocalNotifications() {
+  return readJson(LOCAL_NOTIFICATIONS_KEY, []);
+}
+
+function saveLocalNotifications(notifications) {
+  writeJson(LOCAL_NOTIFICATIONS_KEY, notifications);
+  window.dispatchEvent(new Event(LOCAL_NOTIFICATIONS_EVENT));
+}
+
+function filterLocalNotifications(recipientRole, patientId = null) {
+  return getLocalNotifications()
+    .filter((notification) => {
+      if (notification.recipientRole !== recipientRole) return false;
+      return recipientRole === "patient"
+        ? notification.patientId === patientId
+        : true;
+    })
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 }
 
 function fromSupabasePatient(row) {
@@ -207,9 +229,26 @@ export async function setPatientStatus(patientId, status) {
 }
 
 export async function addHoldReason(patientId, reason) {
+  const patient = await fetchPatientDetails(patientId);
+
   if (!hasSupabaseConfig || !supabase) {
     localStorage.setItem(`hold-reason-${patientId}`, reason);
     localStorage.setItem(`patient-status-${patientId}`, "on_hold");
+    try {
+      await createNotification({
+        recipientRole: "patient",
+        patientId,
+        type: "medication_on_hold",
+        title: "Medication put on hold",
+        body: reason,
+        metadata: {
+          patientName: patient?.name ?? null,
+          queueNo: patient?.queueNo ?? null,
+        },
+      });
+    } catch (error) {
+      console.warn("Unable to notify patient:", error);
+    }
     return;
   }
 
@@ -219,6 +258,158 @@ export async function addHoldReason(patientId, reason) {
   if (holdError) throw holdError;
 
   await setPatientStatus(patientId, "on_hold");
+  try {
+    await createNotification({
+      recipientRole: "patient",
+      patientId,
+      type: "medication_on_hold",
+      title: "Medication put on hold",
+      body: reason,
+      metadata: {
+        patientName: patient?.name ?? null,
+        queueNo: patient?.queueNo ?? null,
+      },
+    });
+  } catch (error) {
+    console.warn("Unable to notify patient:", error);
+  }
+}
+
+function fromSupabaseNotification(row) {
+  return {
+    id: row.id,
+    recipientRole: row.recipient_role,
+    patientId: row.patient_id,
+    type: row.type,
+    title: row.title,
+    body: row.body,
+    metadata: row.metadata ?? {},
+    read: Boolean(row.read),
+    createdAt: row.created_at,
+  };
+}
+
+export async function createNotification({
+  recipientRole,
+  patientId = null,
+  type,
+  title,
+  body,
+  metadata = {},
+}) {
+  if (!recipientRole || !type || !title || !body) return null;
+
+  if (!hasSupabaseConfig || !supabase) {
+    const notification = {
+      id: `local-${crypto.randomUUID()}`,
+      recipientRole,
+      patientId,
+      type,
+      title,
+      body,
+      metadata,
+      read: false,
+      createdAt: new Date().toISOString(),
+    };
+    saveLocalNotifications([notification, ...getLocalNotifications()]);
+    return notification;
+  }
+
+  const { data, error } = await supabase
+    .from("notifications")
+    .insert({
+      recipient_role: recipientRole,
+      patient_id: patientId,
+      type,
+      title,
+      body,
+      metadata,
+      read: false,
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return fromSupabaseNotification(data);
+}
+
+export async function fetchNotifications({ recipientRole, patientId = null } = {}) {
+  if (!recipientRole) return [];
+
+  if (!hasSupabaseConfig || !supabase) {
+    return filterLocalNotifications(recipientRole, patientId);
+  }
+
+  let query = supabase
+    .from("notifications")
+    .select("*")
+    .eq("recipient_role", recipientRole)
+    .order("created_at", { ascending: false });
+
+  if (recipientRole === "patient") {
+    query = query.eq("patient_id", patientId);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    console.warn("Supabase notifications fallback:", error.message);
+    return filterLocalNotifications(recipientRole, patientId);
+  }
+
+  return data.map(fromSupabaseNotification);
+}
+
+export async function markNotificationsRead(notificationIds) {
+  if (!notificationIds?.length) return;
+
+  if (!hasSupabaseConfig || !supabase) {
+    const idSet = new Set(notificationIds.map(String));
+    saveLocalNotifications(
+      getLocalNotifications().map((notification) =>
+        idSet.has(String(notification.id))
+          ? { ...notification, read: true }
+          : notification
+      )
+    );
+    return;
+  }
+
+  const { error } = await supabase
+    .from("notifications")
+    .update({ read: true })
+    .in("id", notificationIds);
+
+  if (error) throw error;
+}
+
+export function subscribeToNotifications(onChange) {
+  if (!hasSupabaseConfig || !supabase) {
+    window.addEventListener(LOCAL_NOTIFICATIONS_EVENT, onChange);
+    window.addEventListener("storage", onChange);
+    return () => {
+      window.removeEventListener(LOCAL_NOTIFICATIONS_EVENT, onChange);
+      window.removeEventListener("storage", onChange);
+    };
+  }
+
+  try {
+    const channel = supabase
+      .channel(`notifications-${crypto.randomUUID()}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "notifications" },
+        onChange
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  } catch (error) {
+    console.warn("Supabase notification realtime disabled:", error);
+    return () => {};
+  }
 }
 
 export function subscribeToPatientChanges(onChange) {

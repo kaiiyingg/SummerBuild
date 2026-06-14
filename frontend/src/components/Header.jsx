@@ -2,25 +2,67 @@ import { useState, useRef, useEffect } from "react";
 import { FaBell, FaTimes } from "react-icons/fa";
 import PillyLogoSmall from "./PillyLogoSmall";
 import { BasicToast } from "./ui/Toast";
+import {
+  fetchNotifications,
+  markNotificationsRead,
+  subscribeToNotifications,
+} from "../services/pharmacyData";
 import "./Header.css";
 
-const NOTIFS = [
-  { id: 1, color: "#EF4444", text: "Patient P002: Drug interaction question",   time: "5 min ago"  },
-  { id: 2, color: "#F59E0B", text: "Low stock: Metformin 500mg — 8 units left", time: "20 min ago" },
-  { id: 3, color: "#3B82F6", text: "Patient P007 placed on hold",               time: "1 hr ago"   },
-];
+function getNotificationColor(type) {
+  if (type === "collection_rescheduled") return "#F59E0B";
+  return "#3B82F6";
+}
 
-const BADGE_COUNT = 3;
+function formatTimeAgo(createdAt) {
+  const diffMs = Date.now() - new Date(createdAt).getTime();
+  const diffMins = Math.max(0, Math.floor(diffMs / 60000));
+
+  if (diffMins < 1) return "Just now";
+  if (diffMins < 60) return `${diffMins} min ago`;
+
+  const diffHours = Math.floor(diffMins / 60);
+  if (diffHours < 24) return `${diffHours} hr ago`;
+
+  const diffDays = Math.floor(diffHours / 24);
+  return `${diffDays} day${diffDays === 1 ? "" : "s"} ago`;
+}
 
 export default function Header() {
-  const [notifOpen,    setNotifOpen]    = useState(false);
-  const [showUrgency,  setShowUrgency]  = useState(true);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [showUrgency, setShowUrgency] = useState(true);
   const urgencyTimerRef = useRef(null);
+  const unreadCount = notifications.filter((notification) => !notification.read).length;
+
+  async function loadNotifications() {
+    const rows = await fetchNotifications({ recipientRole: "pharmacist" });
+    setNotifications(rows.filter((notification) => notification.type === "collection_rescheduled"));
+  }
 
   function handleUrgencyClose() {
     setShowUrgency(false);
     urgencyTimerRef.current = setTimeout(() => setShowUrgency(true), 10 * 60 * 1000);
   }
+
+  async function openNotifications() {
+    setNotifOpen(true);
+    const unreadIds = notifications
+      .filter((notification) => !notification.read)
+      .map((notification) => notification.id);
+
+    if (unreadIds.length) {
+      await markNotificationsRead(unreadIds);
+      await loadNotifications();
+    }
+  }
+
+  useEffect(() => {
+    void loadNotifications();
+    return subscribeToNotifications(() => {
+      void loadNotifications();
+    });
+  }, []);
 
   useEffect(() => () => clearTimeout(urgencyTimerRef.current), []);
 
@@ -35,26 +77,24 @@ export default function Header() {
         <div className="ah-right">
           <button
             type="button"
-            className={`ah-bell${BADGE_COUNT > 0 ? " has-badge" : ""}`}
-            onClick={() => setNotifOpen(true)}
-            aria-label={`Notifications, ${BADGE_COUNT} unread`}
+            className={`ah-bell${unreadCount > 0 ? " has-badge" : ""}`}
+            onClick={openNotifications}
+            aria-label={`Notifications, ${unreadCount} unread`}
           >
             <FaBell />
-            {BADGE_COUNT > 0 && (
-              <span className="ah-badge">{BADGE_COUNT}</span>
+            {unreadCount > 0 && (
+              <span className="ah-badge">{unreadCount}</span>
             )}
           </button>
         </div>
       </header>
 
-      {/* Notification overlay */}
       <div
         className={`ah-overlay${notifOpen ? " open" : ""}`}
         onClick={() => setNotifOpen(false)}
         aria-hidden="true"
       />
 
-      {/* Notification drawer */}
       <aside
         className={`ah-drawer${notifOpen ? " open" : ""}`}
         role="dialog"
@@ -74,18 +114,28 @@ export default function Header() {
           </button>
         </div>
         <ul className="ah-notif-list">
-          {NOTIFS.map((n) => (
-            <li key={n.id} className="ah-notif" style={{ borderLeftColor: n.color }}>
-              <span className="ah-notif-text">{n.text}</span>
-              <span className="ah-notif-time">{n.time}</span>
+          {notifications.length === 0 ? (
+            <li className="ah-notif" style={{ borderLeftColor: "#CBD5E1" }}>
+              <span className="ah-notif-text">No new notifications</span>
             </li>
-          ))}
+          ) : (
+            notifications.map((notification) => (
+              <li
+                key={notification.id}
+                className="ah-notif"
+                style={{ borderLeftColor: getNotificationColor(notification.type) }}
+              >
+                <span className="ah-notif-text">{notification.title}</span>
+                <span className="ah-notif-time">{notification.body}</span>
+                <span className="ah-notif-time">{formatTimeAgo(notification.createdAt)}</span>
+              </li>
+            ))
+          )}
         </ul>
       </aside>
 
-      {/* Urgency legend reminder — appears on load, then every 10 min */}
       <BasicToast
-        message="A · High Priority: Immediate attention  |  B · Medium Priority: Within 30 min  |  C · Routine: Standard processing"
+        message="A - High Priority: Immediate attention  |  B - Medium Priority: Within 30 min  |  C - Routine: Standard processing"
         type="info"
         duration={8000}
         isVisible={showUrgency}
