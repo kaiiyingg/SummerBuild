@@ -7,14 +7,14 @@ client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY) if settings.OPENAI_API_KEY
 
 SUPPORTED_LOCALES = {
     "en": "English",
-    "zh": "Simplified Chinese",
+    "zh": "Chinese",
     "ms": "Malay",
     "ta": "Tamil",
 }
 
 VOICE_INSTRUCTIONS = {
     "en": "Read the text exactly as written in English. Speak calmly, clearly, and at a patient-friendly pace.",
-    "zh": "Read the text exactly as written in Simplified Chinese. Speak calmly, clearly, and at a patient-friendly pace.",
+    "zh": "Read the text exactly as written in Chinese. Speak calmly, clearly, and at a patient-friendly pace.",
     "ms": "Read the text exactly as written in Malay. Speak calmly, clearly, and at a patient-friendly pace.",
     "ta": "Read the text exactly as written in Tamil. Speak calmly, clearly, and at a patient-friendly pace.",
 }

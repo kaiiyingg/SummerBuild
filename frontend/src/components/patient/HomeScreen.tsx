@@ -2,7 +2,10 @@ import { useState, useRef, useEffect } from "react";
 import { Clock, Users, Lock, AlertTriangle, X, Calendar, Bell, ChevronLeft, ChevronRight, Check, RefreshCw, MapPin, User, Hash } from "lucide-react";
 import { useTranslation } from "../../context/LanguageContext";
 import {
+  createNotification,
   fetchCurrentPatientDetails,
+  fetchNotifications,
+  getCurrentPatientId,
   subscribeToPatientChanges,
 } from "../../services/pharmacyData";
 
@@ -170,15 +173,72 @@ const TIME_SLOTS = [
 ];
 const DAYS   = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+const MONTH_ABBREVIATIONS = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"];
 
-function RescheduleSheet({ onClose }: { onClose: () => void }) {
+function compactTimeLabel(time: string) {
+  return time.replace(/\s+/g, "").toUpperCase();
+}
+
+function formatCollectionSlot(year: number, month: number, date: number, time: string) {
+  return `${String(date).padStart(2, "0")}-${MONTH_ABBREVIATIONS[month]}-${year} ${compactTimeLabel(time)}`;
+}
+
+function getCollectionSlotKey(patient?: any) {
+  return `pilly-collection-slot-${patient?.id ?? getCurrentPatientId() ?? "current"}`;
+}
+
+function formatSystemCollectionSlot(date = new Date()) {
+  const time = date.toLocaleTimeString("en-SG", {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  });
+  return formatCollectionSlot(date.getFullYear(), date.getMonth(), date.getDate(), time);
+}
+
+async function getCurrentCollectionSlot(patient?: any) {
+  if (patient?.collectionSlot) return patient.collectionSlot;
+  if (patient?.collection_slot) return patient.collection_slot;
+
+  const date = patient?.collectionDate ?? patient?.collection_date;
+  const time = patient?.collectionTime ?? patient?.collection_time;
+  if (date && time) return `${date} ${compactTimeLabel(String(time))}`;
+
+  const slotKey = getCollectionSlotKey(patient);
+  const storedSlot = localStorage.getItem(slotKey);
+  if (storedSlot) return storedSlot;
+
+  const patientId = patient?.id ?? getCurrentPatientId();
+  if (patientId) {
+    try {
+      const latestReschedule = (await fetchNotifications({ recipientRole: "pharmacist" }))
+        .find((notification: any) =>
+          notification.type === "collection_rescheduled" &&
+          notification.patientId === patientId &&
+          notification.metadata?.toSlot
+        );
+
+      if (latestReschedule?.metadata?.toSlot) {
+        localStorage.setItem(slotKey, latestReschedule.metadata.toSlot);
+        return latestReschedule.metadata.toSlot;
+      }
+    } catch (error) {
+      console.warn("Unable to load previous collection slot:", error);
+    }
+  }
+
+  return formatSystemCollectionSlot();
+}
+
+function RescheduleSheet({ onClose, patient }: { onClose: () => void; patient?: any }) {
   const { t } = useTranslation();
-  const today = new Date(2026, 5, 5);
+  const today = new Date();
   const [viewYear,  setViewYear]  = useState(today.getFullYear());
   const [viewMonth, setViewMonth] = useState(today.getMonth());
   const [selectedDate, setSelectedDate] = useState<number | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
   const [confirmed, setConfirmed] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   const firstDay    = new Date(viewYear, viewMonth, 1).getDay();
   const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
@@ -202,7 +262,6 @@ function RescheduleSheet({ onClose }: { onClose: () => void }) {
         <h2 style={{ fontFamily:"'DM Sans',sans-serif", fontSize:"22px", fontWeight:700, color:C.textPrimary, marginBottom:"8px" }}>{t('queue.collectionRescheduled')}</h2>
         <p style={{ fontFamily:"'Open Sans',sans-serif", fontSize:"16px", color:C.textSecond, marginBottom:"6px" }}>{MONTHS[viewMonth]} {selectedDate}, {viewYear}</p>
         <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:"20px", fontWeight:700, color:C.teal, marginBottom:"24px" }}>{selectedSlot}</p>
-        <p style={{ fontFamily:"'Open Sans',sans-serif", fontSize:"15px", color:C.textSecond, marginBottom:"28px" }}>{t('queue.rescheduleConfirmMsg')}</p>
         <button onClick={onClose} className="w-full py-3.5 rounded-xl text-white" style={{ background:C.teal, fontFamily:"'DM Sans',sans-serif", fontSize:"16px", fontWeight:700 }}>{t('common.done')}</button>
       </div>
     </div>
@@ -272,9 +331,38 @@ function RescheduleSheet({ onClose }: { onClose: () => void }) {
               </div>
             </div>
           )}
-          <button onClick={()=>{if(selectedDate&&selectedSlot)setConfirmed(true);}}
+          <button onClick={async () => {
+              if (!selectedDate || !selectedSlot || submitting) return;
+              setSubmitting(true);
+              const dateLabel = `${MONTHS[viewMonth]} ${selectedDate}, ${viewYear}`;
+              const fromSlot = await getCurrentCollectionSlot(patient);
+              const toSlot = formatCollectionSlot(viewYear, viewMonth, selectedDate, selectedSlot);
+              try {
+                await createNotification({
+                  recipientRole: "pharmacist",
+                  patientId: patient?.id ?? getCurrentPatientId(),
+                  type: "collection_rescheduled",
+                  title: `${patient?.name || "Patient"} rescheduled collection`,
+                  body: `From ${fromSlot} to ${toSlot}`,
+                  metadata: {
+                    patientName: patient?.name ?? null,
+                    queueNo: patient?.queueNo ?? null,
+                    fromSlot,
+                    toSlot,
+                    newDate: dateLabel,
+                    newSlot: selectedSlot,
+                  },
+                });
+                localStorage.setItem(getCollectionSlotKey(patient), toSlot);
+              } catch (notificationError) {
+                console.warn("Unable to notify pharmacist:", notificationError);
+              } finally {
+                setSubmitting(false);
+                setConfirmed(true);
+              }
+            }}
             className="w-full py-3.5 rounded-xl text-white hover:opacity-90 transition-opacity"
-            style={{ background:selectedDate&&selectedSlot?C.teal:C.border, fontFamily:"'DM Sans',sans-serif", fontSize:"16px", fontWeight:700, cursor:selectedDate&&selectedSlot?"pointer":"not-allowed" }}>
+            style={{ background:selectedDate&&selectedSlot&&!submitting?C.teal:C.border, fontFamily:"'DM Sans',sans-serif", fontSize:"16px", fontWeight:700, cursor:selectedDate&&selectedSlot&&!submitting?"pointer":"not-allowed" }}>
             {t('queue.confirmReschedule')}
           </button>
         </div>
@@ -300,16 +388,10 @@ function ReRegisterSheet({ onClose, patient }: { onClose: () => void; patient?: 
         <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ background: C.tealLight }}>
           <Check size={30} color={C.teal} strokeWidth={2.5} />
         </div>
-        <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "14px", color: C.textSecond, marginBottom: "4px" }}>{t('queue.newQueueNumber')}</p>
-        <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "56px", fontWeight: 800, color: C.tealDark, lineHeight: 1, marginBottom: "8px" }}>
+        <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "18px", color: C.textSecond, marginBottom: "8px", fontWeight: 600 }}>{t('queue.newQueueNumber')}</p>
+        <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "72px", fontWeight: 800, color: C.tealDark, lineHeight: 1, letterSpacing: "1.5px", marginBottom: "28px" }}>
           {newQueue}
         </div>
-        <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "15px", color: C.textSecond, marginBottom: "6px" }}>
-          {t('queue.proceedToPharmacy')}
-        </p>
-        <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "14px", color: C.textDisabled, marginBottom: "28px" }}>
-          {t('queue.notifyWhenCalled')}
-        </p>
         <button onClick={onClose} className="w-full py-3.5 rounded-xl text-white"
           style={{ background: C.teal, fontFamily: "'DM Sans', sans-serif", fontSize: "16px", fontWeight: 700 }}>
           {t('common.done')}
@@ -427,19 +509,24 @@ export function HomeScreen({ onTabChange }: { onTabChange: (tab: string) => void
   const allMedicationReady = patient?.medications?.length
     ? patient.medications.every((med: any) => med.verified)
     : false;
+  const delayedInfo =
+    pendingMedication && patient?.status !== "ready"
+      ? {
+          med: pendingMedication.name,
+          reason: t('queue.delayedReasonDefault'),
+          eta: "20 min",
+        }
+      : null;
   const colQueue = {
     number: queueDigits,
     label: queueNumber,
     serving: `${queueNumber[0] ?? "A"}${String(servingNum).padStart(3, "0")}`,
     servingNum,
-    waitTime: patient?.status === "ready" ? "Ready now" : "8-12 min",
+    waitTime: delayedInfo ? delayedInfo.eta : patient?.status === "ready" ? "Ready now" : "8-12 min",
     ahead: Math.max(0, queueDigits - servingNum),
     status: (patient?.status === "ready" || allMedicationReady ? "now" : "almost") as QueueStatus,
     isActive: true,
-    delayed:
-      pendingMedication && patient?.status !== "ready"
-        ? { med: pendingMedication.name, reason: t('queue.delayedReasonDefault'), eta: "~20 min" }
-        : null,
+    delayed: delayedInfo,
   };
 
   const InfoChip = ({ icon, text }: { icon: React.ReactNode; text: string }) => (
@@ -643,7 +730,7 @@ export function HomeScreen({ onTabChange }: { onTabChange: (tab: string) => void
         </div>
       )}
 
-      {showReschedule   && <RescheduleSheet   onClose={() => setShowReschedule(false)} />}
+      {showReschedule   && <RescheduleSheet   patient={patient} onClose={() => setShowReschedule(false)} />}
       {showReRegister   && <ReRegisterSheet   patient={patient} onClose={() => { setShowReRegister(false); setShowMissedQueue(false); }} />}
     </div>
   );

@@ -1,6 +1,10 @@
-import { useState } from "react";
-import { LogOut, ChevronDown, ChevronUp, Bell, BellRing, AlertTriangle } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ChevronDown, ChevronUp, Bell, BellRing, AlertTriangle } from "lucide-react";
 import { useTranslation, LANGUAGES } from "../../context/LanguageContext";
+import {
+  fetchCurrentPatientDetails,
+  subscribeToPatientChanges,
+} from "../../services/pharmacyData";
 
 const C = {
   teal:        "#45C5BC",
@@ -11,7 +15,6 @@ const C = {
   textDisabled:"#94A3B8",
   border:      "#E2E8F0",
   amber:       "#F59E0B",
-  red:         "#EF4444",
 };
 
 const pastVisits = [
@@ -19,6 +22,15 @@ const pastVisits = [
   { id: 2, date: "14 Apr 2026", meds: ["Atorvastatin 20mg", "Aspirin 100mg"] },
   { id: 3, date: "1 Mar 2026",  meds: ["Metformin 500mg", "Atorvastatin 20mg", "Lisinopril 10mg"] },
 ];
+
+function getInitials(name: string) {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 3)
+    .map((part) => part[0]?.toUpperCase())
+    .join("") || "P";
+}
 
 function Toggle({ on, onToggle }: { on: boolean; onToggle: () => void }) {
   return (
@@ -30,11 +42,26 @@ function Toggle({ on, onToggle }: { on: boolean; onToggle: () => void }) {
   );
 }
 
-export function ProfileScreen({ onLogout }: { onLogout: () => void }) {
+export function ProfileScreen() {
   const { language, setLanguage, t } = useTranslation();
   const [notifs,        setNotifs]        = useState({ queue: true, reminders: true, delays: false });
   const [expandedVisit, setExpandedVisit] = useState<number | null>(null);
+  const [patient,       setPatient]       = useState<any>(null);
   const toggleNotif = (key: keyof typeof notifs) => setNotifs((n) => ({ ...n, [key]: !n[key] }));
+  const patientName = patient?.name || localStorage.getItem("pilly-user-name") || "Patient";
+  const patientNric = patient?.nric ? `NRIC: ${patient.nric}` : `${t("profile.patientId")}: ${patient?.id ?? "-"}`;
+  const patientInitials = getInitials(patientName);
+
+  useEffect(() => {
+    const loadPatient = async () => {
+      setPatient(await fetchCurrentPatientDetails());
+    };
+
+    void loadPatient();
+    return subscribeToPatientChanges(() => {
+      void loadPatient();
+    });
+  }, []);
 
   const SectionLabel = ({ text }: { text: string }) => (
     <p className="mb-3" style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "12px", fontWeight: 700, color: C.textDisabled, letterSpacing: "1px", textTransform: "uppercase" as const }}>
@@ -49,11 +76,11 @@ export function ProfileScreen({ onLogout }: { onLogout: () => void }) {
       <div className="bg-white rounded-2xl p-5" style={{ border: `1px solid ${C.border}` }}>
         <div className="flex items-center gap-4">
           <div className="w-16 h-16 rounded-full flex items-center justify-center shrink-0" style={{ background: C.tealLight }}>
-            <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "18px", fontWeight: 700, color: C.teal }}>TML</span>
+            <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "18px", fontWeight: 700, color: C.teal }}>{patientInitials}</span>
           </div>
           <div>
-            <h2 style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "20px", fontWeight: 700, color: C.textPrimary }}>Mdm. Tan Mei Ling</h2>
-            <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "15px", color: C.textSecond, marginTop: "2px" }}>NRIC: SXXXXXX1A</p>
+            <h2 style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "20px", fontWeight: 700, color: C.textPrimary }}>{patientName}</h2>
+            <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "15px", color: C.textSecond, marginTop: "2px" }}>{patientNric}</p>
             <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "15px", color: C.textSecond }}>Singapore General Hospital</p>
           </div>
         </div>
@@ -131,13 +158,6 @@ export function ProfileScreen({ onLogout }: { onLogout: () => void }) {
           })}
         </div>
       </div>
-
-      {/* Logout */}
-      <button onClick={onLogout}
-        className="w-full flex items-center justify-center gap-2 py-3 rounded-xl hover:opacity-80 transition-opacity"
-        style={{ border: `1.5px solid ${C.red}`, color: C.red, background: "white", fontFamily: "'DM Sans', sans-serif", fontSize: "16px", fontWeight: 600, height: "52px" }}>
-        <LogOut size={18} />{t('profile.logout')}
-      </button>
 
     </div>
   );

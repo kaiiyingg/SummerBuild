@@ -62,6 +62,18 @@ create table if not exists public.hold_reasons (
   created_at timestamptz not null default now()
 );
 
+create table if not exists public.notifications (
+  id bigint generated always as identity primary key,
+  recipient_role text not null check (recipient_role in ('patient', 'pharmacist')),
+  patient_id text references public.patients(id) on delete cascade,
+  type text not null,
+  title text not null,
+  body text not null,
+  metadata jsonb not null default '{}'::jsonb,
+  read boolean not null default false,
+  created_at timestamptz not null default now()
+);
+
 create table if not exists public.patient_reminders (
   id bigint generated always as identity primary key,
   patient_id text not null references public.patients(id) on delete cascade,
@@ -201,6 +213,7 @@ for each row execute function public.handle_new_auth_user();
 alter table public.patients enable row level security;
 alter table public.patient_medications enable row level security;
 alter table public.hold_reasons enable row level security;
+alter table public.notifications enable row level security;
 alter table public.patient_reminders enable row level security;
 alter table public.user_profiles enable row level security;
 
@@ -211,6 +224,9 @@ drop policy if exists "demo read medications" on public.patient_medications;
 drop policy if exists "demo update medications" on public.patient_medications;
 drop policy if exists "demo insert hold reasons" on public.hold_reasons;
 drop policy if exists "demo read hold reasons" on public.hold_reasons;
+drop policy if exists "demo read notifications" on public.notifications;
+drop policy if exists "demo insert notifications" on public.notifications;
+drop policy if exists "demo update notifications" on public.notifications;
 drop policy if exists "demo read reminders" on public.patient_reminders;
 drop policy if exists "demo insert reminders" on public.patient_reminders;
 drop policy if exists "demo update reminders" on public.patient_reminders;
@@ -239,6 +255,15 @@ on public.hold_reasons for insert to anon, authenticated with check (true);
 create policy "demo read hold reasons"
 on public.hold_reasons for select to anon, authenticated using (true);
 
+create policy "demo read notifications"
+on public.notifications for select to anon, authenticated using (true);
+
+create policy "demo insert notifications"
+on public.notifications for insert to anon, authenticated with check (true);
+
+create policy "demo update notifications"
+on public.notifications for update to anon, authenticated using (true) with check (true);
+
 create policy "demo read reminders"
 on public.patient_reminders for select to anon, authenticated using (true);
 
@@ -260,6 +285,7 @@ on public.user_profiles for update to authenticated using (auth.uid() = id) with
 grant select, insert, update on public.patients to anon, authenticated;
 grant select, update on public.patient_medications to anon, authenticated;
 grant select, insert on public.hold_reasons to anon, authenticated;
+grant select, insert, update on public.notifications to anon, authenticated;
 grant select, insert, update on public.patient_reminders to anon, authenticated;
 grant select, insert, update on public.user_profiles to authenticated;
 
@@ -267,9 +293,12 @@ grant usage on sequence public.patient_id_seq to anon, authenticated;
 grant usage on sequence public.queue_no_seq to anon, authenticated;
 grant usage on sequence public.patient_medications_id_seq to anon, authenticated;
 grant usage on sequence public.hold_reasons_id_seq to anon, authenticated;
+grant usage on sequence public.notifications_id_seq to anon, authenticated;
 grant usage on sequence public.patient_reminders_id_seq to anon, authenticated;
 
-truncate table public.hold_reasons, public.patient_reminders, public.patient_medications, public.user_profiles, public.patients restart identity cascade;
+alter table public.notifications replica identity full;
+
+truncate table public.notifications, public.hold_reasons, public.patient_reminders, public.patient_medications, public.user_profiles, public.patients restart identity cascade;
 
 insert into public.patients (id, queue_no, name, nric, urgency, status, wait_min, elapsed_label) values
   ('P001', 'A127', 'Tan Wei Ming', 'S1234567A', 'A', 'pending', 8, '8 min ago'),
@@ -345,6 +374,7 @@ end $$;
 
 alter table public.patients replica identity full;
 alter table public.patient_medications replica identity full;
+alter table public.notifications replica identity full;
 alter table public.patient_reminders replica identity full;
 
 do $$
@@ -365,6 +395,15 @@ begin
       and tablename = 'patient_medications'
   ) then
     alter publication supabase_realtime add table public.patient_medications;
+  end if;
+
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime'
+      and schemaname = 'public'
+      and tablename = 'notifications'
+  ) then
+    alter publication supabase_realtime add table public.notifications;
   end if;
 
   if not exists (

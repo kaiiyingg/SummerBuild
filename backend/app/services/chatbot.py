@@ -88,6 +88,31 @@ def _system_prompt_for_locale(locale_data: dict[str, Any]) -> str:
     return SYSTEM_PROMPT if not language_instruction else f"{SYSTEM_PROMPT}\n\n{language_instruction}"
 
 
+def _sanitize_history_for_reka(history: list[dict] | None) -> list[dict[str, str]]:
+    raw: list[dict[str, str]] = []
+    for item in history or []:
+        role = str(item.get("role", "")).strip()
+        content = str(item.get("content", "")).strip()
+        if role in {"user", "assistant"} and content:
+            raw.append({"role": role, "content": content})
+
+    # Reka requires the first non-system turn to be a user message.
+    while raw and raw[0]["role"] != "user":
+        raw.pop(0)
+
+    if not raw:
+        return []
+
+    # Keep strict alternation by dropping consecutive same-role turns.
+    normalized: list[dict[str, str]] = [raw[0]]
+    for msg in raw[1:]:
+        if msg["role"] == normalized[-1]["role"]:
+            continue
+        normalized.append(msg)
+
+    return normalized
+
+
 async def route_query(message: str, history: list[dict], language: str | None = None) -> tuple[str, str]:
     locale_code = _normalize_locale(language)
     locale_data = LOCALES[locale_code]
@@ -107,10 +132,16 @@ async def route_query(message: str, history: list[dict], language: str | None = 
         return faq_reply, "faq"
 
     # Complex lane for open ended questions.
-    # Intentionally ignore history so the provider answers only the latest user input.
-    _ = history
+    history_messages = _sanitize_history_for_reka(history)
+    # Keep only recent turns to bound token usage.
+    context_messages = history_messages[-8:]
+    # If latest history message is already user text, drop it and use current message as final user turn.
+    if context_messages and context_messages[-1]["role"] == "user":
+        context_messages = context_messages[:-1]
+
     messages: list[dict[str, str]] = [{"role": "system", "content": _system_prompt_for_locale(locale_data)}]
-    messages.append({"role": "user", "content": message})
+    messages.extend(context_messages)
+    messages.append({"role": "user", "content": message.strip()})
 
     try:
         response = await client.chat.completions.create(

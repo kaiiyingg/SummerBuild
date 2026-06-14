@@ -5,6 +5,7 @@ import {
   FileText,
   Search,
   Upload,
+  Video,
   Volume2,
   X,
 } from "lucide-react";
@@ -29,6 +30,7 @@ const C = {
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000";
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
+const MAX_VIDEO_SIZE_BYTES = 25 * 1024 * 1024;
 const SPEECH_API_URL = `${API_BASE_URL}/api/scan-medication-speech`;
 
 type ScanResult = {
@@ -256,13 +258,19 @@ function ResultList({
 
 export function ScanScreen() {
   const { language, t, getLanguageLabel } = useTranslation();
-  const cameraInputRef = useRef<HTMLInputElement>(null);
   const uploadInputRef = useRef<HTMLInputElement>(null);
   const cameraVideoRef = useRef<HTMLVideoElement | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recordingChunksRef = useRef<Blob[]>([]);
   const speechRequestRef = useRef<AbortController | null>(null);
   const speechCacheRef = useRef<Map<string, string>>(new Map());
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [selectedMediaType, setSelectedMediaType] = useState<"image" | "video">("image");
+  const [pendingUpload, setPendingUpload] = useState<{
+    file: File;
+    mediaType: "image" | "video";
+  } | null>(null);
   const [scanResult, setScanResult] = useState<ScanResult | null>(null);
   const [scanError, setScanError] = useState("");
   const [isScanning, setIsScanning] = useState(false);
@@ -270,6 +278,12 @@ export function ScanScreen() {
   const [cameraOpen, setCameraOpen] = useState(false);
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
   const [cameraError, setCameraError] = useState("");
+  const [isRecording, setIsRecording] = useState(false);
+  const [cameraDraft, setCameraDraft] = useState<{
+    file: File;
+    mediaType: "image" | "video";
+    previewUrl: string;
+  } | null>(null);
 
   const features = [
     { icon: <Search size={20} color={C.teal} />, title: t("medications.featureIdentifyTitle"), desc: t("medications.featureIdentifyDesc") },
@@ -289,6 +303,14 @@ export function ScanScreen() {
       }
     };
   }, [previewUrl]);
+
+  useEffect(() => {
+    return () => {
+      if (cameraDraft?.previewUrl) {
+        URL.revokeObjectURL(cameraDraft.previewUrl);
+      }
+    };
+  }, [cameraDraft]);
 
   useEffect(() => {
     if (cameraVideoRef.current && cameraStream) {
@@ -352,6 +374,15 @@ export function ScanScreen() {
   }
 
   function closeCamera() {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+      mediaRecorderRef.current.onstop = null;
+      mediaRecorderRef.current.stop();
+    }
+    setIsRecording(false);
+    if (cameraDraft?.previewUrl) {
+      URL.revokeObjectURL(cameraDraft.previewUrl);
+    }
+    setCameraDraft(null);
     stopCameraStream(cameraStream);
     setCameraStream(null);
     setCameraError("");
@@ -361,11 +392,15 @@ export function ScanScreen() {
   async function openLiveCamera() {
     setScanError("");
     setCameraError("");
+    if (cameraDraft?.previewUrl) {
+      URL.revokeObjectURL(cameraDraft.previewUrl);
+    }
+    setCameraDraft(null);
     setCameraOpen(true);
 
     if (!navigator.mediaDevices?.getUserMedia) {
       setCameraOpen(false);
-      cameraInputRef.current?.click();
+      uploadInputRef.current?.click();
       return;
     }
 
@@ -418,9 +453,96 @@ export function ScanScreen() {
       `medication-label-${new Date().toISOString().replace(/[:.]/g, "-")}.jpg`,
       { type: "image/jpeg" }
     );
+    if (cameraDraft?.previewUrl) {
+      URL.revokeObjectURL(cameraDraft.previewUrl);
+    }
+    stopCameraStream(cameraStream);
+    setCameraStream(null);
+    setIsRecording(false);
+    setCameraDraft({
+      file,
+      mediaType: "image",
+      previewUrl: URL.createObjectURL(file),
+    });
+  }
 
+  function pickRecorderMimeType() {
+    const candidates = [
+      "video/mp4;codecs=h264",
+      "video/mp4",
+      "video/webm;codecs=vp9",
+      "video/webm;codecs=vp8",
+      "video/webm",
+    ];
+    for (const mimeType of candidates) {
+      if (typeof MediaRecorder !== "undefined" && MediaRecorder.isTypeSupported(mimeType)) {
+        return mimeType;
+      }
+    }
+    return "";
+  }
+
+  function toggleVideoRecording() {
+    if (!cameraStream) {
+      setCameraError(t("medications.scanCameraNotReady"));
+      return;
+    }
+
+    if (isRecording) {
+      mediaRecorderRef.current?.stop();
+      return;
+    }
+
+    try {
+      const mimeType = pickRecorderMimeType();
+      const recorder = mimeType ? new MediaRecorder(cameraStream, { mimeType }) : new MediaRecorder(cameraStream);
+      recordingChunksRef.current = [];
+
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          recordingChunksRef.current.push(event.data);
+        }
+      };
+
+      recorder.onstop = () => {
+        setIsRecording(false);
+        const chunkType = recordingChunksRef.current.find((chunk) => chunk.type)?.type;
+        const outputType = recorder.mimeType || chunkType || "video/webm";
+        const blob = new Blob(recordingChunksRef.current, { type: outputType });
+        if (!blob.size) {
+          setCameraError(t("medications.scanCameraError"));
+          return;
+        }
+        const ext = outputType.includes("mp4") ? "mp4" : "webm";
+        const file = new File([blob], `medication-scan-${Date.now()}.${ext}`, { type: outputType });
+        if (cameraDraft?.previewUrl) {
+          URL.revokeObjectURL(cameraDraft.previewUrl);
+        }
+        stopCameraStream(cameraStream);
+        setCameraStream(null);
+        setCameraDraft({
+          file,
+          mediaType: "video",
+          previewUrl: URL.createObjectURL(file),
+        });
+      };
+
+      recorder.start();
+      mediaRecorderRef.current = recorder;
+      setIsRecording(true);
+      setCameraError("");
+    } catch {
+      setCameraError(t("medications.scanCameraError"));
+    }
+  }
+
+  async function confirmCameraDraft() {
+    if (!cameraDraft) {
+      return;
+    }
+    const { file, mediaType } = cameraDraft;
     closeCamera();
-    await runScan(file);
+    await runScan(file, mediaType);
   }
 
   async function fetchSpeechAudioUrl(
@@ -517,8 +639,10 @@ export function ScanScreen() {
     }
   }
 
-  const runScan = async (file: File) => {
+  const runScan = async (file: File, mediaType: "image" | "video") => {
+    setPendingUpload(null);
     setSelectedImage(file);
+    setSelectedMediaType(mediaType);
     setScanResult(null);
     setScanError("");
     stopSpeaking();
@@ -526,11 +650,12 @@ export function ScanScreen() {
     setIsScanning(true);
 
     const formData = new FormData();
-    formData.append("image", file);
+    formData.append(mediaType, file);
     formData.append("language", language);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/scan-medication-label`, {
+      const endpoint = mediaType === "video" ? "/api/scan-medication-video" : "/api/scan-medication-label";
+      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
         method: "POST",
         body: formData,
       });
@@ -561,22 +686,54 @@ export function ScanScreen() {
 
     if (!file) return;
 
-    if (!file.type.startsWith("image/")) {
-      setScanError(t("medications.scanUnsupportedFile"));
+    if (file.type.startsWith("image/")) {
+      if (file.size > MAX_FILE_SIZE_BYTES) {
+        setScanError(t("medications.scanFileTooLarge"));
+        return;
+      }
+      setScanError("");
+      stopSpeaking();
+      clearSpeechCache();
+      setScanResult(null);
+      setSelectedImage(file);
+      setSelectedMediaType("image");
+      setPendingUpload({ file, mediaType: "image" });
       return;
     }
 
-    if (file.size > MAX_FILE_SIZE_BYTES) {
-      setScanError(t("medications.scanFileTooLarge"));
+    if (file.type.startsWith("video/")) {
+      if (file.size > MAX_VIDEO_SIZE_BYTES) {
+        setScanError("This video is larger than 25MB. Please upload a smaller video.");
+        return;
+      }
+      setScanError("");
+      stopSpeaking();
+      clearSpeechCache();
+      setScanResult(null);
+      setSelectedImage(file);
+      setSelectedMediaType("video");
+      setPendingUpload({ file, mediaType: "video" });
       return;
     }
 
-    await runScan(file);
+    setScanError("Please upload a photo or video file.");
   };
 
   const rescanSelectedImage = async () => {
     if (!selectedImage) return;
-    await runScan(selectedImage);
+    await runScan(selectedImage, selectedMediaType);
+  };
+
+  const confirmPendingUpload = async () => {
+    if (!pendingUpload) return;
+    await runScan(pendingUpload.file, pendingUpload.mediaType);
+  };
+
+  const cancelPendingUpload = () => {
+    setPendingUpload(null);
+    setSelectedImage(null);
+    setScanResult(null);
+    setScanError("");
   };
 
   const handleTopAction = () => {
@@ -721,15 +878,6 @@ export function ScanScreen() {
             <Camera size={21} color={C.textSecond} />
             {t("medications.openCamera")}
           </button>
-          <input
-            ref={cameraInputRef}
-            type="file"
-            accept="image/*"
-            capture="environment"
-            className="hidden"
-            onChange={(event) => void handleFileSelected(event)}
-          />
-
           <button
             onClick={() => uploadInputRef.current?.click()}
             className="flex min-h-[56px] items-center justify-center gap-2 rounded-xl px-4 py-3 hover:opacity-90 transition-opacity"
@@ -743,12 +891,12 @@ export function ScanScreen() {
             }}
           >
             <Upload size={21} color={C.textSecond} />
-            {t("medications.uploadPhoto")}
+            {t("medications.scanUploadPhotoVideo")}
           </button>
           <input
             ref={uploadInputRef}
             type="file"
-            accept="image/*"
+            accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime"
             className="hidden"
             onChange={(event) => void handleFileSelected(event)}
           />
@@ -807,9 +955,24 @@ export function ScanScreen() {
 
             <div
               className="overflow-hidden rounded-[24px]"
-              style={{ background: cameraStream ? "#0F172A" : C.muted, border: `1px solid ${C.border}` }}
+              style={{ background: cameraDraft || cameraStream ? "#0F172A" : C.muted, border: `1px solid ${C.border}` }}
             >
-              {cameraStream ? (
+              {cameraDraft ? (
+                cameraDraft.mediaType === "video" ? (
+                  <video
+                    key={cameraDraft.previewUrl}
+                    src={cameraDraft.previewUrl}
+                    controls
+                    autoPlay
+                    muted
+                    playsInline
+                    preload="metadata"
+                    className="block h-[360px] w-full object-contain bg-black"
+                  />
+                ) : (
+                  <img src={cameraDraft.previewUrl} alt="Captured medication preview" className="block h-[360px] w-full object-contain bg-black" />
+                )
+              ) : cameraStream ? (
                 <video
                   ref={cameraVideoRef}
                   autoPlay
@@ -826,39 +989,110 @@ export function ScanScreen() {
               )}
             </div>
 
-            <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={cameraError ? () => {
-                  closeCamera();
-                  uploadInputRef.current?.click();
-                } : closeCamera}
-                className="flex-1 rounded-xl py-3 transition-opacity hover:opacity-90"
-                style={{
-                  background: C.muted,
-                  border: `1px solid ${C.border}`,
-                  color: C.textPrimary,
-                  fontFamily: "'DM Sans', sans-serif",
-                  fontSize: "15px",
-                  fontWeight: 700,
-                }}
-              >
-                {cameraError ? t("medications.scanUseUploadInstead") : t("medications.scanCloseCamera")}
-              </button>
-              <button
-                type="button"
-                onClick={() => void captureCameraPhoto()}
-                disabled={!cameraStream || isScanning}
-                className="flex-1 rounded-xl py-3 text-white transition-opacity disabled:opacity-50"
-                style={{
-                  background: `linear-gradient(135deg, ${C.teal} 0%, ${C.tealDark} 100%)`,
-                  fontFamily: "'DM Sans', sans-serif",
-                  fontSize: "15px",
-                  fontWeight: 700,
-                }}
-              >
-                {t("medications.scanCapturePhoto")}
-              </button>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {cameraDraft ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (cameraDraft.previewUrl) {
+                        URL.revokeObjectURL(cameraDraft.previewUrl);
+                      }
+                      setCameraDraft(null);
+                      setCameraError("");
+                    }}
+                    className="rounded-xl py-3 transition-opacity hover:opacity-90"
+                    style={{
+                      background: C.muted,
+                      border: `1px solid ${C.border}`,
+                      color: C.textPrimary,
+                      fontFamily: "'DM Sans', sans-serif",
+                      fontSize: "15px",
+                      fontWeight: 700,
+                    }}
+                  >
+                    {t("medications.scanRetake")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void confirmCameraDraft()}
+                    disabled={isScanning}
+                    className="rounded-xl py-3 text-white transition-opacity disabled:opacity-50"
+                    style={{
+                      background: `linear-gradient(135deg, ${C.teal} 0%, ${C.tealDark} 100%)`,
+                      fontFamily: "'DM Sans', sans-serif",
+                      fontSize: "15px",
+                      fontWeight: 700,
+                    }}
+                  >
+                    {t("medications.scanUseThis")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={closeCamera}
+                    className="rounded-xl py-3 transition-opacity hover:opacity-90"
+                    style={{
+                      background: C.muted,
+                      border: `1px solid ${C.border}`,
+                      color: C.textPrimary,
+                      fontFamily: "'DM Sans', sans-serif",
+                      fontSize: "15px",
+                      fontWeight: 700,
+                    }}
+                  >
+                    {t("medications.scanCloseCamera")}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => void captureCameraPhoto()}
+                    disabled={!cameraStream || isScanning || isRecording}
+                    className="rounded-xl py-3 transition-opacity disabled:opacity-50"
+                    style={{
+                      background: C.muted,
+                      border: `1px solid ${C.border}`,
+                      color: C.textPrimary,
+                      fontFamily: "'DM Sans', sans-serif",
+                      fontSize: "15px",
+                      fontWeight: 700,
+                    }}
+                  >
+                    {t("medications.scanCapturePhoto")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={toggleVideoRecording}
+                    disabled={!cameraStream || isScanning}
+                    className="rounded-xl py-3 text-white transition-opacity disabled:opacity-50 flex items-center justify-center gap-2"
+                    style={{
+                      background: isRecording ? C.red : `linear-gradient(135deg, ${C.teal} 0%, ${C.tealDark} 100%)`,
+                      fontFamily: "'DM Sans', sans-serif",
+                      fontSize: "15px",
+                      fontWeight: 700,
+                    }}
+                  >
+                    <Video size={16} color="white" />
+                    {isRecording ? t("medications.scanStopRecording") : t("medications.scanRecordVideo")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={closeCamera}
+                    className="rounded-xl py-3 transition-opacity hover:opacity-90"
+                    style={{
+                      background: C.muted,
+                      border: `1px solid ${C.border}`,
+                      color: C.textPrimary,
+                      fontFamily: "'DM Sans', sans-serif",
+                      fontSize: "15px",
+                      fontWeight: 700,
+                    }}
+                  >
+                    {t("medications.scanCloseCamera")}
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -900,7 +1134,7 @@ export function ScanScreen() {
                       textTransform: "uppercase",
                     }}
                   >
-                    {t("medications.scanSelectedPhoto")}
+                    {selectedMediaType === "video" ? t("medications.scanSelectedVideo") : t("medications.scanSelectedPhoto")}
                   </p>
                   <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "16px", fontWeight: 700, color: C.textPrimary, marginTop: "4px" }}>
                     {selectedImage.name}
@@ -908,7 +1142,7 @@ export function ScanScreen() {
                 </div>
                 <button
                   type="button"
-                  onClick={handleTopAction}
+                  onClick={pendingUpload ? cancelPendingUpload : handleTopAction}
                   className="px-4 py-2.5 rounded-xl hover:opacity-90 transition-opacity"
                   style={{
                     background: C.muted,
@@ -919,17 +1153,60 @@ export function ScanScreen() {
                     fontWeight: 700,
                   }}
                 >
-                  {canRetranslate ? t("medications.scanRetranslate") : t("medications.scanRescan")}
+                  {pendingUpload
+                    ? t("common.cancel")
+                    : canRetranslate
+                      ? t("medications.scanRetranslate")
+                      : selectedMediaType === "video"
+                        ? t("medications.scanRescanVideo")
+                        : t("medications.scanRescan")}
                 </button>
               </div>
 
               {previewUrl && (
                 <div className="rounded-2xl overflow-hidden" style={{ border: `1px solid ${C.border}`, background: C.bg }}>
-                  <img
-                    src={previewUrl}
-                    alt="Medication label preview"
-                    className="w-full h-auto max-h-[360px] object-contain bg-white"
-                  />
+                  {selectedMediaType === "video" ? (
+                    <video src={previewUrl} controls className="w-full h-auto max-h-[360px] object-contain bg-black" />
+                  ) : (
+                    <img
+                      src={previewUrl}
+                      alt={t("medications.scanPreviewAlt")}
+                      className="w-full h-auto max-h-[360px] object-contain bg-white"
+                    />
+                  )}
+                </div>
+              )}
+              {pendingUpload && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={cancelPendingUpload}
+                    className="rounded-xl py-3 transition-opacity hover:opacity-90"
+                    style={{
+                      background: C.muted,
+                      border: `1px solid ${C.border}`,
+                      color: C.textPrimary,
+                      fontFamily: "'DM Sans', sans-serif",
+                      fontSize: "15px",
+                      fontWeight: 700,
+                    }}
+                  >
+                    {t("common.cancel")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void confirmPendingUpload()}
+                    disabled={isScanning}
+                    className="rounded-xl py-3 text-white transition-opacity disabled:opacity-50"
+                    style={{
+                      background: `linear-gradient(135deg, ${C.teal} 0%, ${C.tealDark} 100%)`,
+                      fontFamily: "'DM Sans', sans-serif",
+                      fontSize: "15px",
+                      fontWeight: 700,
+                    }}
+                  >
+                    {t("medications.scanConfirmAndScan")}
+                  </button>
                 </div>
               )}
             </section>
