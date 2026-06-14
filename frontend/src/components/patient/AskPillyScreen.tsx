@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect } from "react";
-import { Mic, Send, Pill } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Camera, Mic, Paperclip, Pill, Send, Video, X } from "lucide-react";
 import { useTranslation } from "../../context/LanguageContext";
 
 const C = {
@@ -14,17 +14,19 @@ const C = {
 };
 
 type Message = { id: number; role: "bot" | "user"; text: string; time: string };
-type ChatApiResponse = { reply: string; source: "faq" | "redirect" | "reka" };
+type ChatApiResponse = { reply: string; source?: "faq" | "redirect" | "reka" };
+type AttachmentType = "image" | "video";
+type MediaAttachment = { file: File; kind: AttachmentType; previewUrl: string };
 
-const GREETING_REPLIES: Record<string, string> = {
+const GREETING_TEMPLATES: Record<string, string> = {
   en:
-    "Hello Mdm. Tan! I'm Pilly, your hospital pharmacy assistant. I can help with medication usage, dosage guidance, side effects, interactions, storage, and pharmacy services like queue, collection, and opening hours. How can I help you today?",
+    "Hello {{name}}! I'm Pilly, your hospital pharmacy assistant. I can help with medication usage, dosage guidance, side effects, interactions, storage, and pharmacy services such as queue status, medication collection, and opening hours.\n\nYou can also upload or capture photos and short videos of your medications. I can help identify medications, explain how to use them, check whether they are being taken correctly, and provide guidance on proper medication handling and storage. You can also ask your question directly in the video.\n\nHow can I help you today?",
   zh:
-    "您好，陈女士！我是 Pilly，您的医院药房助手。我可以协助您了解用药方式、剂量建议、副作用、药物相互作用、储存方式，以及排队、取药和营业时间等药房服务。请问今天我可以怎么帮助您？",
+    "您好，{{name}}！我是 Pilly，您的医院药房助手。我可以协助您了解用药方式、剂量建议、副作用、药物相互作用、储存方式，以及排队状态、取药和营业时间等药房服务。\n\n您也可以上传或拍摄药物照片和短视频。我可以帮助识别药物、解释用法、检查是否服用正确，并提供药物处理与储存的安全建议。您也可以直接在视频里提出问题。\n\n请问今天我可以怎么帮助您？",
   ta:
-    "வணக்கம் டான் மேடம்! நான் உங்கள் மருத்துவமனை மருந்தக உதவியாளர் Pilly. மருந்து பயன்படுத்தும் முறை, அளவு வழிகாட்டல், பக்கவிளைவுகள், மருந்துகள் இடையிலான தொடர்புகள், சேமிப்பு, மேலும் வரிசை, பெறுதல், திறப்பு நேரம் போன்ற சேவைகளில் உதவ முடியும். இன்று உங்களுக்கு என்ன உதவி வேண்டும்?",
+    "வணக்கம் {{name}}! நான் உங்கள் மருத்துவமனை மருந்தக உதவியாளர் Pilly. மருந்தைப் பயன்படுத்தும் முறை, அளவு வழிகாட்டல், பக்கவிளைவுகள், மருந்து தொடர்புகள், சேமிப்பு மற்றும் வரிசை நிலை, மருந்து பெறுதல், திறப்பு நேரம் போன்ற மருந்தக சேவைகளில் உதவ முடியும்.\n\nஉங்கள் மருந்துகளின் புகைப்படம் அல்லது குறும் வீடியோவை பதிவேற்றலாம் அல்லது எடுக்கலாம். மருந்தை அடையாளம் காண, பயன்படுத்தும் முறையை விளக்க, சரியாக எடுத்துக்கொள்கிறீர்களா என்று சரிபார்க்க, மருந்தை பாதுகாப்பாக கையாளவும் சேமிக்கவும் வழிகாட்ட முடியும். உங்கள் கேள்வியை வீடியோவிலேயே நேரடியாக கேட்கவும் முடியும்.\n\nஇன்று உங்களுக்கு என்ன உதவி வேண்டும்?",
   ms:
-    "Hai Puan Tan! Saya Pilly, pembantu farmasi hospital anda. Saya boleh bantu tentang penggunaan ubat, panduan dos, kesan sampingan, interaksi ubat, penyimpanan, serta perkhidmatan farmasi seperti giliran, pengambilan ubat, dan waktu operasi. Bagaimana saya boleh bantu anda hari ini?",
+    "Hai {{name}}! Saya Pilly, pembantu farmasi hospital anda. Saya boleh bantu tentang penggunaan ubat, panduan dos, kesan sampingan, interaksi ubat, penyimpanan, serta perkhidmatan farmasi seperti status giliran, pengambilan ubat, dan waktu operasi.\n\nAnda juga boleh memuat naik atau merakam foto dan video pendek ubat anda. Saya boleh bantu kenal pasti ubat, terangkan cara penggunaan, semak sama ada ubat diambil dengan betul, dan beri panduan pengendalian serta penyimpanan ubat yang selamat. Anda juga boleh tanya soalan terus dalam video.\n\nBagaimana saya boleh bantu anda hari ini?",
 };
 
 const GREETING_KEYWORDS: Record<string, string[]> = {
@@ -71,6 +73,7 @@ const ENDING_KEYWORDS: Record<string, string[]> = {
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000";
 const DEFAULT_LANGUAGE = "en";
+const MAX_MEDIA_BYTES = 25 * 1024 * 1024;
 
 const FAQ_CHIP_KEYS = [
   "chat.suggestionOne",
@@ -148,15 +151,36 @@ function renderBotFormattedText(rawText: string) {
   );
 }
 
+function getUserDisplayName() {
+  const stored = localStorage.getItem("pilly-user-name")?.trim();
+  return stored || "Patient";
+}
+
+function greetingFor(language: string, name: string) {
+  const template = GREETING_TEMPLATES[language] ?? GREETING_TEMPLATES[DEFAULT_LANGUAGE];
+  return template.replace("{{name}}", name);
+}
+
 export function AskPillyScreen() {
   const { language, t } = useTranslation();
-  const greetingForLanguage = GREETING_REPLIES[language] ?? GREETING_REPLIES[DEFAULT_LANGUAGE];
+  const greetingForLanguage = greetingFor(language, getUserDisplayName());
   const endingForLanguage = ENDING_REPLIES[language] ?? ENDING_REPLIES[DEFAULT_LANGUAGE];
 
   const [messages, setMessages] = useState<Message[]>([{ id: 1, role: "bot", text: greetingForLanguage, time: "2:34 PM" }]);
   const [inputText, setInputText] = useState("");
   const [isSending, setIsSending] = useState(false);
+  const [attachment, setAttachment] = useState<MediaAttachment | null>(null);
+  const [composerError, setComposerError] = useState("");
+  const [cameraOpen, setCameraOpen] = useState(false);
+  const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
+  const [cameraError, setCameraError] = useState("");
+  const [isRecording, setIsRecording] = useState(false);
+
   const bottomRef = useRef<HTMLDivElement>(null);
+  const uploadInputRef = useRef<HTMLInputElement>(null);
+  const cameraVideoRef = useRef<HTMLVideoElement | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recordingChunksRef = useRef<Blob[]>([]);
 
   useEffect(() => {
     setMessages([{ id: 1, role: "bot", text: greetingForLanguage, time: "2:34 PM" }]);
@@ -166,22 +190,32 @@ export function AskPillyScreen() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  useEffect(() => {
+    if (cameraVideoRef.current && cameraStream) {
+      cameraVideoRef.current.srcObject = cameraStream;
+    }
+  }, [cameraStream]);
 
+  useEffect(() => {
+    return () => {
+      if (attachment?.previewUrl) {
+        URL.revokeObjectURL(attachment.previewUrl);
+      }
+      cameraStream?.getTracks().forEach((track) => track.stop());
+    };
+  }, [attachment, cameraStream]);
+
+  const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const isAsciiKeyword = (keyword: string) => /^[a-z0-9\s'’-]+$/i.test(keyword);
 
   const matchesAnyKeyword = (normalizedText: string, keywords: string[]) =>
     keywords.some((keyword) => {
       const normalizedKeyword = keyword.trim().toLowerCase();
       if (!normalizedKeyword) return false;
-
-      // For latin keywords, match as whole words/phrases to avoid false positives like "hi" in "which".
       if (isAsciiKeyword(normalizedKeyword)) {
         const pattern = new RegExp(`(^|\\W)${escapeRegExp(normalizedKeyword)}(?=\\W|$)`, "i");
         return pattern.test(normalizedText);
       }
-
-      // For non-latin scripts, keep phrase containment.
       return normalizedText.includes(normalizedKeyword);
     });
 
@@ -196,11 +230,176 @@ export function AskPillyScreen() {
     return null;
   };
 
-  const sendMessage = async (text: string) => {
-    if (!text.trim() || isSending) return;
+  function clearAttachment() {
+    setAttachment((current) => {
+      if (current?.previewUrl) {
+        URL.revokeObjectURL(current.previewUrl);
+      }
+      return null;
+    });
+  }
 
+  function setAttachmentFile(file: File) {
+    const isImage = file.type.startsWith("image/");
+    const isVideo = file.type.startsWith("video/");
+    if (!isImage && !isVideo) {
+      setComposerError(t("chat.attachUnsupported"));
+      return;
+    }
+    if (file.size > MAX_MEDIA_BYTES) {
+      setComposerError(t("chat.attachTooLarge"));
+      return;
+    }
+
+    setComposerError("");
+    setAttachment((current) => {
+      if (current?.previewUrl) {
+        URL.revokeObjectURL(current.previewUrl);
+      }
+      return {
+        file,
+        kind: isVideo ? "video" : "image",
+        previewUrl: URL.createObjectURL(file),
+      };
+    });
+  }
+
+  async function openLiveCamera() {
+    setComposerError("");
+    setCameraError("");
+    setCameraOpen(true);
+
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setCameraError(t("chat.cameraNotSupported"));
+      return;
+    }
+
+    try {
+      cameraStream?.getTracks().forEach((track) => track.stop());
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: { ideal: "environment" },
+          width: { ideal: 1920 },
+          height: { ideal: 1080 },
+        },
+        audio: true,
+      });
+      setCameraStream(stream);
+    } catch {
+      setCameraError(t("chat.cameraOpenError"));
+    }
+  }
+
+  function closeCamera() {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+      mediaRecorderRef.current.stop();
+    }
+    setIsRecording(false);
+    cameraStream?.getTracks().forEach((track) => track.stop());
+    setCameraStream(null);
+    setCameraError("");
+    setCameraOpen(false);
+  }
+
+  async function captureCameraPhoto() {
+    const video = cameraVideoRef.current;
+    if (!video || !video.videoWidth || !video.videoHeight) {
+      setCameraError(t("chat.cameraNotReady"));
+      return;
+    }
+
+    const canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const context = canvas.getContext("2d");
+    if (!context) {
+      setCameraError(t("chat.cameraCapturePhotoError"));
+      return;
+    }
+
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const blob = await new Promise<Blob | null>((resolve) => {
+      canvas.toBlob(resolve, "image/jpeg", 0.92);
+    });
+
+    if (!blob) {
+      setCameraError(t("chat.cameraCapturePhotoError"));
+      return;
+    }
+
+    const file = new File([blob], `ask-pilly-${Date.now()}.jpg`, { type: "image/jpeg" });
+    setAttachmentFile(file);
+    closeCamera();
+  }
+
+  function pickRecorderMimeType() {
+    const candidates = [
+      "video/mp4;codecs=h264",
+      "video/mp4",
+      "video/webm;codecs=vp9",
+      "video/webm;codecs=vp8",
+      "video/webm",
+    ];
+    for (const mimeType of candidates) {
+      if (typeof MediaRecorder !== "undefined" && MediaRecorder.isTypeSupported(mimeType)) {
+        return mimeType;
+      }
+    }
+    return "";
+  }
+
+  function toggleVideoRecording() {
+    if (!cameraStream) {
+      setCameraError(t("chat.cameraNotReady"));
+      return;
+    }
+
+    if (isRecording) {
+      mediaRecorderRef.current?.stop();
+      return;
+    }
+
+    try {
+      const mimeType = pickRecorderMimeType();
+      const recorder = mimeType ? new MediaRecorder(cameraStream, { mimeType }) : new MediaRecorder(cameraStream);
+      recordingChunksRef.current = [];
+
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          recordingChunksRef.current.push(event.data);
+        }
+      };
+
+      recorder.onstop = () => {
+        setIsRecording(false);
+        const outputType = recorder.mimeType || "video/webm";
+        const blob = new Blob(recordingChunksRef.current, { type: outputType });
+        if (!blob.size) {
+          setCameraError(t("chat.cameraCaptureVideoError"));
+          return;
+        }
+        const ext = outputType.includes("mp4") ? "mp4" : "webm";
+        const file = new File([blob], `ask-pilly-${Date.now()}.${ext}`, { type: outputType });
+        setAttachmentFile(file);
+        closeCamera();
+      };
+
+      recorder.start();
+      mediaRecorderRef.current = recorder;
+      setIsRecording(true);
+      setCameraError("");
+    } catch {
+      setCameraError(t("chat.cameraRecordError"));
+    }
+  }
+
+  const sendMessage = async (text: string) => {
+    if ((!text.trim() && !attachment) || isSending) return;
+
+    const outboundText = text.trim();
     const now = new Date().toLocaleTimeString("en-SG", { hour: "2-digit", minute: "2-digit" });
-    const userMessage: Message = { id: messages.length + 1, role: "user", text, time: now };
+    const userBubbleText = text.trim() || attachment?.file.name || "Attachment";
+    const userMessage: Message = { id: messages.length + 1, role: "user", text: userBubbleText, time: now };
     const history = messages.map((msg) => ({
       role: msg.role === "user" ? "user" : "assistant",
       content: msg.text,
@@ -209,7 +408,7 @@ export function AskPillyScreen() {
     setMessages((m) => [...m, userMessage]);
     setInputText("");
 
-    const smallTalkIntent = detectSmallTalkIntent(text);
+    const smallTalkIntent = attachment ? null : detectSmallTalkIntent(text);
     if (smallTalkIntent) {
       const smallTalkReply = smallTalkIntent === "greeting" ? greetingForLanguage : endingForLanguage;
       setMessages((m) => [...m, { id: m.length + 1, role: "bot", text: smallTalkReply, time: now }]);
@@ -218,17 +417,44 @@ export function AskPillyScreen() {
 
     setIsSending(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/api/chat`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text, history, language }),
-      });
+      let res: Response;
+      if (attachment) {
+        const formData = new FormData();
+        formData.append("message", outboundText);
+        formData.append("language", language);
+        formData.append("history_json", JSON.stringify(history));
+        formData.append(attachment.kind, attachment.file);
+
+        res = await fetch(`${API_BASE_URL}/api/chat-with-media`, {
+          method: "POST",
+          body: formData,
+        });
+      } else {
+        res = await fetch(`${API_BASE_URL}/api/chat`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: outboundText, history, language }),
+        });
+      }
 
       if (!res.ok) {
         let detail = "";
         try {
-          const errData = (await res.json()) as { detail?: string };
-          detail = errData.detail?.trim() || "";
+          const errData = (await res.json()) as { detail?: unknown };
+          if (typeof errData.detail === "string") {
+            detail = errData.detail.trim();
+          } else if (Array.isArray(errData.detail)) {
+            detail = errData.detail
+              .map((item) => {
+                if (item && typeof item === "object" && "msg" in item) {
+                  const message = (item as { msg?: unknown }).msg;
+                  return typeof message === "string" ? message.trim() : "";
+                }
+                return "";
+              })
+              .filter(Boolean)
+              .join("; ");
+          }
         } catch {
           // Ignore parse failures and fall back to status text.
         }
@@ -238,6 +464,8 @@ export function AskPillyScreen() {
       const data = (await res.json()) as ChatApiResponse;
       const reply = data.reply?.trim() || "I could not generate a response right now. Please try again.";
       setMessages((m) => [...m, { id: m.length + 1, role: "bot", text: reply, time: now }]);
+      clearAttachment();
+      setComposerError("");
     } catch (err) {
       const errorText =
         err instanceof Error && err.message
@@ -267,7 +495,7 @@ export function AskPillyScreen() {
       `}</style>
       <div className="px-4 pt-5 pb-3 shrink-0">
         <h1 style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "22px", fontWeight: 700, color: C.textPrimary }}>
-          {t('chat.title')}
+          {t("chat.title")}
         </h1>
         <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "14px", color: C.textSecond }}>
           Powered by Reka AI
@@ -299,6 +527,94 @@ export function AskPillyScreen() {
           })}
         </div>
       </div>
+
+      {cameraOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(15,23,42,0.68)] p-4">
+          <div
+            className="w-full max-w-xl rounded-[28px] bg-white p-5 md:p-6 space-y-4"
+            style={{ boxShadow: "0 30px 80px rgba(15,23,42,0.28)" }}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p
+                  style={{
+                    fontFamily: "'Open Sans', sans-serif",
+                    fontSize: "12px",
+                    fontWeight: 700,
+                    color: C.textDisabled,
+                    letterSpacing: "1px",
+                    textTransform: "uppercase",
+                  }}
+                >
+                  {t("chat.cameraLiveTitle")}
+                </p>
+                <h3 style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "22px", fontWeight: 700, color: C.textPrimary, marginTop: "6px" }}>
+                  {t("chat.cameraCaptureTitle")}
+                </h3>
+                <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "14px", color: C.textSecond, lineHeight: "1.7", marginTop: "6px" }}>
+                  {t("chat.cameraCaptureDesc")}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={closeCamera}
+                aria-label={t("chat.cameraClose")}
+                className="h-10 w-10 rounded-full flex items-center justify-center"
+                style={{ background: C.muted, border: `1px solid ${C.border}` }}
+              >
+                <X size={18} color={C.textPrimary} />
+              </button>
+            </div>
+
+            {cameraError ? (
+              <div className="rounded-xl p-3" style={{ background: "#FEF2F2", border: "1px solid #FECACA", color: "#991B1B" }}>
+                {cameraError}
+              </div>
+            ) : null}
+
+            <div className="overflow-hidden rounded-[24px]" style={{ background: cameraStream ? "#0F172A" : C.muted, border: `1px solid ${C.border}` }}>
+              {cameraStream ? (
+                <video ref={cameraVideoRef} autoPlay playsInline muted className="block h-[360px] w-full object-cover" />
+              ) : (
+                <div className="flex h-[360px] items-center justify-center px-8 text-center">
+                  <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "15px", color: C.textSecond }}>
+                    {t("chat.cameraStarting")}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <button
+                type="button"
+                onClick={captureCameraPhoto}
+                disabled={!cameraStream || isRecording}
+                className="rounded-xl py-3 transition-opacity disabled:opacity-50"
+                style={{ background: C.muted, border: `1px solid ${C.border}`, color: C.textPrimary, fontFamily: "'DM Sans', sans-serif", fontWeight: 700 }}
+              >
+                {t("chat.cameraCapturePhoto")}
+              </button>
+              <button
+                type="button"
+                onClick={toggleVideoRecording}
+                disabled={!cameraStream}
+                className="rounded-xl py-3 text-white transition-opacity disabled:opacity-50"
+                style={{ background: isRecording ? "#EF4444" : C.teal, fontFamily: "'DM Sans', sans-serif", fontWeight: 700 }}
+              >
+                {isRecording ? t("chat.cameraStopRecording") : t("chat.cameraRecordVideo")}
+              </button>
+              <button
+                type="button"
+                onClick={closeCamera}
+                className="rounded-xl py-3 transition-opacity hover:opacity-90"
+                style={{ background: C.muted, border: `1px solid ${C.border}`, color: C.textPrimary, fontFamily: "'DM Sans', sans-serif", fontWeight: 700 }}
+              >
+                {t("chat.cameraClose")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="flex-1 overflow-y-auto px-4 space-y-4 pb-4">
         {messages.map((msg, idx) => {
@@ -371,18 +687,88 @@ export function AskPillyScreen() {
       </div>
 
       <div className="shrink-0 px-4 py-3 bg-white" style={{ borderTop: `1px solid ${C.border}` }}>
+        {attachment && (
+          <div
+            className="mb-3 rounded-xl p-3 flex items-center justify-between gap-3"
+            style={{ background: C.muted, border: `1px solid ${C.border}` }}
+          >
+            <div className="min-w-0 flex items-center gap-2">
+              {attachment.kind === "video" ? <Video size={16} color={C.textSecond} /> : <Camera size={16} color={C.textSecond} />}
+              <div className="min-w-0">
+                <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "13px", fontWeight: 700, color: C.textPrimary }}>
+                  {attachment.kind === "video"
+                    ? t("chat.attachedVideo")
+                    : t("chat.attachedImage")}
+                </p>
+                <p className="truncate" style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "13px", color: C.textSecond }}>
+                  {attachment.file.name}
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={clearAttachment}
+              className="h-9 w-9 rounded-full flex items-center justify-center"
+              style={{ background: "white", border: `1px solid ${C.border}` }}
+              aria-label={t("chat.removeAttachment")}
+            >
+              <X size={16} color={C.textPrimary} />
+            </button>
+          </div>
+        )}
+
+        {composerError && (
+          <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "13px", color: "#B91C1C", marginBottom: "8px" }}>
+            {composerError}
+          </p>
+        )}
+
         <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => uploadInputRef.current?.click()}
+            aria-label={t("chat.attachMedia")}
+            className="w-11 h-11 rounded-full flex items-center justify-center shrink-0 hover:opacity-80 transition-opacity"
+            style={{ background: C.muted, border: `1px solid ${C.border}` }}
+          >
+            <Paperclip size={20} color={C.textSecond} />
+          </button>
+          <input
+            ref={uploadInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime"
+            className="hidden"
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              event.target.value = "";
+              if (file) {
+                setAttachmentFile(file);
+              }
+            }}
+          />
+
+          <button
+            type="button"
+            onClick={() => void openLiveCamera()}
+            aria-label={t("chat.openCamera")}
+            className="w-11 h-11 rounded-full flex items-center justify-center shrink-0 hover:opacity-80 transition-opacity"
+            style={{ background: C.muted, border: `1px solid ${C.border}` }}
+          >
+            <Camera size={20} color={C.textSecond} />
+          </button>
+
           <div className="flex-1 flex items-center px-4 py-2.5 rounded-3xl" style={{ background: C.muted }}>
             <input
               type="text"
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && sendMessage(inputText)}
-              placeholder={t('chat.placeholder')}
+              placeholder={t("chat.placeholder")}
               className="flex-1 bg-transparent outline-none"
               style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "15px", color: C.textPrimary }}
             />
           </div>
+
           <button
             aria-label="Voice input"
             className="w-11 h-11 rounded-full flex items-center justify-center shrink-0 hover:opacity-80 transition-opacity"
@@ -390,6 +776,7 @@ export function AskPillyScreen() {
           >
             <Mic size={20} color={C.textSecond} />
           </button>
+
           <button
             onClick={() => sendMessage(inputText)}
             className="w-11 h-11 rounded-full flex items-center justify-center shrink-0 hover:opacity-80 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"

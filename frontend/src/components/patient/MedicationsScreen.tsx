@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import {
   Volume2,
-  Camera,
+  ScanLine,
   MessageCircle,
   Search,
   FileText,
@@ -85,11 +85,11 @@ const STATUS_BORDER: Record<MedStatus, string> = {
 function MedCard({
   med,
   isSpeaking,
-  onSpeakHowToTake,
+  onSpeakCard,
 }: {
   med: typeof fallbackMedications[number] & { verified?: boolean };
   isSpeaking: boolean;
-  onSpeakHowToTake: () => void;
+  onSpeakCard: () => void;
 }) {
   const { t } = useTranslation();
   const borderColor = STATUS_BORDER[med.status];
@@ -100,22 +100,14 @@ function MedCard({
       style={{ border: `1px solid ${C.border}`, borderLeft: `4px solid ${borderColor}` }}
     >
       <div className="p-4">
-        <h3 className="mb-3" style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "18px", fontWeight: 600, color: C.textPrimary }}>
-          {med.name}
-        </h3>
-        <p className="mb-3" style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "15px" }}>
-          <span style={{ color: C.textPrimary, fontWeight: 600 }}>{t("medications.for")}: </span>
-          <span style={{ color: C.teal }}>{med.for}</span>
-        </p>
-        <div className="rounded-lg p-3 relative" style={{ background: C.muted }}>
-          <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "15px", color: C.textPrimary, paddingRight: "56px", lineHeight: "1.65" }}>
-            <span style={{ fontWeight: 600 }}>{t("medications.howToTake")}: </span>
-            {med.how}
-          </p>
+        <div className="mb-3 flex items-start justify-between gap-3">
+          <h3 style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "18px", fontWeight: 600, color: C.textPrimary }}>
+            {med.name}
+          </h3>
           <button
             type="button"
-            onClick={onSpeakHowToTake}
-            className="absolute bottom-3 right-3 h-9 w-9 rounded-full flex items-center justify-center transition-all hover:opacity-90"
+            onClick={onSpeakCard}
+            className="h-9 w-9 rounded-full flex items-center justify-center transition-all hover:opacity-90 shrink-0"
             aria-label={isSpeaking ? t("medications.scanStopReading") : t("medications.textToSpeech")}
             title={isSpeaking ? t("medications.scanStopReading") : t("medications.textToSpeech")}
             style={{
@@ -126,6 +118,16 @@ function MedCard({
           >
             <Volume2 size={18} color={isSpeaking ? "white" : C.textSecond} />
           </button>
+        </div>
+        <p className="mb-3" style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "15px" }}>
+          <span style={{ color: C.textPrimary, fontWeight: 600 }}>{t("medications.for")}: </span>
+          <span style={{ color: C.teal }}>{med.for}</span>
+        </p>
+        <div className="rounded-lg p-3" style={{ background: C.muted }}>
+          <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "15px", color: C.textPrimary, lineHeight: "1.65" }}>
+            <span style={{ fontWeight: 600 }}>{t("medications.howToTake")}: </span>
+            {med.how}
+          </p>
         </div>
 
         {med.caution && (
@@ -146,7 +148,7 @@ export function MedicationsScreen({
 }: {
   onTabChange: (tab: string) => void;
 }) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const medications = getFallbackMedications(t);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const speechRequestRef = useRef<AbortController | null>(null);
@@ -203,7 +205,7 @@ export function MedicationsScreen({
         },
         body: JSON.stringify({
           text,
-          language: "en",
+          language,
         }),
         signal: controller.signal,
       });
@@ -230,7 +232,7 @@ export function MedicationsScreen({
     }
   }
 
-  async function speakHowToTake(med: typeof fallbackMedications[number]) {
+  async function speakMedicationCard(med: typeof fallbackMedications[number]) {
     if (activeSpeechMedId === med.id) {
       stopSpeaking();
       return;
@@ -241,8 +243,10 @@ export function MedicationsScreen({
     setActiveSpeechMedId(med.id);
 
     try {
-      const text = `${med.name}. ${med.how}`;
-      const audioUrl = await fetchSpeechAudioUrl(`medication-how:${med.id}:${text}`, text);
+      const text = med.caution
+        ? `${med.name}. ${med.how}. Caution: ${med.caution}`
+        : `${med.name}. ${med.how}`;
+      const audioUrl = await fetchSpeechAudioUrl(`medication-card:${med.id}:${text}`, text);
       const audio = new Audio(audioUrl);
 
       audio.onended = () => {
@@ -308,7 +312,7 @@ export function MedicationsScreen({
             key={med.id}
             med={med}
             isSpeaking={activeSpeechMedId === med.id}
-            onSpeakHowToTake={() => void speakHowToTake(med)}
+            onSpeakCard={() => void speakMedicationCard(med)}
           />
         ))}
       </div>
@@ -324,7 +328,7 @@ export function MedicationsScreen({
         >
           <div className="flex items-start gap-4">
             <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0" style={{ background: C.tealLight }}>
-              <Camera size={23} color={C.teal} />
+              <ScanLine size={23} color={C.teal} />
             </div>
             <div className="flex-1">
               <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "20px", fontWeight: 700, color: C.textPrimary, marginBottom: "8px" }}>
@@ -346,14 +350,13 @@ export function MedicationsScreen({
               </div>
               <button
                 onClick={() => onTabChange("scan")}
-                className="mt-5 w-full flex items-center justify-between rounded-2xl px-5 py-3.5 hover:opacity-95 transition-opacity"
+                className="mt-5 w-full flex items-center justify-between rounded-xl px-4 py-3 hover:opacity-95 transition-opacity"
                 style={{ background: C.teal, border: `1px solid ${C.tealDark}` }}
               >
-                <span className="inline-flex items-center gap-2.5" style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "18px", fontWeight: 700, color: "white" }}>
-                  <Camera size={18} color="white" />
-                  {t("medications.openCamera")}
+                <span style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "16px", fontWeight: 700, color: "white" }}>
+                  {t("medications.goToScan")}
                 </span>
-                <ChevronRight size={21} color="white" />
+                <ChevronRight size={19} color="white" />
               </button>
             </div>
           </div>
@@ -379,14 +382,13 @@ export function MedicationsScreen({
               </p>
               <button
                 onClick={() => onTabChange("askpilly")}
-                className="mt-5 w-full flex items-center justify-between rounded-2xl px-5 py-3.5 hover:opacity-95 transition-opacity"
+                className="mt-5 w-full flex items-center justify-between rounded-xl px-4 py-3 hover:opacity-95 transition-opacity"
                 style={{ background: C.teal, border: `1px solid ${C.tealDark}` }}
               >
-                <span className="inline-flex items-center gap-2.5" style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "18px", fontWeight: 700, color: "white" }}>
-                  <MessageCircle size={18} color="white" />
+                <span style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "16px", fontWeight: 700, color: "white" }}>
                   {t("medications.askAiHelper")}
                 </span>
-                <ChevronRight size={21} color="white" />
+                <ChevronRight size={19} color="white" />
               </button>
             </div>
           </div>

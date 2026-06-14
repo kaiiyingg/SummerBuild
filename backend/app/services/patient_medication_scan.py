@@ -17,7 +17,7 @@ client = AsyncOpenAI(api_key=settings.REKA_API_KEY, base_url="https://api.reka.a
 
 SUPPORTED_LOCALES = {
     "en": "English",
-    "zh": "Simplified Chinese",
+    "zh": "Chinese",
     "ms": "Malay",
     "ta": "Tamil",
 }

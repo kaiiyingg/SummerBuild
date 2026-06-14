@@ -1,6 +1,6 @@
 {
   "language_aliases": ["zh", "chinese", "中文", "zh-cn", "zh-sg"],
-  "assistant_language_instruction": "Reply in Simplified Chinese.",
+  "assistant_language_instruction": "Reply in Chinese.",
   "faq_responses": [
     {
       "keywords": ["营业时间", "开门时间", "几点开", "几点关", "今天开吗", "opening hours", "operating hours"],
