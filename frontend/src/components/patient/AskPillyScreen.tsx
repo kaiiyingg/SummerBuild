@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Camera, Mic, Paperclip, Pill, Send, Video, X } from "lucide-react";
 import { useTranslation } from "../../context/LanguageContext";
+import { API_BASE_URL } from "../../lib/apiBaseUrl";
 
 const C = {
   teal: "#45C5BC",
@@ -72,7 +73,6 @@ const ENDING_KEYWORDS: Record<string, string[]> = {
   ms: ["terima kasih", "bye", "selamat tinggal", "jumpa lagi", "itu sahaja", "tiada soalan lagi", "faham", "sudah cukup", "dah settle"],
 };
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000";
 const DEFAULT_LANGUAGE = "en";
 const MAX_MEDIA_BYTES = 25 * 1024 * 1024;
 

@@ -13,8 +13,8 @@ import {
   fetchCurrentPatientDetails,
   subscribeToPatientChanges,
 } from "../../services/pharmacyData";
+import { API_BASE_URL } from "../../lib/apiBaseUrl";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000";
 const SPEECH_API_URL = `${API_BASE_URL}/api/scan-medication-speech`;
 
 const C = {
