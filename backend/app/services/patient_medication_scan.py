@@ -83,7 +83,7 @@ SYSTEM_PROMPT = """You are an AI assistant helping patients understand medicatio
 
 Your job:
 - Read the medication label, packaging, prescription sticker, or warning sticker shown in the image.
-- Extract only information that is actually visible.
+- Extract every piece of information that is visible on the label, doing your best to read partially clear text, and capture all readable lines in detected_text_lines. Never invent text that is not shown.
 - Identify the medicine name, strength, dosage form, directions, warnings, quantity, and refills when visible.
 - Translate patient-facing directions and warnings into the requested target language.
 
@@ -501,6 +501,7 @@ def _normalize_result(data: dict, *, target_language: str) -> dict:
         not normalized["medication_name"]
         and not normalized["directions_original"]
         and not normalized["warnings_original"]
+        and not normalized["detected_text_lines"]
     ):
         normalized["needs_review"] = True
         if not normalized["review_reason"]:
