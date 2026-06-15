@@ -856,7 +856,7 @@ export function AskPillyScreen() {
           </p>
         )}
 
-        <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+        <div className="flex min-w-0 items-center gap-2.5 sm:gap-3 pl-1">
           <button
             type="button"
             onClick={() => uploadInputRef.current?.click()}
@@ -891,7 +891,7 @@ export function AskPillyScreen() {
           </button>
 
           {isListening ? (
-            <div className="min-w-0 flex-1 flex items-center gap-2 sm:gap-3 px-3 sm:px-4 rounded-3xl" style={{ background: C.muted, height: "44px" }}>
+            <div className="min-w-0 flex-1 flex items-center gap-2 sm:gap-3 px-3 sm:px-4 rounded-3xl mr-1" style={{ background: C.muted, height: "44px" }}>
               <div className="flex items-center gap-[3px]" style={{ height: "24px" }}>
                 {[0.5, 0.75, 1.0, 0.75, 0.5].map((scale, i) => (
                   <div
@@ -910,7 +910,7 @@ export function AskPillyScreen() {
               <span className="hidden sm:inline" style={{ color: C.textSecond, fontSize: "13px" }}>{t("chat.voiceRecording")}</span>
             </div>
           ) : (
-            <div className="min-w-0 flex-1 flex items-center px-3 sm:px-4 py-2.5 rounded-3xl" style={{ background: C.muted }}>
+            <div className="min-w-0 flex-1 flex items-center px-3 sm:px-4 py-2.5 rounded-3xl mr-1" style={{ background: C.muted }}>
               <input
                 type="text"
                 value={inputText}
