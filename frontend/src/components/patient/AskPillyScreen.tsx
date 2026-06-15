@@ -856,7 +856,7 @@ export function AskPillyScreen() {
           </p>
         )}
 
-        <div className="flex min-w-0 items-center gap-2.5 sm:gap-3 pl-1">
+        <div className="flex min-w-0 items-center gap-3 sm:gap-3.5 pl-1.5">
           <button
             type="button"
             onClick={() => uploadInputRef.current?.click()}
@@ -891,7 +891,7 @@ export function AskPillyScreen() {
           </button>
 
           {isListening ? (
-            <div className="min-w-0 flex-1 flex items-center gap-2 sm:gap-3 px-3 sm:px-4 rounded-3xl mr-1" style={{ background: C.muted, height: "44px" }}>
+            <div className="min-w-0 flex-1 flex items-center gap-2 sm:gap-3 px-3 sm:px-4 rounded-3xl mr-2 sm:mr-1" style={{ background: C.muted, height: "44px" }}>
               <div className="flex items-center gap-[3px]" style={{ height: "24px" }}>
                 {[0.5, 0.75, 1.0, 0.75, 0.5].map((scale, i) => (
                   <div
@@ -910,15 +910,15 @@ export function AskPillyScreen() {
               <span className="hidden sm:inline" style={{ color: C.textSecond, fontSize: "13px" }}>{t("chat.voiceRecording")}</span>
             </div>
           ) : (
-            <div className="min-w-0 flex-1 flex items-center px-3 sm:px-4 py-2.5 rounded-3xl mr-1" style={{ background: C.muted }}>
+            <div className="min-w-0 flex-1 flex items-center px-3 sm:px-4 py-2.5 rounded-3xl mr-2 sm:mr-1" style={{ background: C.muted }}>
               <input
                 type="text"
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && sendMessage(inputText)}
                 placeholder={t("chat.placeholder")}
-                className="flex-1 bg-transparent outline-none"
-                style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "15px", color: C.textPrimary }}
+                className="flex-1 min-w-0 w-full bg-transparent outline-none overflow-hidden text-ellipsis whitespace-nowrap pr-2 text-[14px] sm:text-[15px] placeholder:text-[13px] sm:placeholder:text-[15px]"
+                style={{ fontFamily: "'Open Sans', sans-serif", color: C.textPrimary }}
               />
             </div>
           )}
@@ -928,7 +928,7 @@ export function AskPillyScreen() {
             onClick={() => void toggleMicRecording()}
             aria-label={isListening ? t("chat.voiceRecording") : sttTranscribing ? t("chat.voiceTranscribing") : t("chat.voiceInput")}
             disabled={sttTranscribing}
-            className="h-9 w-9 sm:h-11 sm:w-11 rounded-full flex items-center justify-center shrink-0 transition-all disabled:opacity-50"
+            className="h-9 w-9 sm:h-11 sm:w-11 rounded-full flex items-center justify-center shrink-0 transition-all disabled:opacity-50 ml-1 sm:ml-0"
             style={{
               background: isListening ? "#EF4444" : C.muted,
               border: `1px solid ${isListening ? "#EF4444" : C.border}`,

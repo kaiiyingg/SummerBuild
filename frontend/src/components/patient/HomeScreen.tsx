@@ -410,7 +410,7 @@ function ReRegisterSheet({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center" style={{ background: "rgba(15,23,42,0.45)" }} onClick={onClose}>
-      <div className="w-full max-w-xl bg-white rounded-t-3xl pb-8 overflow-y-auto"
+      <div className="w-full max-w-xl bg-white rounded-t-3xl overflow-hidden flex flex-col"
         style={{ maxHeight: "90svh", boxShadow: "0 -8px 40px rgba(0,0,0,0.12)" }} onClick={(e) => e.stopPropagation()}>
 
         {/* Handle */}
@@ -429,7 +429,7 @@ function ReRegisterSheet({
           </button>
         </div>
 
-        <div className="px-7 pt-6 space-y-6">
+        <div className="px-5 sm:px-7 pt-5 sm:pt-6 space-y-4 sm:space-y-6 overflow-y-auto">
 
           {/* Missed queue notice */}
           <div className="flex items-start gap-4 p-5 rounded-2xl" style={{ background: C.amberLight, border: `1.5px solid ${C.amber}55` }}>
@@ -468,17 +468,19 @@ function ReRegisterSheet({
             </div>
           </div>
 
-          {/* Confirm */}
+        </div>
+
+        {/* Confirm */}
+        <div className="shrink-0 px-5 sm:px-7 py-4 bg-white" style={{ borderTop: `1px solid ${C.border}` }}>
           <button onClick={() => {
             onRegistered(newQueue);
             setConfirmed(true);
           }}
-            className="w-full py-4 rounded-2xl text-white flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
-            style={{ background: C.teal, fontFamily: "'DM Sans', sans-serif", fontSize: "20px", fontWeight: 700 }}>
+            className="w-full py-3.5 sm:py-4 rounded-2xl text-white flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
+            style={{ background: C.teal, fontFamily: "'DM Sans', sans-serif", fontSize: "18px", fontWeight: 700 }}>
             <RefreshCw size={20} color="white" />
             {t('queue.getNewQueueNumber')}
           </button>
-
         </div>
       </div>
     </div>
