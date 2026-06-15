@@ -674,13 +674,21 @@ detected_quantity must equal the number of numbered entries.
                 ],
             }
         ],
-        temperature=0,
-        max_tokens=400,
+        max_completion_tokens=1500,
         response_format={"type": "json_object"},
     )
 
     raw_reply = (response.choices[0].message.content or "").strip()
-    data = _extract_json(raw_reply)
+
+    print("RAW OPENAI RESPONSE:", repr(raw_reply))
+
+    if not raw_reply:
+        raise ValueError("OpenAI returned an empty response. Try increasing max_completion_tokens or use another model.")
+
+    try:
+        data = _extract_json(raw_reply)
+    except Exception as e:
+        raise ValueError(f"OpenAI did not return valid JSON. Raw response: {raw_reply}") from e
 
     detected_quantity = data.get("detected_quantity")
 
