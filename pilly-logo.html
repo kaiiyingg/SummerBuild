@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pilly — Animated Logo</title>
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      background: #ffffff;
+      font-family: 'Open Sans', sans-serif;
+      gap: 24px;
+    }
+
+    /*
+    ─── 3D ORBIT ──────────────────────────────────────────────
+    Two nested <g> animations create an elliptical orbit with
+    depth cues:
+
+      Outer group → X oscillation  (X radius 120 px)
+      Inner group → Y oscillation + scale + opacity  (Y radius 42 px)
+
+    Small + dim = top of ellipse = far away (behind pill)
+    Large + bright = bottom of ellipse = near (in front of pill)
+
+    Both circles are r=16. They stay 180° apart via -3 s delay.
+    ─────────────────────────────────────────────────────────── */
+
+    @keyframes orbit3DX {
+      0%   { transform: translateX(   0px); }
+      25%  { transform: translateX( 120px); }
+      50%  { transform: translateX(   0px); }
+      75%  { transform: translateX(-120px); }
+      100% { transform: translateX(   0px); }
+    }
+    @keyframes orbit3DY {
+      0%   { transform: translateY(-42px) scale(0.68); opacity: 0.55; }
+      25%  { transform: translateY(  0px) scale(1.00); opacity: 0.80; }
+      50%  { transform: translateY( 42px) scale(1.40); opacity: 1.00; }
+      75%  { transform: translateY(  0px) scale(1.00); opacity: 0.80; }
+      100% { transform: translateY(-42px) scale(0.68); opacity: 0.55; }
+    }
+
+    /* Circle A — upper-left start */
+    .ox-a { animation: orbit3DX 6s linear infinite; animation-delay: -5.25s; }
+    .oy-a { animation: orbit3DY 6s linear infinite; animation-delay: -5.25s; }
+
+    /* Circle B — lower-right start (180° offset) */
+    .ox-b { animation: orbit3DX 6s linear infinite; animation-delay: -2.25s; }
+    .oy-b { animation: orbit3DY 6s linear infinite; animation-delay: -2.25s; }
+
+    /* ─── PILL FLOAT ────────────────────────────── */
+    @keyframes pillyFloat {
+      0%, 100% { transform: translateY(0px);   }
+      50%       { transform: translateY(-13px); }
+    }
+    .pill-float { animation: pillyFloat 3.5s ease-in-out infinite; }
+
+    /* ─── PILL WOBBLE ───────────────────────────── */
+    /* −135° → white cap upper-left, teal cap lower-right */
+    @keyframes pillyWobble {
+      0%,  100% { transform: translate(200px, 200px) rotate(-135deg); }
+      25%        { transform: translate(200px, 200px) rotate(-139deg); }
+      75%        { transform: translate(200px, 200px) rotate(-131deg); }
+    }
+    .pill-pivot { animation: pillyWobble 3.5s ease-in-out infinite; }
+
+    /* ─── SHADOW PULSE ──────────────────────────── */
+    @keyframes pillyShadow {
+      0%, 100% { opacity: 0.22; }
+      50%       { opacity: 0.07; }
+    }
+    .pill-shadow { animation: pillyShadow 3.5s ease-in-out infinite; }
+  </style>
+</head>
+<body>
+
+<svg width="400" height="400" viewBox="0 0 400 400"
+     style="display:block; overflow:hidden;"
+     xmlns="http://www.w3.org/2000/svg">
+
+  <defs>
+    <linearGradient id="gTeal" gradientUnits="objectBoundingBox"
+                    x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0%"   stop-color="#1AA99E"/>
+      <stop offset="45%"  stop-color="#40E0D0"/>
+      <stop offset="100%" stop-color="#7BEDE7"/>
+    </linearGradient>
+    <linearGradient id="gWhite" gradientUnits="objectBoundingBox"
+                    x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0%"   stop-color="#BCDEDD"/>
+      <stop offset="50%"  stop-color="#E7F6F5"/>
+      <stop offset="100%" stop-color="#FFFFFF"/>
+    </linearGradient>
+    <filter id="fSticker" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="4" dy="5" stdDeviation="5"
+                    flood-color="#1a4040" flood-opacity="0.20"/>
+    </filter>
+    <filter id="fBlur" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="9"/>
+    </filter>
+  </defs>
+
+  <!-- ════ ORBITING CIRCLES (drawn before pill = behind pill) ════ -->
+
+  <!-- Circle A -->
+  <g class="ox-a">
+    <g class="oy-a">
+      <circle cx="200" cy="200" r="16" fill="#40E0D0"/>
+    </g>
+  </g>
+
+  <!-- Circle B -->
+  <g class="ox-b">
+    <g class="oy-b">
+      <circle cx="200" cy="200" r="16" fill="#40E0D0"/>
+    </g>
+  </g>
+
+  <!-- ════ PILL ════ -->
+  <g class="pill-float">
+
+    <!-- Cast shadow (−135° to match pill orientation) -->
+    <ellipse class="pill-shadow"
+             cx="206" cy="211" rx="90" ry="32"
+             fill="#0b3232" filter="url(#fBlur)"
+             transform="rotate(-135, 206, 211)"/>
+
+    <g class="pill-pivot">
+
+      <!-- ① Sticker white border -->
+      <path d="M -61,-50 L 61,-50 A 50,50 0 0,1 61,50 L -61,50 A 50,50 0 0,1 -61,-50 Z"
+            fill="white" filter="url(#fSticker)"/>
+
+      <!-- ② Teal half (left local → lower-right screen) -->
+      <path d="M -61,-42 L 0,-42 L 0,42 L -61,42 A 42,42 0 0,1 -61,-42 Z"
+            fill="url(#gTeal)"/>
+
+      <!-- ③ White half (right local → upper-left screen) -->
+      <path d="M 0,-42 L 61,-42 A 42,42 0 0,1 61,42 L 0,42 Z"
+            fill="url(#gWhite)"/>
+
+      <!-- ④ Centre divider -->
+      <rect x="-3" y="-42" width="6" height="84" fill="#163636"/>
+
+      <!-- ⑤ Outline -->
+      <path d="M -61,-42 L 61,-42 A 42,42 0 0,1 61,42 L -61,42 A 42,42 0 0,1 -61,-42 Z"
+            fill="none" stroke="#1a3c3c" stroke-width="7" stroke-linejoin="round"/>
+
+      <!-- ⑥ Teal gloss: C crescent + dot -->
+      <path d="M -84,-8 Q -95,10 -81,27 Q -75,20 -76,9 Q -79,1 -79,-7 Z"
+            fill="white" opacity="0.82"/>
+      <circle cx="-77" cy="7" r="4.5" fill="white" opacity="0.72"/>
+
+      <!-- ⑦ White gloss oval -->
+      <ellipse cx="32" cy="-23" rx="23" ry="10"
+               fill="white" opacity="0.52" transform="rotate(-8,32,-23)"/>
+
+    </g>
+  </g>
+
+</svg>
+
+<div style="text-align:center; font-family:'Open Sans',sans-serif; letter-spacing:.04em;">
+  <span style="font-size:28px; font-weight:700; color:#40E0D0;">Pilly</span>
+  <p style="font-size:13px; color:#888; margin-top:4px; font-weight:400; letter-spacing:.08em;">
+    PHARMACY MANAGEMENT SYSTEM
+  </p>
+</div>
+
+</body>
+</html>

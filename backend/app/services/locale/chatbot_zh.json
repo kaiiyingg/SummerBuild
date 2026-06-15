@@ -1,0 +1,77 @@
+{
+  "language_aliases": ["zh", "chinese", "中文", "zh-cn", "zh-sg"],
+  "assistant_language_instruction": "Reply in Chinese.",
+  "faq_responses": [
+    {
+      "keywords": ["营业时间", "开门时间", "几点开", "几点关", "今天开吗", "opening hours", "operating hours"],
+      "reply": "药房营业时间为周一至周五上午8点到下午6点，周六上午8点到下午1点。"
+    },
+    {
+      "keywords": ["地点", "在哪里", "柜台", "怎么去", "第几层", "哪一楼", "location", "where"],
+      "reply": "药房柜台位于2楼3号柜台。"
+    },
+    {
+      "keywords": ["排队", "等候时间", "要等多久", "队列状态", "queue", "wait time"],
+      "reply": "请到 Queue 页面查看您的实时排队状态。"
+    },
+    {
+      "keywords": ["缺货", "没货", "延迟", "短缺", "out of stock", "not available"],
+      "reply": "如果您的药物缺货，系统会自动通知您并提供改期领取选项。"
+    },
+    {
+      "keywords": ["联系", "电话号码", "热线", "打电话", "contact", "hotline"],
+      "reply": "您可以在营业时间拨打 +65 6123 4567 联系药房。"
+    }
+  ],
+  "restock": {
+    "readiness_phrases": [
+      "什么时候",
+      "几时",
+      "准备好",
+      "可以领取",
+      "能拿了吗",
+      "补货",
+      "缺货",
+      "when will my",
+      "ready for collection",
+      "restock",
+      "out of stock"
+    ],
+    "medication_terms": ["药", "药物", "处方", "胶囊", "药片", "medication", "medicine", "prescription"],
+    "reply": "您的药物目前正在准备或补货中。药物可领取后，您会收到通知。如果您无法等待，请到 Queue 页面点击 Reschedule Collection 选择其他日期。"
+  },
+  "redirect_triggers": [
+    {
+      "keywords": ["错过排队", "错过号码", "队列过期", "我错过了排队", "missed my queue", "queue expired"],
+      "reply": "如果您错过了登记号码，请打开患者应用的 Queue 页面并点击 Re-register 获取新的排队号码。"
+    },
+    {
+      "keywords": ["我的药单", "我在吃什么药", "我的药物", "处方清单", "my medication list", "my meds"],
+      "reply": "请到 My Meds 页面查看您当前的药物清单。"
+    },
+    {
+      "keywords": ["我的排队号码", "我的队列状态", "轮到我了吗", "check my queue", "my queue status"],
+      "reply": "请到 Queue 页面查看您当前号码和等待状态。"
+    },
+    {
+      "keywords": ["我的提醒", "设置提醒", "用药提醒", "remind me", "set reminder"],
+      "reply": "请到 Reminders 页面查看或设置用药提醒。"
+    },
+    {
+      "keywords": ["我的记录", "病历", "历史记录", "过往就诊", "my record", "past visits"],
+      "reply": "请到 Profile 页面，然后点击 Past Visits 查看您的就诊和用药历史。"
+    },
+    {
+      "keywords": ["预约", "我的预约", "改期预约", "取消预约", "appointment", "booking"],
+      "reply": "如需预约医生，请联系诊所 +65 6123 4567。若要更改领药时间，请到 Queue 页面点击 Reschedule Collection。"
+    },
+    {
+      "keywords": ["处方", "我的处方", "医生开了什么", "prescription", "doctor prescribed"],
+      "reply": "请到 My Meds 页面查看您的当前处方。"
+    }
+  ],
+  "fallbacks": {
+    "ai_unavailable": "我现在无法连接到 AI 助手，请稍后再试。如果持续发生，请联系药房。",
+    "empty_reply": "我暂时无法生成回复。请重试或联系药房。"
+  }
+}

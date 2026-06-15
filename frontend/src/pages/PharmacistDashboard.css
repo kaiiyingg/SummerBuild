@@ -1,0 +1,597 @@
+.pharm-dash {
+  --accent: #14b8a6;
+  --accent-dark: #0f766e;
+  --page-bg: #f8fafc;
+  --white: #ffffff;
+  --ink: #111827;
+  --muted: #64748b;
+  --subtle: #94a3b8;
+  --border: #e2e8f0;
+  --border-dark: #cbd5e1;
+
+  min-height: 100vh;
+  background: var(--page-bg);
+  color: var(--ink);
+  font-family: "Open Sans", "Segoe UI", system-ui, sans-serif;
+}
+
+.pd-bell {
+  position: relative;
+  border: none;
+  background: transparent;
+  color: #334155;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.pd-bell span {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 16px;
+  height: 16px;
+  background: #ef4444;
+  color: white;
+  font-size: 10px;
+  font-weight: 800;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Layout */
+.pd-layout {
+  display: grid;
+  grid-template-columns: 275px 1fr;
+  min-height: calc(100vh - 58px);
+}
+
+/* Sidebar */
+.pd-sidebar {
+  background: var(--white);
+  border-right: 1px solid var(--border);
+  padding: 28px 26px;
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 58px);
+  position: sticky;
+  top: 58px;
+}
+
+.pd-signout-section {
+  margin-top: auto;
+  padding-top: 24px;
+}
+
+.pd-signout-btn {
+  width: 100%;
+  border: 1.5px solid #ef4444;
+  background: white;
+  color: #dc2626;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  padding: 12px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.pd-signout-btn:hover {
+  background: #ef4444;
+  color: white;
+}
+
+.pd-session {
+  margin-bottom: 34px;
+}
+
+.pd-sidebar-label {
+  margin: 0 0 10px;
+  font-size: 11px;
+  font-weight: 900;
+  color: var(--subtle);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.pd-session h1 {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.35;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.pd-session p {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+/* Sidebar stats */
+.pd-stat-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pd-stat-card {
+  width: 100%;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  border-left: 4px solid var(--stat-accent);
+  padding: 12px 14px;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.pd-stat-card:hover,
+.pd-stat-card.active {
+  background: #f8fafc;
+  border-color: var(--border-dark);
+}
+
+.ps-label {
+  display: block;
+  font-size: 13px;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.ps-num {
+  display: block;
+  margin-top: 6px;
+  font-size: 22px;
+  line-height: 1;
+  font-weight: 900;
+  color: var(--ink);
+}
+
+/* Main */
+.pd-main {
+  padding: 26px 34px 64px;
+  min-width: 0;
+}
+
+.pd-controls {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 22px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 34px;
+}
+
+.pd-tabs {
+  display: flex;
+  align-items: flex-end;
+  gap: 28px;
+}
+
+.pd-tab {
+  border: none;
+  background: transparent;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--muted);
+  padding: 0 0 14px;
+  border-bottom: 3px solid transparent;
+  cursor: pointer;
+}
+
+.pd-tab:hover {
+  color: var(--ink);
+}
+
+.pd-tab.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+.pd-sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 14px;
+  font-size: 12px;
+  font-weight: 900;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+.pd-sort select {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 9px 14px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.pd-sort select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.16);
+}
+
+/* Shared grid layout */
+.pd-table-header,
+.pd-card {
+  display: grid;
+  grid-template-columns: 70px 78px minmax(280px, 1fr) 120px 150px 110px 24px;
+  column-gap: 12px;
+  align-items: center;
+}
+
+/* Table header */
+.pd-table-header {
+  padding: 0 18px 14px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
+
+.pd-table-header span:nth-child(4),
+.pd-table-header span:nth-child(5),
+.pd-table-header span:nth-child(6) {
+  text-align: center;
+}
+
+/* List */
+.pd-list {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+/* Card */
+.pd-card {
+  width: 100%;
+  min-height: 72px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 12px 18px;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.pd-card:hover {
+  border-color: var(--border-dark);
+  background: #ffffff;
+}
+
+.pd-card:focus-visible,
+.pd-tab:focus-visible,
+.pd-stat-card:focus-visible {
+  outline: 3px solid rgba(20, 184, 166, 0.28);
+  outline-offset: 2px;
+}
+
+/* Cell alignment */
+.pd-type-cell,
+.pd-queue-cell,
+.pd-patient-cell,
+.pd-items-cell,
+.pd-status-cell,
+.pd-elapsed-cell,
+.pd-chevron-cell {
+  display: flex;
+  align-items: center;
+}
+
+.pd-type-cell,
+.pd-queue-cell,
+.pd-patient-cell {
+  justify-content: flex-start;
+}
+
+.pd-items-cell,
+.pd-status-cell,
+.pd-elapsed-cell {
+  justify-content: center;
+}
+
+.pd-chevron-cell {
+  justify-content: flex-end;
+}
+
+/* Queue */
+.pd-queue-cell {
+  font-size: 15px;
+  font-weight: 900;
+  color: #475569;
+}
+
+/* Urgency badge */
+.pd-urgency {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  color: white;
+  font-size: 13px;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  position: relative;
+}
+
+.pd-urgency-A {
+  box-shadow: 0 0 10px rgba(220, 38, 38, 0.35),
+    0 2px 6px rgba(0, 0, 0, 0.2);
+  animation: urgency-glow 2.4s ease-in-out infinite;
+}
+
+.pd-urgency-A::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: 50%;
+  border: 1.5px solid #dc2626;
+  opacity: 0;
+  animation: urgency-pulse 2.2s ease-out infinite;
+}
+
+@keyframes urgency-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 8px rgba(220, 38, 38, 0.3),
+      0 2px 6px rgba(0, 0, 0, 0.2);
+  }
+
+  50% {
+    box-shadow: 0 0 18px rgba(220, 38, 38, 0.55),
+      0 2px 6px rgba(0, 0, 0, 0.2);
+  }
+}
+
+@keyframes urgency-pulse {
+  0% {
+    transform: scale(0.95);
+    opacity: 0.5;
+  }
+
+  100% {
+    transform: scale(1.18);
+    opacity: 0;
+  }
+}
+
+/* Patient detail */
+.pd-patient-cell {
+  min-width: 0;
+}
+
+.pd-name {
+  display: block;
+  font-size: 15px;
+  font-weight: 900;
+  color: var(--ink);
+  line-height: 1.25;
+}
+
+/* Items badge */
+.pd-items-cell {
+  width: fit-content;
+  justify-self: center;
+  background: #f1f5f9;
+  color: #334155;
+  border-radius: 5px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+/* Status */
+.pd-status-cell {
+  justify-self: center;
+}
+
+.pd-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 10px;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  font-size: 10px;
+  font-weight: 900;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* Elapsed */
+.pd-elapsed-cell {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* Chevron */
+.pd-chevron-cell {
+  color: #cbd5e1;
+  font-size: 13px;
+}
+
+.pd-card:hover .pd-chevron-cell {
+  color: var(--accent);
+}
+
+/* Empty state */
+.pd-empty {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 54px 20px;
+  text-align: center;
+}
+
+.pd-empty-title {
+  margin: 0 0 4px;
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.pd-empty-sub {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+@media (max-width: 1000px) {
+  .pd-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .pd-sidebar {
+    display: none;
+  }
+
+  .pd-main {
+    padding: 20px 16px 56px;
+  }
+
+  .pd-controls {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 18px;
+    margin-bottom: 24px;
+  }
+
+  .pd-tabs {
+    width: 100%;
+    overflow-x: auto;
+    gap: 24px;
+    padding-bottom: 2px;
+  }
+
+  .pd-sort {
+    padding-bottom: 0;
+  }
+
+  .pd-table-header {
+    display: none;
+  }
+
+  .pd-list {
+    gap: 12px;
+  }
+
+  .pd-card {
+    grid-template-columns: 48px 1fr auto;
+    grid-template-rows: auto auto auto;
+    gap: 8px 12px;
+    min-height: auto;
+    padding: 18px 20px;
+    align-items: center;
+  }
+
+  .pd-type-cell {
+    grid-column: 1;
+    grid-row: 1 / span 3;
+    align-self: start;
+    padding-top: 4px;
+  }
+
+  .pd-patient-cell {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .pd-name {
+    font-size: 16px;
+  }
+
+  .pd-queue-cell {
+    grid-column: 2;
+    grid-row: 2;
+    font-size: 13px;
+    color: var(--muted);
+    font-weight: 800;
+  }
+
+  .pd-queue-cell::before {
+    content: "Queue No. ";
+    margin-right: 4px;
+    color: var(--muted);
+    font-weight: 700;
+  }
+
+  .pd-items-cell {
+    grid-column: 2;
+    grid-row: 3;
+    justify-self: start;
+    padding: 0;
+    background: transparent;
+    color: var(--muted);
+    font-size: 13px;
+  }
+
+  .pd-status-cell {
+    grid-column: 3;
+    grid-row: 1;
+    justify-self: end;
+  }
+
+  .pd-elapsed-cell {
+    grid-column: 3;
+    grid-row: 2;
+    justify-content: flex-end;
+    justify-self: end;
+    font-size: 12px;
+  }
+
+  .pd-chevron-cell {
+    display: none;
+  }
+}
+
+.pd-control-right {
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
+}
+
+.pd-search {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 14px;
+  font-size: 12px;
+  font-weight: 900;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+.pd-search input {
+  width: 150px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 9px 12px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--ink);
+  outline: none;
+}
+
+.pd-search input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.16);
+}
