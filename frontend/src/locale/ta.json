@@ -152,6 +152,8 @@
     "scanDirections": "வழிமுறைகள்",
     "scanWarnings": "எச்சரிக்கை",
     "scanLabelMeaning": "இந்த பகுதி என்ன சொல்கிறது",
+    "scanDetectedText": "லேபிளில் இருந்து படிக்கப்பட்ட உரை",
+    "scanDetectedTextEmpty": "லேபிளில் படிக்கக்கூடிய உரை எதுவும் கண்டறியப்படவில்லை.",
     "scanOverview": "இந்த மருந்து என்ன செய்கிறது",
     "scanSideEffects": "சாத்தியமான பக்க விளைவுகள்",
     "scanPrecautions": "முன்னெச்சரிக்கைகள்",
@@ -341,6 +343,7 @@
     "createAccount": "கணக்கை உருவாக்கவும்",
     "setupAccount": "உங்கள் Pilly கணக்கை அமைக்கவும்",
     "email": "மின்னஞ்சல் முகவரி",
+    "staffInviteCode": "பணியாளர் அழைப்புக் குறியீடு",
     "fullName": "முழுப் பெயர்",
     "password": "கடவுச்சொல்",
     "confirmPassword": "கடவுச்சொல்லை உறுதிப்படுத்துக",
@@ -362,6 +365,7 @@
     "placeholders": {
       "patientEmail": "you@email.com",
       "pharmacistEmail": "you@pharmacy.com",
+      "staffInviteCode": "பணியாளர் அழைப்புக் குறியீட்டை உள்ளிடவும்",
       "fullName": "Tan Wei Ming",
       "createPassword": "கடவுச்சொல்லை உருவாக்கவும்",
       "reenterPassword": "உங்கள் கடவுச்சொல்லை மீண்டும் உள்ளிடவும்"
@@ -375,6 +379,7 @@
       "emailNotConfirmed": "முதலில் உங்கள் மின்னஞ்சலை உறுதிப்படுத்தி, பின்னர் மீண்டும் உள்நுழையவும்.",
       "accountExists": "இந்த மின்னஞ்சலுக்கு ஏற்கனவே ஒரு கணக்கு உள்ளது. தயவுசெய்து உள்நுழையவும்.",
       "nameRequired": "கணக்கை உருவாக்கும் முன் உங்கள் பெயரை உள்ளிடவும்.",
+      "invalidStaffInviteCode": "பணியாளர் அழைப்புக் குறியீடு தவறானது.",
       "roleMismatch": "இந்த கணக்கு {{role}} ஆக பதிவு செய்யப்பட்டுள்ளது. {{role}} உள்நுழைவு தாவலுக்கு மாறவும்.",
       "profileSetupMissing": "Supabase சுயவிவர அட்டவணை இல்லை அல்லது முழுமையில்லை. backend/db/table.sql இல் உள்ள SQL அமைப்பை இயக்கவும்.",
       "unableToSignIn": "உள்நுழைய முடியவில்லை. உங்கள் மின்னஞ்சல் மற்றும் கடவுச்சொல்லை சரிபார்க்கவும்.",

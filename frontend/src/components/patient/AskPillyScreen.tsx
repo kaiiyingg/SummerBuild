@@ -178,6 +178,8 @@ export function AskPillyScreen() {
   const [isRecording, setIsRecording] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [sttTranscribing, setSttTranscribing] = useState(false);
+  const [recDuration, setRecDuration] = useState(0);
+  const [audioLevel, setAudioLevel] = useState(0);
 
   const bottomRef = useRef<HTMLDivElement>(null);
   const uploadInputRef = useRef<HTMLInputElement>(null);
@@ -187,6 +189,9 @@ export function AskPillyScreen() {
   const micStreamRef = useRef<MediaStream | null>(null);
   const micRecorderRef = useRef<MediaRecorder | null>(null);
   const micChunksRef = useRef<Blob[]>([]);
+  const recTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const animFrameRef = useRef<number>(0);
 
   useEffect(() => {
     setMessages([{ id: 1, role: "bot", text: greetingForLanguage, time: "2:34 PM" }]);
@@ -430,6 +435,12 @@ export function AskPillyScreen() {
         stream.getTracks().forEach((tr) => tr.stop());
         micStreamRef.current = null;
         setIsListening(false);
+        if (recTimerRef.current) { clearInterval(recTimerRef.current); recTimerRef.current = null; }
+        cancelAnimationFrame(animFrameRef.current);
+        audioContextRef.current?.close();
+        audioContextRef.current = null;
+        setAudioLevel(0);
+        setRecDuration(0);
         setSttTranscribing(true);
 
         const blob = new Blob(micChunksRef.current, { type: mimeType });
@@ -458,7 +469,27 @@ export function AskPillyScreen() {
       recorder.start();
       micRecorderRef.current = recorder;
       setIsListening(true);
+      setRecDuration(0);
       setComposerError("");
+
+      // Timer
+      recTimerRef.current = setInterval(() => setRecDuration((d) => d + 1), 1000);
+
+      // Audio level analyser
+      const audioCtx = new AudioContext();
+      audioContextRef.current = audioCtx;
+      const analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 256;
+      const source = audioCtx.createMediaStreamSource(stream);
+      source.connect(analyser);
+      const dataArray = new Uint8Array(analyser.frequencyBinCount);
+      const tick = () => {
+        analyser.getByteFrequencyData(dataArray);
+        const avg = dataArray.reduce((a, b) => a + b, 0) / dataArray.length;
+        setAudioLevel(Math.min(1, avg / 60));
+        animFrameRef.current = requestAnimationFrame(tick);
+      };
+      animFrameRef.current = requestAnimationFrame(tick);
     } catch {
       setComposerError(t("chat.voiceError"));
     }
@@ -859,17 +890,38 @@ export function AskPillyScreen() {
             <Camera size={20} color={C.textSecond} />
           </button>
 
-          <div className="flex-1 flex items-center px-4 py-2.5 rounded-3xl" style={{ background: C.muted }}>
-            <input
-              type="text"
-              value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && sendMessage(inputText)}
-              placeholder={t("chat.placeholder")}
-              className="flex-1 bg-transparent outline-none"
-              style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "15px", color: C.textPrimary }}
-            />
-          </div>
+          {isListening ? (
+            <div className="flex-1 flex items-center gap-3 px-4 rounded-3xl" style={{ background: C.muted, height: "44px" }}>
+              <div className="flex items-center gap-[3px]" style={{ height: "24px" }}>
+                {[0.5, 0.75, 1.0, 0.75, 0.5].map((scale, i) => (
+                  <div
+                    key={i}
+                    className="w-[3px] rounded-full transition-all duration-75"
+                    style={{
+                      background: "#EF4444",
+                      height: `${Math.max(4, audioLevel * scale * 22)}px`,
+                    }}
+                  />
+                ))}
+              </div>
+              <span style={{ color: "#EF4444", fontSize: "14px", fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>
+                {String(Math.floor(recDuration / 60)).padStart(2, "0")}:{String(recDuration % 60).padStart(2, "0")}
+              </span>
+              <span style={{ color: C.textSecond, fontSize: "13px" }}>{t("chat.voiceRecording")}</span>
+            </div>
+          ) : (
+            <div className="flex-1 flex items-center px-4 py-2.5 rounded-3xl" style={{ background: C.muted }}>
+              <input
+                type="text"
+                value={inputText}
+                onChange={(e) => setInputText(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && sendMessage(inputText)}
+                placeholder={t("chat.placeholder")}
+                className="flex-1 bg-transparent outline-none"
+                style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "15px", color: C.textPrimary }}
+              />
+            </div>
+          )}
 
           <button
             type="button"

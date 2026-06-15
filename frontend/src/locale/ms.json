@@ -152,6 +152,8 @@
     "scanDirections": "Arahan",
     "scanWarnings": "Amaran",
     "scanLabelMeaning": "Apa maksud bahagian ini",
+    "scanDetectedText": "Teks dibaca dari label",
+    "scanDetectedTextEmpty": "Tiada teks yang boleh dibaca dikesan pada label.",
     "scanOverview": "Untuk apa ubat ini",
     "scanSideEffects": "Kesan sampingan yang mungkin berlaku",
     "scanPrecautions": "Langkah berjaga-jaga",
@@ -348,6 +350,7 @@
     "createAccount": "Cipta Akaun",
     "setupAccount": "Sediakan akaun Pilly anda",
     "email": "Alamat E-mel",
+    "staffInviteCode": "Kod Jemputan Staf",
     "fullName": "Nama Penuh",
     "password": "Kata Laluan",
     "confirmPassword": "Sahkan Kata Laluan",
@@ -369,6 +372,7 @@
     "placeholders": {
       "patientEmail": "you@email.com",
       "pharmacistEmail": "you@pharmacy.com",
+      "staffInviteCode": "Masukkan kod jemputan staf",
       "fullName": "Tan Wei Ming",
       "createPassword": "Cipta kata laluan",
       "reenterPassword": "Masukkan semula kata laluan"
@@ -382,6 +386,7 @@
       "emailNotConfirmed": "Sila sahkan e-mel anda dahulu, kemudian log masuk semula.",
       "accountExists": "Akaun dengan e-mel ini sudah wujud. Sila log masuk.",
       "nameRequired": "Sila masukkan nama anda sebelum mencipta akaun.",
+      "invalidStaffInviteCode": "Kod jemputan staf tidak sah.",
       "roleMismatch": "Akaun ini didaftarkan sebagai {{role}}. Sila tukar ke tab log masuk {{role}}.",
       "profileSetupMissing": "Jadual profil Supabase tiada atau tidak lengkap. Jalankan tetapan SQL dalam backend/db/table.sql.",
       "unableToSignIn": "Tidak dapat log masuk. Sila semak e-mel dan kata laluan anda.",

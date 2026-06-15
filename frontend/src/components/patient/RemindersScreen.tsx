@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Bell, Plus, X, Clock, ChevronDown, Check } from "lucide-react";
+import { Plus, X, Clock, ChevronDown, Check } from "lucide-react";
 import { useTranslation } from "../../context/LanguageContext";
 import {
   addPatientReminder,
@@ -77,7 +77,7 @@ function ReminderRow({ reminder, onToggle }: { reminder: Reminder; onToggle: () 
   return (
     <div className="flex items-center gap-4 py-4" style={{ borderBottom: `1px solid ${C.border}` }}>
       <div className="h-11 w-11 rounded-full flex items-center justify-center shrink-0" style={{ background: C.tealLight }}>
-        <Bell size={20} color={C.teal} />
+        <Clock size={20} color={C.teal} />
       </div>
       <div className="flex-1">
         <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "17px", fontWeight: 600, color: reminder.taken ? C.textDisabled : C.textPrimary, textDecoration: reminder.taken ? "line-through" : "none" }}>
@@ -347,7 +347,6 @@ export function RemindersScreen() {
         <h1 style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "28px", fontWeight: 700, color: C.textPrimary }}>
           {t('medications.reminderTitle')}
         </h1>
-        <Bell size={26} color={C.teal} />
       </div>
 
       {/* Progress summary */}

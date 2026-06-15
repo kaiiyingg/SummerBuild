@@ -156,7 +156,7 @@ function Login() {
     if (!canRegister) return;
 
     if (regRole === "pharmacist" && !pharmacistInviteValid) {
-      setAuthError("Invalid staff invite code.");
+      setAuthError(t("auth.errors.invalidStaffInviteCode"));
       return;
 }
 
@@ -368,12 +368,12 @@ function Login() {
 
             {regRole === "pharmacist" && (
               <div className="field">
-                <label htmlFor="staff-invite-code">Staff Invite Code</label>
+                <label htmlFor="staff-invite-code">{t("auth.staffInviteCode")}</label>
                 <div className="input-wrap">
                   <input
                     id="staff-invite-code"
                     type="text"
-                    placeholder="Enter staff invite code"
+                    placeholder={t("auth.placeholders.staffInviteCode")}
                     value={staffInviteCode}
                     onChange={(e) => setStaffInviteCode(e.target.value)}
                     required
@@ -383,7 +383,7 @@ function Login() {
 
                 {staffInviteCode && !pharmacistInviteValid && (
                   <span className="field-error">
-                    Invalid staff invite code.
+                    {t("auth.errors.invalidStaffInviteCode")}
                   </span>
                 )}
               </div>

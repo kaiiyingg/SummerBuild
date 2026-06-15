@@ -23,6 +23,7 @@ import {
   subscribeToPatientChanges,
   subscribeToNotifications,
 } from "../services/pharmacyData";
+import { syncPushSubscriptionIfAllowed } from "../services/pushNotifications";
 import { BasicToast } from "../components/ui/Toast";
 
 // ── palette ────────────────────────────────────────────────────
@@ -507,6 +508,7 @@ export default function App() {
 
   useEffect(() => {
     void loadNotifications();
+    void syncPushSubscriptionIfAllowed();
     return subscribeToNotifications(() => {
       void loadNotifications();
     });

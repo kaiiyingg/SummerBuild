@@ -77,7 +77,7 @@ async def scan_medication_video_route(
             language=language,
         )
     except PatientVideoWorkflowError as exc:
-        raise HTTPException(status_code=422, detail=str(exc)) from exc
+        raise HTTPException(status_code=getattr(exc, "status_code", 422), detail=str(exc)) from exc
     except Exception as exc:
         raise HTTPException(
             status_code=500,
