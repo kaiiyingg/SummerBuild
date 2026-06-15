@@ -561,75 +561,82 @@ export default function App() {
       `}</style>
 
       {/* Header */}
-      <header className="shrink-0 bg-white" style={{ minHeight: "74px", borderBottom: `1px solid ${C.border}` }}>
-        <div className="flex items-center justify-between h-full px-4 md:px-8 max-w-screen-xl mx-auto">
-
-          <PillLogo onClick={() => setActiveTab("home")} />
-
-          <div className="hidden sm:flex flex-col items-center">
+      <header className="shrink-0 bg-white" style={{ borderBottom: `1px solid ${C.border}` }}>
+        <div className="relative px-4 py-2 sm:py-0 md:px-8 max-w-screen-xl mx-auto">
+          <div className="pointer-events-none hidden sm:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex-col items-center">
             <span style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "14px", color: C.textSecond }}>{t('auth.welcomeBack')},</span>
             <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "17px", fontWeight: 600, color: C.textPrimary }}>{patientName}</span>
           </div>
 
-          <div className="flex items-center gap-1">
+          <div className="flex items-center justify-between min-h-[58px] sm:min-h-[74px] gap-2">
+            <PillLogo onClick={() => setActiveTab("home")} />
 
-            {/* Language */}
-            <div className="relative">
-              <button
-                onClick={() => { setShowLangDropdown(!showLangDropdown); setShowNotifications(false); }}
-                className="flex min-h-[46px] items-center gap-2 rounded-xl px-3.5 py-2 transition-colors hover:bg-[#F1F5F9]"
-                aria-label="Change language"
-              >
-                <Globe size={19} color={C.textSecond} />
-                <span style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "15px", fontWeight: 700, color: C.textPrimary }}>
-                  {currentShort}
-                </span>
-                <ChevronDown size={15} color={C.textSecond} />
-              </button>
-              {showLangDropdown && (
-                <LanguageDropdown onClose={() => setShowLangDropdown(false)} />
-              )}
-            </div>
+            <div className="flex items-center gap-1">
 
-            {/* Bell */}
-            <div className="relative">
-              <button
-                onClick={() => {
-                  setShowNotifications((prev) => !prev);
-                  setShowLangDropdown(false);
-                }}
-                className={`relative flex h-[46px] w-[46px] items-center justify-center rounded-xl transition-colors hover:bg-[#F1F5F9] ${unreadCount > 0 ? "bell-alert-active" : ""}`}
-                aria-label="Notifications"
-              >
-                <Bell size={23} color={C.textSecond} />
-                {unreadCount > 0 && (
-                  <span className="absolute right-1 top-1 flex h-5 min-w-[20px] items-center justify-center rounded-full px-1 text-white"
-                    style={{ background: C.red, fontSize: "11px", fontWeight: 700 }}>
-                    {unreadCount}
+              {/* Language */}
+              <div className="relative">
+                <button
+                  onClick={() => { setShowLangDropdown(!showLangDropdown); setShowNotifications(false); }}
+                  className="flex min-h-[40px] sm:min-h-[46px] items-center gap-1 sm:gap-2 rounded-xl px-2.5 sm:px-3.5 py-2 transition-colors hover:bg-[#F1F5F9]"
+                  aria-label="Change language"
+                >
+                  <Globe size={18} color={C.textSecond} />
+                  <span style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "14px", fontWeight: 700, color: C.textPrimary }}>
+                    {currentShort}
                   </span>
+                  <ChevronDown size={14} color={C.textSecond} />
+                </button>
+                {showLangDropdown && (
+                  <LanguageDropdown onClose={() => setShowLangDropdown(false)} />
                 )}
+              </div>
+
+              {/* Bell */}
+              <div className="relative">
+                <button
+                  onClick={() => {
+                    setShowNotifications((prev) => !prev);
+                    setShowLangDropdown(false);
+                  }}
+                  className={`relative flex h-[40px] w-[40px] sm:h-[46px] sm:w-[46px] items-center justify-center rounded-xl transition-colors hover:bg-[#F1F5F9] ${unreadCount > 0 ? "bell-alert-active" : ""}`}
+                  aria-label="Notifications"
+                >
+                  <Bell size={20} color={C.textSecond} />
+                  {unreadCount > 0 && (
+                    <span className="absolute right-0.5 top-0.5 sm:right-1 sm:top-1 flex h-5 min-w-[20px] items-center justify-center rounded-full px-1 text-white"
+                      style={{ background: C.red, fontSize: "11px", fontWeight: 700 }}>
+                      {unreadCount}
+                    </span>
+                  )}
+                </button>
+                {showNotifications && (
+                  <NotificationDropdown
+                    notifications={notifications}
+                    onClose={() => setShowNotifications(false)}
+                    onMarkAllRead={markAllRead}
+                    onMarkRead={markOneRead}
+                  />
+                )}
+              </div>
+
+              {/* Logout */}
+              <button
+                onClick={() => setShowLogoutModal(true)}
+                className="flex min-h-[40px] sm:min-h-[46px] max-w-[96px] items-center justify-center rounded-xl px-2.5 sm:px-4 py-2 transition-colors hover:bg-[#F1F5F9]"
+                aria-label={t("profile.logout")}
+              >
+                <span className="truncate" style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "14px", fontWeight: 700, color: C.textPrimary }}>
+                  {t("profile.logout")}
+                </span>
               </button>
-              {showNotifications && (
-                <NotificationDropdown
-                  notifications={notifications}
-                  onClose={() => setShowNotifications(false)}
-                  onMarkAllRead={markAllRead}
-                  onMarkRead={markOneRead}
-                />
-              )}
             </div>
+          </div>
 
-            {/* Logout */}
-            <button
-              onClick={() => setShowLogoutModal(true)}
-              className="flex min-h-[46px] items-center justify-center rounded-xl px-4 py-2 transition-colors hover:bg-[#F1F5F9]"
-              aria-label={t("profile.logout")}
-            >
-              <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "15px", fontWeight: 700, color: C.textPrimary }}>
-                {t("profile.logout")}
-              </span>
-            </button>
-
+          <div className="sm:hidden pt-1 pb-1.5">
+            <span style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "12px", color: C.textSecond }}>{t('auth.welcomeBack')}, </span>
+            <span className="align-middle" style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "14px", fontWeight: 700, color: C.textPrimary }}>
+              {patientName}
+            </span>
           </div>
         </div>
       </header>
@@ -640,7 +647,7 @@ export default function App() {
       </main>
 
       {/* Bottom nav */}
-      <nav className="shrink-0 bg-white" style={{ minHeight: "84px", borderTop: `1px solid ${C.border}` }}>
+      <nav className="shrink-0 bg-white min-h-[64px] sm:min-h-[76px]" style={{ borderTop: `1px solid ${C.border}` }}>
         <div className="flex items-center h-full max-w-screen-xl mx-auto px-2 md:px-8">
           {TAB_DEFS.map((tab) => {
             const active = activeTab === tab.id;
@@ -648,11 +655,14 @@ export default function App() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className="flex-1 flex h-full flex-col items-center justify-center gap-1 transition-colors py-1"
+                className="flex-1 flex h-full flex-col items-center justify-center gap-0.5 sm:gap-1 transition-colors py-0.5 sm:py-1"
                 style={{ color: active ? C.teal : C.textSecond }}
               >
                 {tab.icon}
-                <span style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "13px", fontWeight: 600 }}>
+                <span
+                  className={`text-center leading-tight max-w-[72px] sm:max-w-none ${tab.id === "scan" ? "text-[10px] sm:text-[12px]" : "text-[11px] sm:text-[12px]"}`}
+                  style={{ fontFamily: "'Open Sans', sans-serif", fontWeight: 600 }}
+                >
                   {t(tab.key)}
                 </span>
                 {active && <div className="h-2 w-2 rounded-full" style={{ background: C.teal }} />}

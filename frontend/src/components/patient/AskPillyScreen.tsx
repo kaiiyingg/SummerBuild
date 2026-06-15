@@ -856,15 +856,15 @@ export function AskPillyScreen() {
           </p>
         )}
 
-        <div className="flex items-center gap-3">
+        <div className="flex min-w-0 items-center gap-2 sm:gap-3">
           <button
             type="button"
             onClick={() => uploadInputRef.current?.click()}
             aria-label={t("chat.attachMedia")}
-            className="w-11 h-11 rounded-full flex items-center justify-center shrink-0 hover:opacity-80 transition-opacity"
+            className="h-9 w-9 sm:h-11 sm:w-11 rounded-full flex items-center justify-center shrink-0 hover:opacity-80 transition-opacity"
             style={{ background: C.muted, border: `1px solid ${C.border}` }}
           >
-            <Paperclip size={20} color={C.textSecond} />
+            <Paperclip size={18} color={C.textSecond} />
           </button>
           <input
             ref={uploadInputRef}
@@ -884,14 +884,14 @@ export function AskPillyScreen() {
             type="button"
             onClick={() => void openLiveCamera()}
             aria-label={t("chat.openCamera")}
-            className="w-11 h-11 rounded-full flex items-center justify-center shrink-0 hover:opacity-80 transition-opacity"
+            className="h-9 w-9 sm:h-11 sm:w-11 rounded-full flex items-center justify-center shrink-0 hover:opacity-80 transition-opacity"
             style={{ background: C.muted, border: `1px solid ${C.border}` }}
           >
-            <Camera size={20} color={C.textSecond} />
+            <Camera size={18} color={C.textSecond} />
           </button>
 
           {isListening ? (
-            <div className="flex-1 flex items-center gap-3 px-4 rounded-3xl" style={{ background: C.muted, height: "44px" }}>
+            <div className="min-w-0 flex-1 flex items-center gap-2 sm:gap-3 px-3 sm:px-4 rounded-3xl" style={{ background: C.muted, height: "44px" }}>
               <div className="flex items-center gap-[3px]" style={{ height: "24px" }}>
                 {[0.5, 0.75, 1.0, 0.75, 0.5].map((scale, i) => (
                   <div
@@ -907,10 +907,10 @@ export function AskPillyScreen() {
               <span style={{ color: "#EF4444", fontSize: "14px", fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>
                 {String(Math.floor(recDuration / 60)).padStart(2, "0")}:{String(recDuration % 60).padStart(2, "0")}
               </span>
-              <span style={{ color: C.textSecond, fontSize: "13px" }}>{t("chat.voiceRecording")}</span>
+              <span className="hidden sm:inline" style={{ color: C.textSecond, fontSize: "13px" }}>{t("chat.voiceRecording")}</span>
             </div>
           ) : (
-            <div className="flex-1 flex items-center px-4 py-2.5 rounded-3xl" style={{ background: C.muted }}>
+            <div className="min-w-0 flex-1 flex items-center px-3 sm:px-4 py-2.5 rounded-3xl" style={{ background: C.muted }}>
               <input
                 type="text"
                 value={inputText}
@@ -928,14 +928,14 @@ export function AskPillyScreen() {
             onClick={() => void toggleMicRecording()}
             aria-label={isListening ? t("chat.voiceRecording") : sttTranscribing ? t("chat.voiceTranscribing") : t("chat.voiceInput")}
             disabled={sttTranscribing}
-            className="w-11 h-11 rounded-full flex items-center justify-center shrink-0 transition-all disabled:opacity-50"
+            className="h-9 w-9 sm:h-11 sm:w-11 rounded-full flex items-center justify-center shrink-0 transition-all disabled:opacity-50"
             style={{
               background: isListening ? "#EF4444" : C.muted,
               border: `1px solid ${isListening ? "#EF4444" : C.border}`,
             }}
           >
             <Mic
-              size={20}
+              size={18}
               color={isListening ? "white" : sttTranscribing ? C.teal : C.textSecond}
               className={isListening ? "animate-pulse" : ""}
             />
@@ -943,7 +943,7 @@ export function AskPillyScreen() {
 
           <button
             onClick={() => sendMessage(inputText)}
-            className="w-11 h-11 rounded-full flex items-center justify-center shrink-0 hover:opacity-80 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+            className="h-9 w-9 sm:h-11 sm:w-11 rounded-full flex items-center justify-center shrink-0 hover:opacity-80 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
             disabled={isSending}
             style={{ background: C.teal }}
             aria-label="Send"
