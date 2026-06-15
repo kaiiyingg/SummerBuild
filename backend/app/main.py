@@ -52,11 +52,17 @@ def root():
     }
 
 
+@app.head("/")
+def root_head():
+    return Response(status_code=200)
 @app.get("/healthz")
 def healthz():
     return {"status": "ok"}
 
 
+@app.head("/healthz")
+def healthz_head():
+    return Response(status_code=200)
 @app.get("/favicon.ico")
 def favicon():
     return Response(status_code=204)
