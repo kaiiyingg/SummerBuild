@@ -45,8 +45,8 @@ app.include_router(push_notifications.router, prefix="/api", tags=["push-notific
 app.include_router(speech_to_text.router, prefix="/api", tags=["speech-to-text"])
 
 STATIC_DIR_CANDIDATES = [
-    Path(__file__).resolve().parents[2] / "static",
-    Path(__file__).resolve().parents[2] / "frontend" / "dist",
+    Path(__file__).resolve().parents[1] / "static",
+    Path(__file__).resolve().parents[1] / "frontend" / "dist",
 ]
 
 STATIC_DIR = next((directory for directory in STATIC_DIR_CANDIDATES if directory.exists()), STATIC_DIR_CANDIDATES[0])
