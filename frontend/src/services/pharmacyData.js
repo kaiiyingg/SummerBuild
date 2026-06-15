@@ -539,15 +539,41 @@ function fromSupabaseReminder(row) {
   };
 }
 
+function getReminderSortValue(time) {
+  const match = String(time || "").match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+  if (!match) return Number.MAX_SAFE_INTEGER;
+
+  let hour = Number(match[1]) % 12;
+  if (match[3].toUpperCase() === "PM") {
+    hour += 12;
+  }
+
+  return hour * 60 + Number(match[2]);
+}
+
+function sortReminders(reminders) {
+  return [...reminders].sort((left, right) => {
+    const timeDiff = getReminderSortValue(left.time) - getReminderSortValue(right.time);
+    if (timeDiff !== 0) return timeDiff;
+
+    return String(left.id).localeCompare(String(right.id), undefined, {
+      numeric: true,
+      sensitivity: "base",
+    });
+  });
+}
+
 export async function fetchPatientReminders(patientId = getCurrentPatientId()) {
   const resolvedPatientId = patientId ?? await resolveCurrentPatientId();
 
   if (!resolvedPatientId) return [];
 
   if (!hasSupabaseConfig || !supabase) {
-    return getLocalReminderRows()
-      .filter((reminder) => reminder.patient_id === resolvedPatientId)
-      .map(fromSupabaseReminder);
+    return sortReminders(
+      getLocalReminderRows()
+        .filter((reminder) => reminder.patient_id === resolvedPatientId)
+        .map(fromSupabaseReminder)
+    );
   }
 
   const { data, error } = await supabase
@@ -558,12 +584,14 @@ export async function fetchPatientReminders(patientId = getCurrentPatientId()) {
 
   if (error) {
     console.warn("Supabase reminders fallback:", error.message);
-    return getLocalReminderRows()
-      .filter((reminder) => reminder.patient_id === resolvedPatientId)
-      .map(fromSupabaseReminder);
+    return sortReminders(
+      getLocalReminderRows()
+        .filter((reminder) => reminder.patient_id === resolvedPatientId)
+        .map(fromSupabaseReminder)
+    );
   }
 
-  return data.map(fromSupabaseReminder);
+  return sortReminders(data.map(fromSupabaseReminder));
 }
 
 export async function addPatientReminder({
@@ -575,14 +603,21 @@ export async function addPatientReminder({
   createdByUserId = null,
 }) {
   const resolvedPatientId = patientId ?? await resolveCurrentPatientId();
+  const trimmedName = String(name || "").trim();
+  const trimmedTime = String(time || "").trim();
+
+  if (!trimmedName || !trimmedTime) {
+    throw new Error("Medication name and reminder time are required.");
+  }
+
   if (!resolvedPatientId) return null;
 
   if (!hasSupabaseConfig || !supabase) {
     const nextReminder = {
       id: `local-${crypto.randomUUID()}`,
       patient_id: resolvedPatientId,
-      medication_name: name,
-      reminder_time: time,
+      medication_name: trimmedName,
+      reminder_time: trimmedTime,
       taken: false,
       created_by_name: createdByName,
       created_by_role: createdByRole,
@@ -601,8 +636,8 @@ export async function addPatientReminder({
     .from("patient_reminders")
     .insert({
       patient_id: resolvedPatientId,
-      medication_name: name,
-      reminder_time: time,
+      medication_name: trimmedName,
+      reminder_time: trimmedTime,
       taken: false,
       created_by_name: createdByName,
       created_by_role: createdByRole,

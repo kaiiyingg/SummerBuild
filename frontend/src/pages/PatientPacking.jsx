@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import PillyLogo from "../components/PillyLogo";
+import ReminderComposerSheet from "../components/reminders/ReminderComposerSheet";
 import {
   addPatientReminder,
   addHoldReason,
@@ -46,31 +47,6 @@ function formatImageType(type) {
   return "Unclear image";
 }
 
-function formatReminderTime(value) {
-  const [hourText = "08", minute = "00"] = String(value || "").split(":");
-  const rawHour = Number(hourText);
-  const hour = Number.isNaN(rawHour) ? 8 : rawHour;
-  const suffix = hour >= 12 ? "PM" : "AM";
-  const hour12 = hour % 12 || 12;
-  return `${hour12}:${minute} ${suffix}`;
-}
-
-function toTimeInputValue(value) {
-  if (/^\d{2}:\d{2}$/.test(String(value || ""))) {
-    return String(value);
-  }
-
-  const match = String(value || "").match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
-  if (!match) return "08:00";
-
-  let hour = Number(match[1]) % 12;
-  if (match[3].toUpperCase() === "PM") {
-    hour += 12;
-  }
-
-  return `${String(hour).padStart(2, "0")}:${match[2]}`;
-}
-
 function PatientPacking() {
   const { patientId } = useParams();
   const navigate = useNavigate();
@@ -87,11 +63,8 @@ function PatientPacking() {
   const [reminders, setReminders] = useState([]);
   const [loadingReminders, setLoadingReminders] = useState(true);
   const [reminderOpen, setReminderOpen] = useState(false);
-  const [reminderMedication, setReminderMedication] = useState("");
-  const [reminderTime, setReminderTime] = useState("08:00");
   const [reminderSaving, setReminderSaving] = useState(false);
   const [reminderError, setReminderError] = useState("");
-  
 
   const [verifying, setVerifying] = useState(false);
   const [scanPhase, setScanPhase] = useState("identity");
@@ -260,8 +233,6 @@ function PatientPacking() {
 
   const openReminderModal = () => {
     setReminderError("");
-    setReminderMedication(patient?.medications?.[0]?.name || "");
-    setReminderTime("08:00");
     setReminderOpen(true);
   };
 
@@ -271,12 +242,8 @@ function PatientPacking() {
     setReminderError("");
   };
 
-  const sendPatientReminder = async () => {
+  const submitPatientReminder = async ({ name, time }) => {
     if (!patient?.id) return;
-    if (!reminderMedication) {
-      setReminderError("Select a medication before sending a reminder.");
-      return;
-    }
 
     setReminderSaving(true);
     setReminderError("");
@@ -284,8 +251,8 @@ function PatientPacking() {
     try {
       await addPatientReminder({
         patientId: patient.id,
-        name: reminderMedication,
-        time: formatReminderTime(reminderTime),
+        name,
+        time,
         createdByName:
           localStorage.getItem("pilly-user-name") ||
           localStorage.getItem("pilly-user-email") ||
@@ -700,7 +667,7 @@ function PatientPacking() {
               onClick={openReminderModal}
               disabled={!patient.medications.length}
             >
-              Send Reminder
+              Add Reminder
             </button>
           </div>
 
@@ -736,56 +703,15 @@ function PatientPacking() {
       </main>
 
       {reminderOpen && (
-        <div className="scanner-modal-overlay" onClick={closeReminderModal}>
-          <div className="reminder-modal" onClick={(e) => e.stopPropagation()}>
-            <button className="scanner-close" onClick={closeReminderModal}>
-              ×
-            </button>
-
-            <h2>Send Medication Reminder</h2>
-            <p>
-              This reminder will show up instantly on {patient.name}&apos;s
-              reminder screen when Supabase is connected.
-            </p>
-
-            <label className="manual-select-label">
-              Medication
-              <select
-                className="manual-select"
-                value={reminderMedication}
-                onChange={(e) => setReminderMedication(e.target.value)}
-              >
-                {patient.medications.map((med) => (
-                  <option key={med.id} value={med.name}>
-                    {med.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className="manual-select-label">
-              Reminder time
-              <input
-                type="time"
-                className="manual-select"
-                value={toTimeInputValue(reminderTime)}
-                onChange={(e) => setReminderTime(e.target.value)}
-              />
-            </label>
-
-            {reminderError && (
-              <div className="verification-error">{reminderError}</div>
-            )}
-
-            <button
-              className="scanner-confirm pharmacist-confirm"
-              onClick={sendPatientReminder}
-              disabled={reminderSaving || !reminderMedication}
-            >
-              {reminderSaving ? "Sending..." : "Send Reminder to Patient"}
-            </button>
-          </div>
-        </div>
+        <ReminderComposerSheet
+          patientName={patient.name}
+          medications={patient.medications}
+          onClose={closeReminderModal}
+          onSubmit={submitPatientReminder}
+          submitLabel="Send Reminder to Patient"
+          submitting={reminderSaving}
+          errorMessage={reminderError}
+        />
       )}
 
       {scannerOpen && (
