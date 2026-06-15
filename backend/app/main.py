@@ -44,7 +44,12 @@ app.include_router(patient_video_workflows.router, prefix="/api", tags=["patient
 app.include_router(push_notifications.router, prefix="/api", tags=["push-notifications"])
 app.include_router(speech_to_text.router, prefix="/api", tags=["speech-to-text"])
 
-STATIC_DIR = Path(__file__).resolve().parents[2] / "static"
+STATIC_DIR_CANDIDATES = [
+    Path(__file__).resolve().parents[2] / "static",
+    Path(__file__).resolve().parents[2] / "frontend" / "dist",
+]
+
+STATIC_DIR = next((directory for directory in STATIC_DIR_CANDIDATES if directory.exists()), STATIC_DIR_CANDIDATES[0])
 INDEX_FILE = STATIC_DIR / "index.html"
 ASSETS_DIR = STATIC_DIR / "assets"
 
@@ -56,12 +61,10 @@ if ASSETS_DIR.exists():
 def root():
     if INDEX_FILE.exists():
         return FileResponse(INDEX_FILE)
-    return JSONResponse(
-        {
-            "service": "Pilly Chatbot API",
-            "status": "ok",
-            "docs": "/docs",
-        }
+    return Response(
+        "<h1>Frontend build not found</h1><p>Expected: /app/static/index.html</p>",
+        media_type="text/html",
+        status_code=503,
     )
 
 
@@ -96,10 +99,8 @@ def spa_fallback(full_path: str):
     if INDEX_FILE.exists():
         return FileResponse(INDEX_FILE)
 
-    return JSONResponse(
-        {
-            "service": "Pilly Chatbot API",
-            "status": "ok",
-            "docs": "/docs",
-        }
+    return Response(
+        "<h1>Frontend build not found</h1><p>Expected: /app/static/index.html</p>",
+        media_type="text/html",
+        status_code=503,
     )
