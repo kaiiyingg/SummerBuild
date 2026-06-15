@@ -594,6 +594,66 @@ export async function fetchPatientReminders(patientId = getCurrentPatientId()) {
   return sortReminders(data.map(fromSupabaseReminder));
 }
 
+export async function addPatientReminders({
+  patientId = null,
+  reminders = [],
+  createdByName = null,
+  createdByRole = null,
+  createdByUserId = null,
+}) {
+  const resolvedPatientId = patientId ?? await resolveCurrentPatientId();
+  const normalizedReminders = (reminders ?? [])
+    .map((reminder) => ({
+      name: String(reminder?.name || "").trim(),
+      time: String(reminder?.time || "").trim(),
+    }))
+    .filter((reminder) => reminder.name && reminder.time);
+
+  if (normalizedReminders.length === 0) {
+    throw new Error("At least one medication reminder is required.");
+  }
+
+  if (!resolvedPatientId) return [];
+
+  if (!hasSupabaseConfig || !supabase) {
+    const nextReminders = normalizedReminders.map((reminder) => ({
+      id: `local-${crypto.randomUUID()}`,
+      patient_id: resolvedPatientId,
+      medication_name: reminder.name,
+      reminder_time: reminder.time,
+      taken: false,
+      created_by_name: createdByName,
+      created_by_role: createdByRole,
+      created_by_user_id: createdByUserId,
+    }));
+
+    saveLocalReminderOverrides([
+      ...getLocalReminderOverrides(),
+      ...nextReminders,
+    ]);
+
+    return sortReminders(nextReminders.map(fromSupabaseReminder));
+  }
+
+  const { data, error } = await supabase
+    .from("patient_reminders")
+    .insert(
+      normalizedReminders.map((reminder) => ({
+        patient_id: resolvedPatientId,
+        medication_name: reminder.name,
+        reminder_time: reminder.time,
+        taken: false,
+        created_by_name: createdByName,
+        created_by_role: createdByRole,
+        created_by_user_id: createdByUserId,
+      }))
+    )
+    .select();
+
+  if (error) throw error;
+  return sortReminders(data.map(fromSupabaseReminder));
+}
+
 export async function addPatientReminder({
   patientId = null,
   name,
@@ -602,47 +662,48 @@ export async function addPatientReminder({
   createdByRole = null,
   createdByUserId = null,
 }) {
-  const resolvedPatientId = patientId ?? await resolveCurrentPatientId();
-  const trimmedName = String(name || "").trim();
-  const trimmedTime = String(time || "").trim();
+  const [reminder] = await addPatientReminders({
+    patientId,
+    reminders: [{ name, time }],
+    createdByName,
+    createdByRole,
+    createdByUserId,
+  });
 
-  if (!trimmedName || !trimmedTime) {
-    throw new Error("Medication name and reminder time are required.");
+  return reminder ?? null;
+}
+
+export async function updatePatientReminderTime(reminderId, time) {
+  const trimmedTime = String(time || "").trim();
+  if (!trimmedTime) {
+    throw new Error("Reminder time is required.");
   }
 
-  if (!resolvedPatientId) return null;
-
   if (!hasSupabaseConfig || !supabase) {
+    const reminderKey = String(reminderId);
+    const baseReminder = getLocalReminderRows().find(
+      (reminder) => String(reminder.id) === reminderKey
+    );
+
+    if (!baseReminder) return null;
+
+    const overrides = getLocalReminderOverrides().filter(
+      (reminder) => String(reminder.id) !== reminderKey
+    );
     const nextReminder = {
-      id: `local-${crypto.randomUUID()}`,
-      patient_id: resolvedPatientId,
-      medication_name: trimmedName,
+      ...baseReminder,
       reminder_time: trimmedTime,
-      taken: false,
-      created_by_name: createdByName,
-      created_by_role: createdByRole,
-      created_by_user_id: createdByUserId,
     };
 
-    saveLocalReminderOverrides([
-      ...getLocalReminderOverrides(),
-      nextReminder,
-    ]);
-
+    overrides.push(nextReminder);
+    saveLocalReminderOverrides(overrides);
     return fromSupabaseReminder(nextReminder);
   }
 
   const { data, error } = await supabase
     .from("patient_reminders")
-    .insert({
-      patient_id: resolvedPatientId,
-      medication_name: trimmedName,
-      reminder_time: trimmedTime,
-      taken: false,
-      created_by_name: createdByName,
-      created_by_role: createdByRole,
-      created_by_user_id: createdByUserId,
-    })
+    .update({ reminder_time: trimmedTime })
+    .eq("id", reminderId)
     .select()
     .single();
 

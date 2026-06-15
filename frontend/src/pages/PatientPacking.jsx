@@ -3,7 +3,7 @@ import { useLocation, useNavigate, useParams } from "react-router-dom";
 import PillyLogo from "../components/PillyLogo";
 import ReminderComposerSheet from "../components/reminders/ReminderComposerSheet";
 import {
-  addPatientReminder,
+  addPatientReminders,
   addHoldReason,
   fetchPatientDetails,
   fetchPatientReminders,
@@ -232,6 +232,11 @@ function PatientPacking() {
 };
 
   const openReminderModal = () => {
+    const allMedicationsVerified =
+      patient?.medications?.length > 0 &&
+      patient.medications.every((med) => verifiedMeds[med.id] || med.verified);
+
+    if (!allMedicationsVerified) return;
     setReminderError("");
     setReminderOpen(true);
   };
@@ -242,17 +247,16 @@ function PatientPacking() {
     setReminderError("");
   };
 
-  const submitPatientReminder = async ({ name, time }) => {
+  const submitPatientReminder = async ({ name, times }) => {
     if (!patient?.id) return;
 
     setReminderSaving(true);
     setReminderError("");
 
     try {
-      await addPatientReminder({
+      await addPatientReminders({
         patientId: patient.id,
-        name,
-        time,
+        reminders: (times ?? []).map((time) => ({ name, time })),
         createdByName:
           localStorage.getItem("pilly-user-name") ||
           localStorage.getItem("pilly-user-email") ||
@@ -552,6 +556,9 @@ function PatientPacking() {
   const expectedQuantity = Number(selectedMed?.quantity || 0);
   const currentDisplayedTotal = cumulativeQuantity + pendingScanQuantity;
   const remainingQuantity = Math.max(expectedQuantity - currentDisplayedTotal, 0);
+  const allMedicationsVerified =
+    patient.medications.length > 0 &&
+    patient.medications.every((med) => verifiedMeds[med.id] || med.verified);
 
   return (
     <div className="pack-page">
@@ -658,20 +665,27 @@ function PatientPacking() {
             <div>
               <p className="pack-label">Patient Reminders</p>
               <h2>
-                {reminders.length} active reminder{reminders.length === 1 ? "" : "s"}
+                {allMedicationsVerified
+                  ? `${reminders.length} scheduled reminder${reminders.length === 1 ? "" : "s"}`
+                  : "Unlock after medication verification"}
               </h2>
             </div>
 
             <button
               className="pack-ai-row-btn"
               onClick={openReminderModal}
-              disabled={!patient.medications.length}
+              disabled={!allMedicationsVerified}
             >
               Add Reminder
             </button>
           </div>
 
-          {loadingReminders ? (
+          {!allMedicationsVerified ? (
+            <p className="pack-empty-state">
+              Finish scanning and verifying every medication before setting reminders
+              for this patient.
+            </p>
+          ) : loadingReminders ? (
             <p className="pack-empty-state">Loading reminders...</p>
           ) : reminders.length === 0 ? (
             <p className="pack-empty-state">
@@ -683,18 +697,8 @@ function PatientPacking() {
                 <div key={reminder.id} className="pack-reminder-item">
                   <div>
                     <p className="pack-reminder-name">{reminder.name}</p>
-                    <p className="pack-reminder-meta">
-                      {reminder.time}
-                      {reminder.createdByName ? ` · ${reminder.createdByName}` : ""}
-                    </p>
+                    <p className="pack-reminder-meta">{reminder.time}</p>
                   </div>
-                  <span
-                    className={`pack-reminder-status ${
-                      reminder.taken ? "taken" : "pending"
-                    }`}
-                  >
-                    {reminder.taken ? "Taken" : "Pending"}
-                  </span>
                 </div>
               ))}
             </div>
