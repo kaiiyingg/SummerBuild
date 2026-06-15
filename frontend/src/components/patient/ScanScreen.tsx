@@ -1303,6 +1303,30 @@ export function ScanScreen() {
                   </div>
                 )}
 
+                <div>
+                  <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "16px", fontWeight: 700, color: C.textPrimary }}>
+                    {t("medications.scanDetectedText")}
+                  </p>
+                  {scanResult.detected_text_lines.length > 0 ? (
+                    <div className="rounded-2xl p-4 mt-2" style={{ background: C.muted, border: `1px solid ${C.border}` }}>
+                      <ul className="space-y-1">
+                        {scanResult.detected_text_lines.map((line, index) => (
+                          <li
+                            key={index}
+                            style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "14px", color: C.textPrimary, lineHeight: "1.6" }}
+                          >
+                            {line}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : (
+                    <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "14px", color: C.textSecond, marginTop: "8px", lineHeight: "1.6" }}>
+                      {t("medications.scanDetectedTextEmpty")}
+                    </p>
+                  )}
+                </div>
+
                 {canRetranslate && (
                   <div className="rounded-2xl p-4" style={{ background: C.tealLight, border: `1px solid ${C.border}` }}>
                     <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "14px", color: C.textPrimary, lineHeight: "1.6" }}>

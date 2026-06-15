@@ -152,6 +152,8 @@
     "scanDirections": "வழிமுறைகள்",
     "scanWarnings": "எச்சரிக்கை",
     "scanLabelMeaning": "இந்த பகுதி என்ன சொல்கிறது",
+    "scanDetectedText": "லேபிளில் இருந்து படிக்கப்பட்ட உரை",
+    "scanDetectedTextEmpty": "லேபிளில் படிக்கக்கூடிய உரை எதுவும் கண்டறியப்படவில்லை.",
     "scanOverview": "இந்த மருந்து என்ன செய்கிறது",
     "scanSideEffects": "சாத்தியமான பக்க விளைவுகள்",
     "scanPrecautions": "முன்னெச்சரிக்கைகள்",

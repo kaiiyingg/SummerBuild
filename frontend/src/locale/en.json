@@ -152,6 +152,8 @@
     "scanDirections": "Directions",
     "scanWarnings": "Warning",
     "scanLabelMeaning": "What this part says",
+    "scanDetectedText": "Text read from label",
+    "scanDetectedTextEmpty": "No readable text was detected on the label.",
     "scanOverview": "What this medication does",
     "scanSideEffects": "Possible side effects",
     "scanPrecautions": "Precautions",

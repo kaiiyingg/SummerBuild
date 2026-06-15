@@ -152,6 +152,8 @@
     "scanDirections": "Arahan",
     "scanWarnings": "Amaran",
     "scanLabelMeaning": "Apa maksud bahagian ini",
+    "scanDetectedText": "Teks dibaca dari label",
+    "scanDetectedTextEmpty": "Tiada teks yang boleh dibaca dikesan pada label.",
     "scanOverview": "Untuk apa ubat ini",
     "scanSideEffects": "Kesan sampingan yang mungkin berlaku",
     "scanPrecautions": "Langkah berjaga-jaga",

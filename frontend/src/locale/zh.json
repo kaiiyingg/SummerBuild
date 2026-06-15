@@ -152,6 +152,8 @@
     "scanDirections": "用法说明",
     "scanWarnings": "注意事项",
     "scanLabelMeaning": "这部分标签的意思",
+    "scanDetectedText": "从标签读取的文字",
+    "scanDetectedTextEmpty": "未能从标签上识别到可读文字。",
     "scanOverview": "这款药物的用途",
     "scanSideEffects": "可能的副作用",
     "scanPrecautions": "注意事项",
