@@ -14,6 +14,15 @@ export const LANGUAGES = [
 
 const locales = { en, zh, ms, ta };
 
+/**
+ * @type {import('react').Context<{
+ *   language: string;
+ *   setLanguage: (code: string) => void;
+ *   t: (key: string, vars?: Record<string, unknown>) => string;
+ *   getLanguageLabel: (code: string) => string;
+ *   LANGUAGES: { code: string; label: string; nativeLabel: string }[];
+ * }>}
+ */
 const LanguageContext = createContext({
   language: 'en',
   setLanguage: () => {},
