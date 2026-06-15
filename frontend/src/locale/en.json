@@ -56,7 +56,7 @@
     "completedAt": "Completed at",
     "isDelayed": "is delayed",
     "delayedReason": "Reason",
-    "delayedEta": "Estimated ready in",
+    "delayedEta": "Additional waiting time:",
     "notifyMe": "Notify me",
     "rescheduleCollection": "Reschedule Collection",
     "collectionLocation": "Medication Collection · Level 1, Pharmacy A",
@@ -350,6 +350,7 @@
     "createAccount": "Create Account",
     "setupAccount": "Set up your Pilly account",
     "email": "Email Address",
+    "staffInviteCode": "Staff Invite Code",
     "fullName": "Full Name",
     "password": "Password",
     "confirmPassword": "Confirm Password",
@@ -371,6 +372,7 @@
     "placeholders": {
       "patientEmail": "you@email.com",
       "pharmacistEmail": "you@pharmacy.com",
+      "staffInviteCode": "Enter staff invite code",
       "fullName": "Tan Wei Ming",
       "createPassword": "Create a password",
       "reenterPassword": "Re-enter your password"
@@ -384,6 +386,7 @@
       "emailNotConfirmed": "Please confirm your email first, then sign in again.",
       "accountExists": "An account with this email already exists. Please sign in instead.",
       "nameRequired": "Please enter your name before creating an account.",
+      "invalidStaffInviteCode": "Invalid staff invite code.",
       "roleMismatch": "This account is registered as {{role}}. Please switch to the {{role}} login tab.",
       "profileSetupMissing": "Supabase profile table is missing or incomplete. Run the SQL setup in backend/db/table.sql.",
       "unableToSignIn": "Unable to sign in. Please check your email and password.",

@@ -343,6 +343,7 @@
     "createAccount": "创建账号",
     "setupAccount": "设置您的 Pilly 账号",
     "email": "电子邮件",
+    "staffInviteCode": "员工邀请码",
     "fullName": "姓名",
     "password": "密码",
     "confirmPassword": "确认密码",
@@ -364,6 +365,7 @@
     "placeholders": {
       "patientEmail": "you@email.com",
       "pharmacistEmail": "you@pharmacy.com",
+      "staffInviteCode": "请输入员工邀请码",
       "fullName": "Tan Wei Ming",
       "createPassword": "创建密码",
       "reenterPassword": "再次输入密码"
@@ -377,6 +379,7 @@
       "emailNotConfirmed": "请先确认您的邮箱，然后再登录。",
       "accountExists": "该邮箱已注册账号。请直接登录。",
       "nameRequired": "创建账号前请输入您的姓名。",
+      "invalidStaffInviteCode": "员工邀请码无效。",
       "roleMismatch": "该账号注册身份为 {{role}}。请切换到 {{role}} 登录标签。",
       "profileSetupMissing": "Supabase 用户资料表缺失或不完整。请运行 backend/db/table.sql 中的 SQL 设置。",
       "unableToSignIn": "无法登录。请检查您的邮箱和密码。",
