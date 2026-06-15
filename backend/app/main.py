@@ -1,8 +1,10 @@
 import os
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import Response
+from fastapi.responses import FileResponse, JSONResponse, Response
+from fastapi.staticfiles import StaticFiles
 
 from app.routers import (
     chatbot,
@@ -42,14 +44,25 @@ app.include_router(patient_video_workflows.router, prefix="/api", tags=["patient
 app.include_router(push_notifications.router, prefix="/api", tags=["push-notifications"])
 app.include_router(speech_to_text.router, prefix="/api", tags=["speech-to-text"])
 
+STATIC_DIR = Path(__file__).resolve().parents[2] / "static"
+INDEX_FILE = STATIC_DIR / "index.html"
+ASSETS_DIR = STATIC_DIR / "assets"
+
+if ASSETS_DIR.exists():
+    app.mount("/assets", StaticFiles(directory=ASSETS_DIR), name="assets")
+
 
 @app.get("/")
 def root():
-    return {
-        "service": "Pilly Chatbot API",
-        "status": "ok",
-        "docs": "/docs",
-    }
+    if INDEX_FILE.exists():
+        return FileResponse(INDEX_FILE)
+    return JSONResponse(
+        {
+            "service": "Pilly Chatbot API",
+            "status": "ok",
+            "docs": "/docs",
+        }
+    )
 
 
 @app.head("/")
@@ -65,4 +78,28 @@ def healthz_head():
     return Response(status_code=200)
 @app.get("/favicon.ico")
 def favicon():
+    icon_file = STATIC_DIR / "favicon.ico"
+    if icon_file.exists():
+        return FileResponse(icon_file)
     return Response(status_code=204)
+
+
+@app.get("/{full_path:path}", include_in_schema=False)
+def spa_fallback(full_path: str):
+    if full_path.startswith("api/"):
+        return JSONResponse({"detail": "Not Found"}, status_code=404)
+
+    candidate = STATIC_DIR / full_path
+    if candidate.is_file():
+        return FileResponse(candidate)
+
+    if INDEX_FILE.exists():
+        return FileResponse(INDEX_FILE)
+
+    return JSONResponse(
+        {
+            "service": "Pilly Chatbot API",
+            "status": "ok",
+            "docs": "/docs",
+        }
+    )
