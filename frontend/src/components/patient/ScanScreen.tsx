@@ -2,6 +2,8 @@ import { type ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
   Camera,
+  ChevronRight,
+  CircleHelp,
   FileText,
   Search,
   Upload,
@@ -284,6 +286,8 @@ export function ScanScreen() {
     mediaType: "image" | "video";
     previewUrl: string;
   } | null>(null);
+  const [tipsOpen, setTipsOpen] = useState(false);
+  const [tipsTab, setTipsTab] = useState<"camera" | "upload">("camera");
 
   const features = [
     {
@@ -1484,45 +1488,121 @@ export function ScanScreen() {
         </div>
       </div>
 
-      <div className="space-y-3">
-        <div className="p-4 rounded-xl" style={{ background: C.muted, border: `1px solid ${C.border}` }}>
-          <div className="flex items-center gap-2 mb-3">
-            <Camera size={18} color={C.textSecond} />
-            <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "19px", fontWeight: 700, color: C.textPrimary }}>
-              {t("medications.tipsCameraTitle")}
-            </p>
+      <div className="rounded-2xl p-4 bg-white" style={{ border: `1px solid ${C.border}` }}>
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ background: C.tealLight }}>
+              <CircleHelp size={18} color={C.tealDark} />
+            </div>
+            <div>
+              <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "18px", fontWeight: 700, color: C.textPrimary }}>
+                {t("medications.tipsCardTitle")}
+              </p>
+              <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "14px", color: C.textSecond, marginTop: "4px", lineHeight: "1.6" }}>
+                {t("medications.tipsCardBody")}
+              </p>
+            </div>
           </div>
-          {[
-            t("medications.tipCamera1"),
-            t("medications.tipCamera2"),
-            t("medications.tipCamera3"),
-            t("medications.tipCamera4"),
-          ].map((tip, index) => (
-            <p key={tip} style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "18px", color: C.textSecond, marginBottom: "6px", lineHeight: "1.65" }}>
-              {index + 1}. {tip}
-            </p>
-          ))}
-        </div>
-
-        <div className="p-4 rounded-xl" style={{ background: C.muted, border: `1px solid ${C.border}` }}>
-          <div className="flex items-center gap-2 mb-3">
-            <Upload size={18} color={C.textSecond} />
-            <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "19px", fontWeight: 700, color: C.textPrimary }}>
-              {t("medications.tipsUploadTitle")}
-            </p>
-          </div>
-          {[
-            t("medications.tipUpload1"),
-            t("medications.tipUpload2"),
-            t("medications.tipUpload3"),
-            t("medications.tipUpload4"),
-          ].map((tip, index) => (
-            <p key={tip} style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "18px", color: C.textSecond, marginBottom: "6px", lineHeight: "1.65" }}>
-              {index + 1}. {tip}
-            </p>
-          ))}
+          <button
+            type="button"
+            onClick={() => setTipsOpen(true)}
+            className="w-full sm:w-auto rounded-2xl px-5 py-4 text-white hover:opacity-90 transition-opacity shrink-0 flex items-center justify-center gap-2"
+            style={{
+              background: `linear-gradient(135deg, ${C.teal} 0%, ${C.tealDark} 100%)`,
+              fontFamily: "'DM Sans', sans-serif",
+              fontSize: "18px",
+              fontWeight: 700,
+              minHeight: "56px",
+              boxShadow: "0 8px 20px rgba(56,178,169,0.25)",
+            }}
+            aria-label={t("medications.tipsOpenButton")}
+          >
+            <CircleHelp size={20} color="white" />
+            {t("medications.tipsOpenButton")}
+            <ChevronRight size={18} color="white" />
+          </button>
         </div>
       </div>
+
+      {tipsOpen && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center p-4" style={{ background: "rgba(15,23,42,0.62)" }} onClick={() => setTipsOpen(false)}>
+          <div
+            className="w-full max-w-xl bg-white rounded-2xl p-5 md:p-6"
+            style={{ boxShadow: "0 24px 60px rgba(15,23,42,0.26)" }}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-center justify-between gap-3 mb-4">
+              <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "22px", fontWeight: 700, color: C.textPrimary }}>
+                {t("medications.tipsModalTitle")}
+              </p>
+              <button
+                type="button"
+                onClick={() => setTipsOpen(false)}
+                className="h-9 w-9 rounded-full flex items-center justify-center"
+                style={{ background: C.muted, border: `1px solid ${C.border}` }}
+                aria-label={t("common.close")}
+              >
+                <X size={16} color={C.textPrimary} />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 mb-4">
+              <button
+                type="button"
+                onClick={() => setTipsTab("camera")}
+                className="rounded-xl px-3 py-2.5 flex items-center justify-center gap-2"
+                style={{
+                  background: tipsTab === "camera" ? C.tealLight : C.muted,
+                  border: `1px solid ${tipsTab === "camera" ? C.teal : C.border}`,
+                }}
+              >
+                <Camera size={15} color={tipsTab === "camera" ? C.tealDark : C.textSecond} />
+                <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "14px", fontWeight: 700, color: C.textPrimary }}>
+                  {t("medications.tipsModalCameraTab")}
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setTipsTab("upload")}
+                className="rounded-xl px-3 py-2.5 flex items-center justify-center gap-2"
+                style={{
+                  background: tipsTab === "upload" ? C.tealLight : C.muted,
+                  border: `1px solid ${tipsTab === "upload" ? C.teal : C.border}`,
+                }}
+              >
+                <Upload size={15} color={tipsTab === "upload" ? C.tealDark : C.textSecond} />
+                <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "14px", fontWeight: 700, color: C.textPrimary }}>
+                  {t("medications.tipsModalUploadTab")}
+                </span>
+              </button>
+            </div>
+
+            <div className="rounded-xl p-4" style={{ background: C.muted, border: `1px solid ${C.border}` }}>
+              <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "16px", fontWeight: 700, color: C.textPrimary, marginBottom: "10px" }}>
+                {tipsTab === "camera" ? t("medications.tipsCameraTitle") : t("medications.tipsUploadTitle")}
+              </p>
+              {(tipsTab === "camera"
+                ? [
+                    t("medications.tipCamera1"),
+                    t("medications.tipCamera2"),
+                    t("medications.tipCamera3"),
+                    t("medications.tipCamera4"),
+                  ]
+                : [
+                    t("medications.tipUpload1"),
+                    t("medications.tipUpload2"),
+                    t("medications.tipUpload3"),
+                    t("medications.tipUpload4"),
+                  ]
+              ).map((tip, index) => (
+                <p key={`${tipsTab}-${tip}`} style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "14px", color: C.textSecond, lineHeight: "1.6", marginBottom: index === 3 ? "0" : "8px" }}>
+                  {index + 1}. {tip}
+                </p>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
