@@ -52,6 +52,7 @@ function PatientPacking() {
   const navigate = useNavigate();
   const location = useLocation();
   const initialPatient = location.state?.patient ?? null;
+  const returnTab = location.state?.returnTab ?? "all";
 
   const [patient, setPatient] = useState(initialPatient);
   const [loadingPatient, setLoadingPatient] = useState(!initialPatient);
@@ -649,7 +650,9 @@ function PatientPacking() {
               className="return-dashboard-btn"
               onClick={() => {
                 if (!hasStartedVerification || allMedicationsVerified) {
-                  navigate("/pharmacist/dashboard");
+                  navigate("/pharmacist/dashboard", {
+                    state: { activeTab: returnTab },
+                  });
                 } else {
                   setIncompleteOpen(true);
                 }
