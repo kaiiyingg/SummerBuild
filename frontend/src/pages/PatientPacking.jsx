@@ -557,6 +557,9 @@ function PatientPacking() {
   const expectedQuantity = Number(selectedMed?.quantity || 0);
   const currentDisplayedTotal = cumulativeQuantity + pendingScanQuantity;
   const remainingQuantity = Math.max(expectedQuantity - currentDisplayedTotal, 0);
+  const hasStartedVerification = patient.medications.some(
+    (med) => verifiedMeds[med.id] || med.verified
+  );
   const allMedicationsVerified =
     patient.medications.length > 0 &&
     patient.medications.every((med) => verifiedMeds[med.id] || med.verified);
@@ -645,11 +648,7 @@ function PatientPacking() {
             <button
               className="return-dashboard-btn"
               onClick={() => {
-                const allVerified = patient.medications.every(
-                  (med) => verifiedMeds[med.id]
-                );
-
-                if (allVerified) {
+                if (!hasStartedVerification || allMedicationsVerified) {
                   navigate("/pharmacist/dashboard");
                 } else {
                   setIncompleteOpen(true);
