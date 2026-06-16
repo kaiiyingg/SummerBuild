@@ -65,6 +65,7 @@ type NotificationItem = {
   subtitle: string;
   time: string;
   read: boolean;
+  additionalWaitMin?: number;
 };
 
 function formatTimeAgo(createdAt: string) {
@@ -477,6 +478,7 @@ export default function App() {
       subtitle: row.body,
       time: formatTimeAgo(row.createdAt),
       read: row.read,
+      additionalWaitMin: row.metadata?.additionalWaitMin,
     })));
   };
   const markAllRead  = async () => {

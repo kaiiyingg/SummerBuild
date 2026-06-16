@@ -59,6 +59,7 @@ function PatientPacking() {
   const [selectedMed, setSelectedMed] = useState(null);
   const [holdOpen, setHoldOpen] = useState(false);
   const [holdReason, setHoldReason] = useState("");
+  const [additionalWaitMin, setAdditionalWaitMin] = useState("");
   const [incompleteOpen, setIncompleteOpen] = useState(false);
   const [reminders, setReminders] = useState([]);
   const [loadingReminders, setLoadingReminders] = useState(true);
@@ -1085,10 +1086,29 @@ function PatientPacking() {
               placeholder="Example: Medication out of stock, unclear prescription, quantity mismatch..."
             />
 
+            <div className="hold-wait-field">
+              <label htmlFor="additional-wait">
+                Additional Waiting Time
+              </label>
+
+              <div className="hold-wait-input-wrap">
+                <input
+                  id="additional-wait"
+                  type="number"
+                  min="0"
+                  placeholder="20"
+                  value={additionalWaitMin}
+                  onChange={(e) => setAdditionalWaitMin(e.target.value)}
+                />
+                <span>min</span>
+              </div>
+            </div>
+
             <button
               className="hold-submit"
               onClick={async () => {
-                await addHoldReason(patient.id, holdReason);
+                const waitMinutes = Number(additionalWaitMin || 20);
+                await addHoldReason(patient.id, holdReason, waitMinutes);
                 navigate("/pharmacist/dashboard");
               }}
             >

@@ -235,7 +235,7 @@ export async function setPatientStatus(patientId, status) {
   if (error) throw error;
 }
 
-export async function addHoldReason(patientId, reason) {
+export async function addHoldReason(patientId, reason, additionalWaitMin = 20) {
   const patient = await fetchPatientDetails(patientId);
 
   if (!hasSupabaseConfig || !supabase) {
@@ -251,6 +251,7 @@ export async function addHoldReason(patientId, reason) {
         metadata: {
           patientName: patient?.name ?? null,
           queueNo: patient?.queueNo ?? null,
+          additionalWaitMin,
         },
       });
     } catch (error) {
@@ -261,7 +262,7 @@ export async function addHoldReason(patientId, reason) {
 
   const { error: holdError } = await supabase
     .from("hold_reasons")
-    .insert({ patient_id: patientId, reason });
+    .insert({ patient_id: patientId, reason, additional_wait_min: additionalWaitMin, });
   if (holdError) throw holdError;
 
   await setPatientStatus(patientId, "on_hold");
@@ -275,11 +276,46 @@ export async function addHoldReason(patientId, reason) {
       metadata: {
         patientName: patient?.name ?? null,
         queueNo: patient?.queueNo ?? null,
+        additionalWaitMin,
       },
     });
   } catch (error) {
     console.warn("Unable to notify patient:", error);
   }
+}
+
+export async function fetchLatestHoldReason(patientId) {
+  if (!patientId) return null;
+
+  if (!hasSupabaseConfig || !supabase) {
+    const reason = localStorage.getItem(`hold-reason-${patientId}`);
+    return reason
+      ? {
+          reason,
+          additionalWaitMin: 20,
+        }
+      : null;
+  }
+
+  const { data, error } = await supabase
+    .from("hold_reasons")
+    .select("reason, additional_wait_min, created_at")
+    .eq("patient_id", patientId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    console.warn("Unable to fetch latest hold reason:", error.message);
+    return null;
+  }
+
+  if (!data) return null;
+
+  return {
+    reason: data.reason,
+    additionalWaitMin: data.additional_wait_min ?? 20,
+  };
 }
 
 function fromSupabaseNotification(row) {
@@ -369,7 +405,9 @@ export async function createNotification({
   return notification;
 }
 
-export async function fetchNotifications({ recipientRole, patientId = null } = {}) {
+
+export async function fetchNotifications(params = {}) {
+  const { recipientRole, patientId = null } = params;
   if (!recipientRole) return [];
 
   if (!hasSupabaseConfig || !supabase) {
