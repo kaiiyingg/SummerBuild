@@ -24,6 +24,7 @@ const C = {
   amberLight:  "#FFFBEB",
   amberText:   "#92400E",
   green:       "#10B981",
+  greenLight:  "#ECFDF5",
   red:         "#EF4444",
 };
 
@@ -495,6 +496,7 @@ export function HomeScreen({ onTabChange }: { onTabChange: (tab: string) => void
   const [notifyToggle,     setNotifyToggle]     = useState(true);
   const [showReschedule,   setShowReschedule]   = useState(false);
   const [registrationQueueNo, setRegistrationQueueNo] = useState("B047");
+  const [registrationCompletedAt, setRegistrationCompletedAt] = useState<string | null>(null);
   const [latestHoldReason, setLatestHoldReason] = useState("");
   const [latestAdditionalWaitMin, setLatestAdditionalWaitMin] = useState(20);
 
@@ -536,8 +538,10 @@ export function HomeScreen({ onTabChange }: { onTabChange: (tab: string) => void
     serving: `${registrationQueueNo[0] ?? "B"}${String(registrationServingNum).padStart(3, "0")}`,
     servingNum: registrationServingNum,
     waitTime: "12 to 15 min", ahead: 6,
-    status: "waiting" as QueueStatus, counter: "Level 1, Pharmacy A", date: "Tuesday, 3 June 2026",
-    completedAt: "9:15 AM",
+    status: (registrationCompletedAt ? "done" : "waiting") as QueueStatus,
+    counter: "Level 1, Pharmacy A",
+    date: "Tuesday, 3 June 2026",
+    completedAt: registrationCompletedAt,
   };
   const pendingMedication = patient?.medications?.find((med: any) => !med.verified);
   const displayName =
@@ -547,7 +551,14 @@ export function HomeScreen({ onTabChange }: { onTabChange: (tab: string) => void
     : "";
   const queueDigits = Number.parseInt(queueNumber.replace(/\D/g, ""), 10) || 0;
   const servingNum = Math.max(1, queueDigits - 6);
-  const hasCollectionQueue = Boolean(queueNumber && queueDigits);
+  const normalizedRegistrationQueue = registrationQueueNo.trim().toUpperCase();
+  const normalizedCollectionQueue = queueNumber.trim().toUpperCase();
+  const hasCollectionQueue = Boolean(
+    registrationCompletedAt &&
+      normalizedCollectionQueue &&
+      queueDigits &&
+      normalizedCollectionQueue !== normalizedRegistrationQueue,
+  );
   const allMedicationReady = patient?.medications?.length
     ? patient.medications.every((med: any) => med.verified)
     : false;
@@ -625,12 +636,31 @@ export function HomeScreen({ onTabChange }: { onTabChange: (tab: string) => void
       )}
 
       {/* ── Queue 1: Registration ── */}
-      <div className="rounded-2xl overflow-hidden" style={{ border: `1px solid ${C.border}`, boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
+      <div
+        className="rounded-2xl overflow-hidden transition-all"
+        style={{
+          border: `1px solid ${C.border}`,
+          boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
+          cursor: regQueue.status === "done" ? "default" : "pointer",
+        }}
+        onClick={() => {
+          if (regQueue.status === "done") return;
+          setRegistrationCompletedAt(
+            new Date().toLocaleTimeString("en-SG", {
+              hour: "numeric",
+              minute: "2-digit",
+              hour12: true,
+            }),
+          );
+        }}
+      >
         {/* Header bar — green when done, teal gradient otherwise */}
-        <div className="flex items-center justify-between px-5 py-3"
+        <div
+          className={`flex items-center justify-between px-5 ${regQueue.status === "done" ? "py-2" : "py-3"}`}
           style={{ background: regQueue.status === "done"
             ? C.green
-            : `linear-gradient(90deg, ${C.teal} 0%, ${C.tealDark} 100%)` }}>
+            : `linear-gradient(90deg, ${C.teal} 0%, ${C.tealDark} 100%)` }}
+        >
           <span style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "13px", fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase", color: "white" }}>
             {t('queue.registrationQueue')}
           </span>
@@ -638,7 +668,7 @@ export function HomeScreen({ onTabChange }: { onTabChange: (tab: string) => void
         </div>
 
         {/* White body */}
-        <div className="p-5 bg-white">
+        <div className={`bg-white ${regQueue.status === "done" ? "p-3" : "p-5"}`}>
           {regQueue.status === "done" ? (
             /* ── Completed state ── */
             <div className="flex items-center gap-4">
@@ -646,11 +676,11 @@ export function HomeScreen({ onTabChange }: { onTabChange: (tab: string) => void
                 <Check size={24} color={C.green} strokeWidth={2.5} />
               </div>
               <div>
-                <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "18px", fontWeight: 700, color: C.textPrimary }}>
-                  Queue {regQueue.label}
+                <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "17px", fontWeight: 700, color: C.textPrimary }}>
+                  {t('queue.registrationQueue')} {t('queue.statusCompleted')}
                 </p>
                 <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "14px", color: C.textSecond, marginTop: "2px" }}>
-                  {t('queue.completedAt')} {regQueue.completedAt}
+                  {t('queue.queueLabelPrefix')} {regQueue.label} • {t('queue.completedAt')} {regQueue.completedAt}
                 </p>
               </div>
             </div>
