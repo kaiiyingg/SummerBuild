@@ -160,6 +160,7 @@ function EditReminderTimeSheet({
   onSave: () => void;
   onTimeChange: (hour: string, period: string) => void;
 }) {
+  const { t } = useTranslation();
   const recommendation = getMedicationRecommendation({ name: reminder.name });
 
   return (
@@ -191,7 +192,7 @@ function EditReminderTimeSheet({
                 margin: 0,
               }}
             >
-              Update reminder time
+              {t("medications.updateReminderTime")}
             </h2>
             <p
               style={{
@@ -202,8 +203,7 @@ function EditReminderTimeSheet({
                 lineHeight: 1.6,
               }}
             >
-              Choose the time that works best for you. This only updates your own
-              reminder schedule.
+              {t("medications.updateReminderTimeDesc")}
             </p>
           </div>
           <button
@@ -486,7 +486,7 @@ export function RemindersScreen() {
                   color: C.textSecond,
                 }}
               >
-                No reminders scheduled yet.
+                {t("medications.noRemindersScheduled")}
               </div>
             ) : (
               reminders.map((reminder) => (
