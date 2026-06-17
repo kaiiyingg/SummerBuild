@@ -555,6 +555,7 @@ export function HomeScreen({ onTabChange }: { onTabChange: (tab: string) => void
   const servingNum = Math.max(1, queueDigits - 6);
   const normalizedRegistrationQueue = registrationQueueNo.trim().toUpperCase();
   const normalizedCollectionQueue = queueNumber.trim().toUpperCase();
+  const isOnHold = patient?.status === "on_hold";
   const hasCollectionQueue = Boolean(
     registrationCompletedAt &&
       normalizedCollectionQueue &&
@@ -564,14 +565,13 @@ export function HomeScreen({ onTabChange }: { onTabChange: (tab: string) => void
   const allMedicationReady = patient?.medications?.length
     ? patient.medications.every((med: any) => med.verified)
     : false;
-  const delayedInfo =
-    pendingMedication && patient?.status !== "ready"
-      ? {
-          med: pendingMedication.name,
-          reason: latestHoldReason || t('queue.delayedReasonDefault'),
-          eta: `${latestAdditionalWaitMin} min`,
-        }
-      : null;
+  const delayedInfo = isOnHold
+    ? {
+        med: pendingMedication?.name ?? patient?.medications?.[0]?.name ?? "",
+        reason: latestHoldReason || t('queue.delayedReasonDefault'),
+        eta: `${latestAdditionalWaitMin} min`,
+      }
+    : null;
   const colQueue = {
     number: queueDigits,
     label: queueNumber,

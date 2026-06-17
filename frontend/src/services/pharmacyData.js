@@ -7,6 +7,7 @@ const LOCAL_PATIENTS_KEY = "pilly-local-patients";
 const LOCAL_REMINDERS_KEY = "pilly-local-reminders";
 const LOCAL_NOTIFICATIONS_KEY = "pilly-local-notifications";
 const LOCAL_NOTIFICATIONS_EVENT = "pilly-local-notifications-changed";
+const LOCAL_PATIENTS_EVENT = "pilly-local-patients-changed";
 
 function toStatusKey(status) {
   return String(status || "")
@@ -210,6 +211,7 @@ export async function setMedicationVerified(patientId, medicationId, verified) {
     const saved = JSON.parse(localStorage.getItem(`verified-meds-${patientId}`) || "{}");
     saved[medicationId] = verified;
     localStorage.setItem(`verified-meds-${patientId}`, JSON.stringify(saved));
+    window.dispatchEvent(new Event(LOCAL_PATIENTS_EVENT));
     return;
   }
 
@@ -224,6 +226,7 @@ export async function setMedicationVerified(patientId, medicationId, verified) {
 export async function setPatientStatus(patientId, status) {
   if (!hasSupabaseConfig || !supabase) {
     localStorage.setItem(`patient-status-${patientId}`, status);
+    window.dispatchEvent(new Event(LOCAL_PATIENTS_EVENT));
     return;
   }
 
@@ -240,7 +243,7 @@ export async function addHoldReason(patientId, reason, additionalWaitMin = 20) {
 
   if (!hasSupabaseConfig || !supabase) {
     localStorage.setItem(`hold-reason-${patientId}`, reason);
-    localStorage.setItem(`patient-status-${patientId}`, "on_hold");
+    await setPatientStatus(patientId, "on_hold");
     try {
       await createNotification({
         recipientRole: "patient",
@@ -487,7 +490,14 @@ export function subscribeToNotifications(onChange) {
 }
 
 export function subscribeToPatientChanges(onChange) {
-  if (!hasSupabaseConfig || !supabase) return () => {};
+  if (!hasSupabaseConfig || !supabase) {
+    window.addEventListener(LOCAL_PATIENTS_EVENT, onChange);
+    window.addEventListener("storage", onChange);
+    return () => {
+      window.removeEventListener(LOCAL_PATIENTS_EVENT, onChange);
+      window.removeEventListener("storage", onChange);
+    };
+  }
 
   try {
     const channel = supabase

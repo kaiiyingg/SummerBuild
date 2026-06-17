@@ -461,6 +461,9 @@ export default function App() {
     localStorage.getItem("pilly-user-name") || "Patient"
   );
 
+  const seenNotifIds = useRef<Set<string | number>>(new Set());
+  const isFirstNotifLoad = useRef(true);
+
   const unreadCount  = notifications.filter((n) => !n.read).length;
   const currentShort = LANG_SHORT[language] ?? 'EN';
   const loadNotifications = async () => {
@@ -471,7 +474,19 @@ export default function App() {
     }
 
     const rows = await fetchNotifications({ recipientRole: "patient", patientId });
-    setNotifications(rows.filter((row: any) => row.type === "medication_on_hold").map((row: any) => ({
+    const holdRows = rows.filter((row: any) => row.type === "medication_on_hold");
+
+    if (!isFirstNotifLoad.current) {
+      const newHold = holdRows.find((row: any) => !row.read && !seenNotifIds.current.has(row.id));
+      if (newHold) {
+        setDelayedToastMsg(newHold.body || "Your medication is on hold");
+      }
+    }
+
+    isFirstNotifLoad.current = false;
+    holdRows.forEach((row: any) => seenNotifIds.current.add(row.id));
+
+    setNotifications(holdRows.map((row: any) => ({
       id: row.id,
       dot: notificationDot(row.type),
       title: row.title,
