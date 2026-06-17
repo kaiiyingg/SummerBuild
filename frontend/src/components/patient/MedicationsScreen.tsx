@@ -16,6 +16,7 @@ import {
 import { API_BASE_URL } from "../../lib/apiBaseUrl";
 
 const SPEECH_API_URL = `${API_BASE_URL}/api/scan-medication-speech`;
+const TRANSLATE_API_URL = `${API_BASE_URL}/api/translate-text`;
 
 const C = {
   teal: "#45C5BC",
@@ -193,19 +194,81 @@ export function MedicationsScreen({
         return;
       }
 
-      setMedications(patientMedications.map((med: any) => {
-        const fallback = fallbackByName.get(String(med.name || "").toLowerCase());
+      // Track which fields came from the real DB (stored in English) vs t() fallbacks
+      type MedSource = { forFromDb: boolean; howFromDb: boolean; cautionFromDb: boolean };
+      const sources: MedSource[] = [];
 
+      const builtMeds: MedicationCardData[] = patientMedications.map((med: any) => {
+        const fallback = fallbackByName.get(String(med.name || "").toLowerCase());
+        sources.push({
+          forFromDb: !!med.purpose,
+          howFromDb: !!med.instructions,
+          cautionFromDb: !!med.caution,
+        });
         return {
           id: med.id,
           name: med.name,
-          for: med.purpose ?? fallback?.for ?? "Medication listed on your prescription",
-          how: med.instructions ?? fallback?.how ?? "Take exactly as prescribed on your medication label.",
+          for: med.purpose ?? fallback?.for ?? t("medications.medDefaultPurpose"),
+          how: med.instructions ?? fallback?.how ?? t("medications.medDefaultInstructions"),
           caution: med.caution ?? fallback?.caution ?? null,
           status: medicationStatusForPatient(patient, med),
           verified: med.verified,
         };
-      }));
+      });
+
+      if (language === "en") {
+        setMedications(builtMeds);
+        return;
+      }
+
+      // Collect only DB-sourced fields for translation (t() fallbacks are already translated)
+      const textsToTranslate: string[] = [];
+      const fieldMap: { medIdx: number; field: "for" | "how" | "caution"; textIdx: number }[] = [];
+
+      builtMeds.forEach((med, medIdx) => {
+        const src = sources[medIdx];
+        if (src.forFromDb) {
+          fieldMap.push({ medIdx, field: "for", textIdx: textsToTranslate.length });
+          textsToTranslate.push(med.for);
+        }
+        if (src.howFromDb) {
+          fieldMap.push({ medIdx, field: "how", textIdx: textsToTranslate.length });
+          textsToTranslate.push(med.how);
+        }
+        if (src.cautionFromDb && med.caution) {
+          fieldMap.push({ medIdx, field: "caution", textIdx: textsToTranslate.length });
+          textsToTranslate.push(med.caution);
+        }
+      });
+
+      if (!textsToTranslate.length) {
+        setMedications(builtMeds);
+        return;
+      }
+
+      try {
+        const response = await fetch(TRANSLATE_API_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ texts: textsToTranslate, language }),
+        });
+
+        if (response.ok) {
+          const { translations } = (await response.json()) as { translations: string[] };
+          const translated = builtMeds.map((med) => ({ ...med }));
+          fieldMap.forEach(({ medIdx, field, textIdx }) => {
+            if (translations[textIdx]) {
+              (translated[medIdx] as Record<string, unknown>)[field] = translations[textIdx];
+            }
+          });
+          setMedications(translated);
+          return;
+        }
+      } catch {
+        // Fall through to show untranslated text rather than crashing
+      }
+
+      setMedications(builtMeds);
     };
 
     void loadPatientMedications();
@@ -302,7 +365,7 @@ export function MedicationsScreen({
 
     try {
       const text = med.caution
-        ? `${med.name}. ${med.how}. Caution: ${med.caution}`
+        ? `${med.name}. ${med.how}. ${t("medications.cautionLabel")}: ${med.caution}`
         : `${med.name}. ${med.how}`;
       const audioUrl = await fetchSpeechAudioUrl(`medication-card:${med.id}:${text}`, text);
       const audio = new Audio(audioUrl);

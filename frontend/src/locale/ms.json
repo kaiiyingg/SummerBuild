@@ -228,6 +228,7 @@
     "scanPackagingDefault": "Label ubat",
     "scanUnsupportedFile": "Sila muat naik foto (JPG, JPEG, PNG, WEBP) atau video pendek (MP4, WEBM, MOV) label ubat.",
     "scanFileTooLarge": "Foto ini melebihi 10MB. Sila muat naik imej yang lebih kecil.",
+    "scanVideoTooLarge": "Video ini melebihi 25MB. Sila muat naik video yang lebih kecil.",
     "tipCamera1": "Pilih Ambil Foto untuk satu bahagian label, atau Rakam Video untuk tunjuk pelbagai sisi ubat.",
     "tipCamera2": "Sebelum merakam, pastikan teks label berada di tengah bingkai dan telefon stabil.",
     "tipCamera3": "Selepas ambil/rakam, semak pratonton dahulu dan sahkan hanya jika teks boleh dibaca.",
@@ -241,7 +242,10 @@
     "scanEasyStep2": "2. Pastikan teks label jelas dengan pencahayaan terang dan kedudukan stabil.",
     "scanEasyStep3": "3. Pratonton dan sahkan, kemudian tunggu keputusan dan tekan Baca dengan kuat jika perlu.",
     "askAiHelper": "Tanya pembantu AI",
-    "goToScan": "Pergi ke Imbasan"
+    "goToScan": "Pergi ke Imbasan",
+    "medDefaultPurpose": "Ubat yang disenaraikan dalam preskripsi anda",
+    "medDefaultInstructions": "Ambil tepat seperti yang ditetapkan pada label ubat anda.",
+    "cautionLabel": "Amaran"
   },
   "chat": {
     "title": "Tanya Pilly",

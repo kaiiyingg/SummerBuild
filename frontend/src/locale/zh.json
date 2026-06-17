@@ -221,6 +221,7 @@
     "scanPackagingDefault": "药品标签",
     "scanUnsupportedFile": "请上传药品标签照片（JPG、JPEG、PNG、WEBP）或短视频（MP4、WEBM、MOV）。",
     "scanFileTooLarge": "此照片大于 10MB。请上传更小的图片。",
+    "scanVideoTooLarge": "此视频大于 25MB。请上传更小的视频。",
     "tipCamera1": "按需求选择：拍照适合单一标签内容，录视频适合展示药物多面信息。",
     "tipCamera2": "拍摄前请把标签文字置中并保持手机稳定。",
     "tipCamera3": "拍摄后先预览，确认文字清楚再提交扫描。",
@@ -234,7 +235,10 @@
     "scanEasyStep2": "2. 保持标签文字清晰、光线充足，并稳定取景。",
     "scanEasyStep3": "3. 先预览并确认，再等待结果；需要时可点「朗读内容」。",
     "askAiHelper": "向AI助手提问",
-    "goToScan": "前往扫描"
+    "goToScan": "前往扫描",
+    "medDefaultPurpose": "处方中列出的药物",
+    "medDefaultInstructions": "请严格按照药品标签上的说明服用。",
+    "cautionLabel": "注意事项"
   },
   "chat": {
     "title": "问 Pilly",

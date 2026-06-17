@@ -228,6 +228,7 @@
     "scanPackagingDefault": "Medication label",
     "scanUnsupportedFile": "Please upload a photo (JPG, JPEG, PNG, WEBP) or a short video (MP4, WEBM, MOV) of the medication label.",
     "scanFileTooLarge": "This photo is larger than 10MB. Please upload a smaller image.",
+    "scanVideoTooLarge": "This video is larger than 25MB. Please upload a smaller video.",
     "tipCamera1": "Choose Capture Photo for one label section, or Record Video to show multiple sides of the medicine.",
     "tipCamera2": "Before capturing, center the label text in frame and keep the phone steady.",
     "tipCamera3": "After capture/record, preview first and confirm only when the text is readable.",
@@ -241,7 +242,10 @@
     "scanEasyStep2": "2. Keep label text clear with bright lighting and steady framing.",
     "scanEasyStep3": "3. Preview and confirm, then wait for results and tap Read Aloud if needed.",
     "askAiHelper": "Ask AI helper",
-    "goToScan": "Go to Scan"
+    "goToScan": "Go to Scan",
+    "medDefaultPurpose": "Medication listed on your prescription",
+    "medDefaultInstructions": "Take exactly as prescribed on your medication label.",
+    "cautionLabel": "Caution"
   },
   "chat": {
     "title": "Ask Pilly",

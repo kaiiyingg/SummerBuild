@@ -292,18 +292,18 @@ export function ScanScreen() {
   const features = [
     {
       icon: <Search size={22} color={C.teal} />,
-      title: "Explain Label Sections",
-      desc: "Scan one sticker, warning, or full label and get it explained in plain language.",
+      title: t("medications.featureIdentifyTitle"),
+      desc: t("medications.featureIdentifyDesc"),
     },
     {
       icon: <FileText size={22} color={C.teal} />,
-      title: "Understand the Medication",
-      desc: "See what the detected medication does, how to take it, and key safety notes.",
+      title: t("medications.featureTranslateTitle"),
+      desc: t("medications.featureTranslateDesc"),
     },
     {
       icon: <Volume2 size={22} color={C.teal} />,
-      title: "Listen Section by Section",
-      desc: "Play each result aloud, or read the full guidance from top to bottom.",
+      title: t("medications.featureTtsTitle"),
+      desc: t("medications.featureTtsDesc"),
     },
   ];
 
@@ -719,7 +719,7 @@ export function ScanScreen() {
 
     if (file.type.startsWith("video/")) {
       if (file.size > MAX_VIDEO_SIZE_BYTES) {
-        setScanError("This video is larger than 25MB. Please upload a smaller video.");
+        setScanError(t("medications.scanVideoTooLarge"));
         return;
       }
       setScanError("");
@@ -732,7 +732,7 @@ export function ScanScreen() {
       return;
     }
 
-    setScanError("Please upload a photo or video file.");
+    setScanError(t("medications.scanUnsupportedFile"));
   };
 
   const rescanSelectedImage = async () => {
@@ -858,19 +858,19 @@ export function ScanScreen() {
           {t("medications.scanTitle")}
         </h2>
         <p style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "clamp(14px, 3.8vw, 20px)", color: C.textSecond, marginBottom: "14px", lineHeight: "1.58", maxWidth: "680px" }}>
-          Use your camera to capture a photo/video or upload a file for quick label explanations and medication guidance.
+          {t("medications.tapToScan")}
         </p>
         <div
           className="w-full rounded-xl p-3 sm:p-4 text-left mb-4 sm:mb-5"
           style={{ background: C.tealLight, border: `1px solid ${C.border}` }}
         >
           <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "clamp(15px, 4.4vw, 21px)", fontWeight: 700, color: C.textPrimary, marginBottom: "8px" }}>
-            3 easy steps
+            {t("medications.scanEasyStepsTitle")}
           </p>
           {[
-            "1. Choose Open Camera (photo/video) or Upload Photo/Video.",
-            "2. Keep label text clear with bright lighting and steady framing.",
-            "3. Preview and confirm, then wait for results and tap Read Aloud if needed.",
+            t("medications.scanEasyStep1"),
+            t("medications.scanEasyStep2"),
+            t("medications.scanEasyStep3"),
           ].map((step) => (
             <p key={step} style={{ fontFamily: "'Open Sans', sans-serif", fontSize: "clamp(13px, 3.5vw, 17px)", color: C.textSecond, lineHeight: "1.55", marginBottom: "4px" }}>
               {step}
