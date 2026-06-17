@@ -5,9 +5,12 @@ import PillyLogo from "../components/PillyLogo";
 import { loginWithEmail, registerWithEmail } from "../services/authService";
 import { useTranslation } from "../context/LanguageContext";
 import "./Login.css";
-import pharmacistAuthImage from "../assets/auth/IMG_1565.PNG";
-import patientAuthImage from "../assets/auth/IMG_1566.PNG";
+import pharmacistAuthImage from "../assets/auth/IMG_1565.png";
+import patientAuthImage from "../assets/auth/IMG_1566.png";
 import loginImage from "../assets/auth/login.png";
+console.log("loginImage:", loginImage);
+console.log("pharmacistAuthImage:", pharmacistAuthImage);
+console.log("patientAuthImage:", patientAuthImage);
 
 function localizeAuthMessage(message, t) {
   const normalizedMessage = message.toLowerCase();

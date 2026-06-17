@@ -5,6 +5,7 @@ import {
   createNotification,
   fetchCurrentPatientDetails,
   fetchNotifications,
+  fetchLatestHoldReason,
   getCurrentPatientId,
   subscribeToPatientChanges,
 } from "../../services/pharmacyData";
@@ -499,6 +500,7 @@ export function HomeScreen({ onTabChange }: { onTabChange: (tab: string) => void
   const [registrationQueueNo, setRegistrationQueueNo] = useState("B047");
   const [registrationCompletedAt, setRegistrationCompletedAt] = useState<string | null>(null);
   const [latestHoldReason, setLatestHoldReason] = useState("");
+  const [latestAdditionalWaitMin, setLatestAdditionalWaitMin] = useState(20);
 
   const now = new Date();
   const updatedTime = now.toLocaleTimeString("en-SG", { hour: "numeric", minute: "2-digit", hour12: true });
@@ -521,9 +523,10 @@ export function HomeScreen({ onTabChange }: { onTabChange: (tab: string) => void
         return;
       }
 
-      const rows = await fetchNotifications({ recipientRole: "patient", patientId });
-      const holdNotification = rows.find((row: any) => row.type === "medication_on_hold");
-      setLatestHoldReason(holdNotification?.body ?? "");
+      const latestHold = await fetchLatestHoldReason(patientId);
+
+      setLatestHoldReason(latestHold?.reason ?? "");
+      setLatestAdditionalWaitMin(latestHold?.additionalWaitMin ?? 20);
     };
 
     void loadHoldReason();
@@ -566,7 +569,7 @@ export function HomeScreen({ onTabChange }: { onTabChange: (tab: string) => void
       ? {
           med: pendingMedication.name,
           reason: latestHoldReason || t('queue.delayedReasonDefault'),
-          eta: "20 min",
+          eta: `${latestAdditionalWaitMin} min`,
         }
       : null;
   const colQueue = {
@@ -574,7 +577,7 @@ export function HomeScreen({ onTabChange }: { onTabChange: (tab: string) => void
     label: queueNumber,
     serving: `${queueNumber[0] ?? ""}${String(servingNum).padStart(3, "0")}`,
     servingNum,
-    waitTime: delayedInfo ? delayedInfo.eta : patient?.status === "ready" ? "Ready now" : "8-12 min",
+    waitTime: patient?.status === "ready" ? "Ready now" : "8-12 min",
     ahead: Math.max(0, queueDigits - servingNum),
     status: (patient?.status === "ready" || allMedicationReady ? "now" : "almost") as QueueStatus,
     isActive: hasCollectionQueue,

@@ -235,7 +235,7 @@ export async function setPatientStatus(patientId, status) {
   if (error) throw error;
 }
 
-export async function addHoldReason(patientId, reason) {
+export async function addHoldReason(patientId, reason, additionalWaitMin = 20) {
   const patient = await fetchPatientDetails(patientId);
 
   if (!hasSupabaseConfig || !supabase) {
@@ -251,6 +251,7 @@ export async function addHoldReason(patientId, reason) {
         metadata: {
           patientName: patient?.name ?? null,
           queueNo: patient?.queueNo ?? null,
+          additionalWaitMin,
         },
       });
     } catch (error) {
@@ -261,7 +262,7 @@ export async function addHoldReason(patientId, reason) {
 
   const { error: holdError } = await supabase
     .from("hold_reasons")
-    .insert({ patient_id: patientId, reason });
+    .insert({ patient_id: patientId, reason, additional_wait_min: additionalWaitMin, });
   if (holdError) throw holdError;
 
   await setPatientStatus(patientId, "on_hold");
@@ -275,11 +276,46 @@ export async function addHoldReason(patientId, reason) {
       metadata: {
         patientName: patient?.name ?? null,
         queueNo: patient?.queueNo ?? null,
+        additionalWaitMin,
       },
     });
   } catch (error) {
     console.warn("Unable to notify patient:", error);
   }
+}
+
+export async function fetchLatestHoldReason(patientId) {
+  if (!patientId) return null;
+
+  if (!hasSupabaseConfig || !supabase) {
+    const reason = localStorage.getItem(`hold-reason-${patientId}`);
+    return reason
+      ? {
+          reason,
+          additionalWaitMin: 20,
+        }
+      : null;
+  }
+
+  const { data, error } = await supabase
+    .from("hold_reasons")
+    .select("reason, additional_wait_min, created_at")
+    .eq("patient_id", patientId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    console.warn("Unable to fetch latest hold reason:", error.message);
+    return null;
+  }
+
+  if (!data) return null;
+
+  return {
+    reason: data.reason,
+    additionalWaitMin: data.additional_wait_min ?? 20,
+  };
 }
 
 function fromSupabaseNotification(row) {
@@ -369,7 +405,9 @@ export async function createNotification({
   return notification;
 }
 
-export async function fetchNotifications({ recipientRole, patientId = null } = {}) {
+
+export async function fetchNotifications(params = {}) {
+  const { recipientRole, patientId = null } = params;
   if (!recipientRole) return [];
 
   if (!hasSupabaseConfig || !supabase) {
@@ -539,15 +577,41 @@ function fromSupabaseReminder(row) {
   };
 }
 
+function getReminderSortValue(time) {
+  const match = String(time || "").match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+  if (!match) return Number.MAX_SAFE_INTEGER;
+
+  let hour = Number(match[1]) % 12;
+  if (match[3].toUpperCase() === "PM") {
+    hour += 12;
+  }
+
+  return hour * 60 + Number(match[2]);
+}
+
+function sortReminders(reminders) {
+  return [...reminders].sort((left, right) => {
+    const timeDiff = getReminderSortValue(left.time) - getReminderSortValue(right.time);
+    if (timeDiff !== 0) return timeDiff;
+
+    return String(left.id).localeCompare(String(right.id), undefined, {
+      numeric: true,
+      sensitivity: "base",
+    });
+  });
+}
+
 export async function fetchPatientReminders(patientId = getCurrentPatientId()) {
   const resolvedPatientId = patientId ?? await resolveCurrentPatientId();
 
   if (!resolvedPatientId) return [];
 
   if (!hasSupabaseConfig || !supabase) {
-    return getLocalReminderRows()
-      .filter((reminder) => reminder.patient_id === resolvedPatientId)
-      .map(fromSupabaseReminder);
+    return sortReminders(
+      getLocalReminderRows()
+        .filter((reminder) => reminder.patient_id === resolvedPatientId)
+        .map(fromSupabaseReminder)
+    );
   }
 
   const { data, error } = await supabase
@@ -558,12 +622,74 @@ export async function fetchPatientReminders(patientId = getCurrentPatientId()) {
 
   if (error) {
     console.warn("Supabase reminders fallback:", error.message);
-    return getLocalReminderRows()
-      .filter((reminder) => reminder.patient_id === resolvedPatientId)
-      .map(fromSupabaseReminder);
+    return sortReminders(
+      getLocalReminderRows()
+        .filter((reminder) => reminder.patient_id === resolvedPatientId)
+        .map(fromSupabaseReminder)
+    );
   }
 
-  return data.map(fromSupabaseReminder);
+  return sortReminders(data.map(fromSupabaseReminder));
+}
+
+export async function addPatientReminders({
+  patientId = null,
+  reminders = [],
+  createdByName = null,
+  createdByRole = null,
+  createdByUserId = null,
+}) {
+  const resolvedPatientId = patientId ?? await resolveCurrentPatientId();
+  const normalizedReminders = (reminders ?? [])
+    .map((reminder) => ({
+      name: String(reminder?.name || "").trim(),
+      time: String(reminder?.time || "").trim(),
+    }))
+    .filter((reminder) => reminder.name && reminder.time);
+
+  if (normalizedReminders.length === 0) {
+    throw new Error("At least one medication reminder is required.");
+  }
+
+  if (!resolvedPatientId) return [];
+
+  if (!hasSupabaseConfig || !supabase) {
+    const nextReminders = normalizedReminders.map((reminder) => ({
+      id: `local-${crypto.randomUUID()}`,
+      patient_id: resolvedPatientId,
+      medication_name: reminder.name,
+      reminder_time: reminder.time,
+      taken: false,
+      created_by_name: createdByName,
+      created_by_role: createdByRole,
+      created_by_user_id: createdByUserId,
+    }));
+
+    saveLocalReminderOverrides([
+      ...getLocalReminderOverrides(),
+      ...nextReminders,
+    ]);
+
+    return sortReminders(nextReminders.map(fromSupabaseReminder));
+  }
+
+  const { data, error } = await supabase
+    .from("patient_reminders")
+    .insert(
+      normalizedReminders.map((reminder) => ({
+        patient_id: resolvedPatientId,
+        medication_name: reminder.name,
+        reminder_time: reminder.time,
+        taken: false,
+        created_by_name: createdByName,
+        created_by_role: createdByRole,
+        created_by_user_id: createdByUserId,
+      }))
+    )
+    .select();
+
+  if (error) throw error;
+  return sortReminders(data.map(fromSupabaseReminder));
 }
 
 export async function addPatientReminder({
@@ -574,40 +700,48 @@ export async function addPatientReminder({
   createdByRole = null,
   createdByUserId = null,
 }) {
-  const resolvedPatientId = patientId ?? await resolveCurrentPatientId();
-  if (!resolvedPatientId) return null;
+  const [reminder] = await addPatientReminders({
+    patientId,
+    reminders: [{ name, time }],
+    createdByName,
+    createdByRole,
+    createdByUserId,
+  });
+
+  return reminder ?? null;
+}
+
+export async function updatePatientReminderTime(reminderId, time) {
+  const trimmedTime = String(time || "").trim();
+  if (!trimmedTime) {
+    throw new Error("Reminder time is required.");
+  }
 
   if (!hasSupabaseConfig || !supabase) {
+    const reminderKey = String(reminderId);
+    const baseReminder = getLocalReminderRows().find(
+      (reminder) => String(reminder.id) === reminderKey
+    );
+
+    if (!baseReminder) return null;
+
+    const overrides = getLocalReminderOverrides().filter(
+      (reminder) => String(reminder.id) !== reminderKey
+    );
     const nextReminder = {
-      id: `local-${crypto.randomUUID()}`,
-      patient_id: resolvedPatientId,
-      medication_name: name,
-      reminder_time: time,
-      taken: false,
-      created_by_name: createdByName,
-      created_by_role: createdByRole,
-      created_by_user_id: createdByUserId,
+      ...baseReminder,
+      reminder_time: trimmedTime,
     };
 
-    saveLocalReminderOverrides([
-      ...getLocalReminderOverrides(),
-      nextReminder,
-    ]);
-
+    overrides.push(nextReminder);
+    saveLocalReminderOverrides(overrides);
     return fromSupabaseReminder(nextReminder);
   }
 
   const { data, error } = await supabase
     .from("patient_reminders")
-    .insert({
-      patient_id: resolvedPatientId,
-      medication_name: name,
-      reminder_time: time,
-      taken: false,
-      created_by_name: createdByName,
-      created_by_role: createdByRole,
-      created_by_user_id: createdByUserId,
-    })
+    .update({ reminder_time: trimmedTime })
+    .eq("id", reminderId)
     .select()
     .single();
 

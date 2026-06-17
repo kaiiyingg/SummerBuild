@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import PillyLogo from "../components/PillyLogo";
+import ReminderComposerSheet from "../components/reminders/ReminderComposerSheet";
 import {
-  addPatientReminder,
+  addPatientReminders,
   addHoldReason,
   fetchPatientDetails,
   fetchPatientReminders,
@@ -44,36 +45,12 @@ function formatImageType(type) {
   return "Unclear image";
 }
 
-function formatReminderTime(value) {
-  const [hourText = "08", minute = "00"] = String(value || "").split(":");
-  const rawHour = Number(hourText);
-  const hour = Number.isNaN(rawHour) ? 8 : rawHour;
-  const suffix = hour >= 12 ? "PM" : "AM";
-  const hour12 = hour % 12 || 12;
-  return `${hour12}:${minute} ${suffix}`;
-}
-
-function toTimeInputValue(value) {
-  if (/^\d{2}:\d{2}$/.test(String(value || ""))) {
-    return String(value);
-  }
-
-  const match = String(value || "").match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
-  if (!match) return "08:00";
-
-  let hour = Number(match[1]) % 12;
-  if (match[3].toUpperCase() === "PM") {
-    hour += 12;
-  }
-
-  return `${String(hour).padStart(2, "0")}:${match[2]}`;
-}
-
 function PatientPacking() {
   const { patientId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
   const initialPatient = location.state?.patient ?? null;
+  const returnTab = location.state?.returnTab ?? "all";
 
   const [patient, setPatient] = useState(initialPatient);
   const [loadingPatient, setLoadingPatient] = useState(!initialPatient);
@@ -81,15 +58,13 @@ function PatientPacking() {
   const [selectedMed, setSelectedMed] = useState(null);
   const [holdOpen, setHoldOpen] = useState(false);
   const [holdReason, setHoldReason] = useState("");
+  const [additionalWaitMin, setAdditionalWaitMin] = useState("");
   const [incompleteOpen, setIncompleteOpen] = useState(false);
   const [reminders, setReminders] = useState([]);
   const [loadingReminders, setLoadingReminders] = useState(true);
   const [reminderOpen, setReminderOpen] = useState(false);
-  const [reminderMedication, setReminderMedication] = useState("");
-  const [reminderTime, setReminderTime] = useState("08:00");
   const [reminderSaving, setReminderSaving] = useState(false);
   const [reminderError, setReminderError] = useState("");
-  
 
   const [verifying, setVerifying] = useState(false);
   const [scanPhase, setScanPhase] = useState("identity");
@@ -257,9 +232,12 @@ function PatientPacking() {
 };
 
   const openReminderModal = () => {
+    const allMedicationsVerified =
+      patient?.medications?.length > 0 &&
+      patient.medications.every((med) => verifiedMeds[med.id] || med.verified);
+
+    if (!allMedicationsVerified) return;
     setReminderError("");
-    setReminderMedication(patient?.medications?.[0]?.name || "");
-    setReminderTime("08:00");
     setReminderOpen(true);
   };
 
@@ -269,21 +247,16 @@ function PatientPacking() {
     setReminderError("");
   };
 
-  const sendPatientReminder = async () => {
+  const submitPatientReminder = async ({ name, times }) => {
     if (!patient?.id) return;
-    if (!reminderMedication) {
-      setReminderError("Select a medication before sending a reminder.");
-      return;
-    }
 
     setReminderSaving(true);
     setReminderError("");
 
     try {
-      await addPatientReminder({
+      await addPatientReminders({
         patientId: patient.id,
-        name: reminderMedication,
-        time: formatReminderTime(reminderTime),
+        reminders: (times ?? []).map((time) => ({ name, time })),
         createdByName:
           localStorage.getItem("pilly-user-name") ||
           localStorage.getItem("pilly-user-email") ||
@@ -583,6 +556,12 @@ function PatientPacking() {
   const expectedQuantity = Number(selectedMed?.quantity || 0);
   const currentDisplayedTotal = cumulativeQuantity + pendingScanQuantity;
   const remainingQuantity = Math.max(expectedQuantity - currentDisplayedTotal, 0);
+  const hasStartedVerification = patient.medications.some(
+    (med) => verifiedMeds[med.id] || med.verified
+  );
+  const allMedicationsVerified =
+    patient.medications.length > 0 &&
+    patient.medications.every((med) => verifiedMeds[med.id] || med.verified);
 
   return (
     <div className="pack-page">
@@ -668,12 +647,10 @@ function PatientPacking() {
             <button
               className="return-dashboard-btn"
               onClick={() => {
-                const allVerified = patient.medications.every(
-                  (med) => verifiedMeds[med.id]
-                );
-
-                if (allVerified) {
-                  navigate("/pharmacist/dashboard");
+                if (!hasStartedVerification || allMedicationsVerified) {
+                  navigate("/pharmacist/dashboard", {
+                    state: { activeTab: returnTab },
+                  });
                 } else {
                   setIncompleteOpen(true);
                 }
@@ -689,20 +666,27 @@ function PatientPacking() {
             <div>
               <p className="pack-label">Patient Reminders</p>
               <h2>
-                {reminders.length} active reminder{reminders.length === 1 ? "" : "s"}
+                {allMedicationsVerified
+                  ? `${reminders.length} scheduled reminder${reminders.length === 1 ? "" : "s"}`
+                  : "Unlock after medication verification"}
               </h2>
             </div>
 
             <button
               className="pack-ai-row-btn"
               onClick={openReminderModal}
-              disabled={!patient.medications.length}
+              disabled={!allMedicationsVerified}
             >
-              Send Reminder
+              Add Reminder
             </button>
           </div>
 
-          {loadingReminders ? (
+          {!allMedicationsVerified ? (
+            <p className="pack-empty-state">
+              Finish scanning and verifying every medication before setting reminders
+              for this patient.
+            </p>
+          ) : loadingReminders ? (
             <p className="pack-empty-state">Loading reminders...</p>
           ) : reminders.length === 0 ? (
             <p className="pack-empty-state">
@@ -714,18 +698,8 @@ function PatientPacking() {
                 <div key={reminder.id} className="pack-reminder-item">
                   <div>
                     <p className="pack-reminder-name">{reminder.name}</p>
-                    <p className="pack-reminder-meta">
-                      {reminder.time}
-                      {reminder.createdByName ? ` · ${reminder.createdByName}` : ""}
-                    </p>
+                    <p className="pack-reminder-meta">{reminder.time}</p>
                   </div>
-                  <span
-                    className={`pack-reminder-status ${
-                      reminder.taken ? "taken" : "pending"
-                    }`}
-                  >
-                    {reminder.taken ? "Taken" : "Pending"}
-                  </span>
                 </div>
               ))}
             </div>
@@ -734,56 +708,15 @@ function PatientPacking() {
       </main>
 
       {reminderOpen && (
-        <div className="scanner-modal-overlay" onClick={closeReminderModal}>
-          <div className="reminder-modal" onClick={(e) => e.stopPropagation()}>
-            <button className="scanner-close" onClick={closeReminderModal}>
-              ×
-            </button>
-
-            <h2>Send Medication Reminder</h2>
-            <p>
-              This reminder will show up instantly on {patient.name}&apos;s
-              reminder screen when Supabase is connected.
-            </p>
-
-            <label className="manual-select-label">
-              Medication
-              <select
-                className="manual-select"
-                value={reminderMedication}
-                onChange={(e) => setReminderMedication(e.target.value)}
-              >
-                {patient.medications.map((med) => (
-                  <option key={med.id} value={med.name}>
-                    {med.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className="manual-select-label">
-              Reminder time
-              <input
-                type="time"
-                className="manual-select"
-                value={toTimeInputValue(reminderTime)}
-                onChange={(e) => setReminderTime(e.target.value)}
-              />
-            </label>
-
-            {reminderError && (
-              <div className="verification-error">{reminderError}</div>
-            )}
-
-            <button
-              className="scanner-confirm pharmacist-confirm"
-              onClick={sendPatientReminder}
-              disabled={reminderSaving || !reminderMedication}
-            >
-              {reminderSaving ? "Sending..." : "Send Reminder to Patient"}
-            </button>
-          </div>
-        </div>
+        <ReminderComposerSheet
+          patientName={patient.name}
+          medications={patient.medications}
+          onClose={closeReminderModal}
+          onSubmit={submitPatientReminder}
+          submitLabel="Send Reminder to Patient"
+          submitting={reminderSaving}
+          errorMessage={reminderError}
+        />
       )}
 
       {scannerOpen && (
@@ -1153,10 +1086,29 @@ function PatientPacking() {
               placeholder="Example: Medication out of stock, unclear prescription, quantity mismatch..."
             />
 
+            <div className="hold-wait-field">
+              <label htmlFor="additional-wait">
+                Additional Waiting Time
+              </label>
+
+              <div className="hold-wait-input-wrap">
+                <input
+                  id="additional-wait"
+                  type="number"
+                  min="0"
+                  placeholder="20"
+                  value={additionalWaitMin}
+                  onChange={(e) => setAdditionalWaitMin(e.target.value)}
+                />
+                <span>min</span>
+              </div>
+            </div>
+
             <button
               className="hold-submit"
               onClick={async () => {
-                await addHoldReason(patient.id, holdReason);
+                const waitMinutes = Number(additionalWaitMin || 20);
+                await addHoldReason(patient.id, holdReason, waitMinutes);
                 navigate("/pharmacist/dashboard");
               }}
             >

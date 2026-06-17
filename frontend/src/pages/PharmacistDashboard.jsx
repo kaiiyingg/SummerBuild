@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo} from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { FaChevronRight } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 import { fetchPatientDetails, fetchPatients, subscribeToPatientChanges } from "../services/pharmacyData";
@@ -80,7 +80,9 @@ function getFormattedDate() {
 }
 
 export default function PharmacistDashboard() {
+  const location = useLocation();
   const navigate = useNavigate();
+  const requestedTab = location.state?.activeTab;
 
   const handleSignOut = async () => {
   await supabase.auth.signOut();
@@ -93,7 +95,9 @@ export default function PharmacistDashboard() {
   navigate("/");
 };
 
-  const [activeTab, setActiveTab] = useState("all");
+  const [activeTab, setActiveTab] = useState(
+    TABS.some((tab) => tab.key === requestedTab) ? requestedTab : "all"
+  );
   const [sort, setSort] = useState("urgency_ac");
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -103,11 +107,13 @@ export default function PharmacistDashboard() {
     try {
       const patientDetails = await fetchPatientDetails(patient.id);
       navigate(`/pharmacist/pack/${patient.id}`, {
-        state: { patient: patientDetails ?? patient },
+        state: { patient: patientDetails ?? patient, returnTab: activeTab },
       });
     } catch (error) {
       console.warn("Unable to prefetch patient details:", error);
-      navigate(`/pharmacist/pack/${patient.id}`, { state: { patient } });
+      navigate(`/pharmacist/pack/${patient.id}`, {
+        state: { patient, returnTab: activeTab },
+      });
     }
   };
 

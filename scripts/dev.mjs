@@ -50,11 +50,12 @@ function stopChildren() {
   }
 }
 
-function start(name, command, args, cwd) {
+function start(name, command, args, cwd, useShell = false) {
   const child = spawn(command, args, {
     cwd,
     stdio: "inherit",
     env: process.env,
+    shell: useShell,
   });
 
   child.on("exit", (code) => {
@@ -82,6 +83,7 @@ start(
   "frontend",
   npmCommand,
   ["run", "dev", "--", "--host", "127.0.0.1"],
-  path.join(rootDir, "frontend")
+  path.join(rootDir, "frontend"),
+  isWindows
 );
 start("backend", nodeCommand, [path.join(rootDir, "scripts", "run-backend.mjs")], rootDir);
