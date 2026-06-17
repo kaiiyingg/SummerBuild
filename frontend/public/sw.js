@@ -18,8 +18,8 @@ self.addEventListener("push", (event) => {
   const title = data.title || "Pilly update";
   const options = {
     body: data.body || "Your pharmacy has an update. Tap to view details.",
-    icon: "/favicon.svg",
-    badge: "/favicon.svg",
+    icon: "/icons/pilly-icon-192.png",
+    badge: "/icons/pilly-badge-96.png",
     tag: data.type || "pilly-update",
     renotify: true,
     data: {
