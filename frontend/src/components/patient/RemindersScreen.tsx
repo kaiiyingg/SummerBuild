@@ -454,7 +454,7 @@ export function RemindersScreen() {
           }}
         >
           {reminders.length === 0
-            ? "No reminders yet. Your pharmacist can add medication reminders for you."
+            ? t("medications.noRemindersYet")
             : takenCount === reminders.length
               ? t("medications.allDosesTaken")
               : `${reminders.length - takenCount} ${reminders.length - takenCount === 1 ? t("medications.doseRemaining") : t("medications.dosesRemaining")}`}

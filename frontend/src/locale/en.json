@@ -101,6 +101,7 @@
     "night": "Night",
     "takeWithFood": "Take with food",
     "noMedications": "No medications assigned yet",
+    "noRemindersYet": "No reminders yet. Your pharmacist can add medication reminders for you.",
     "todaysPrescription": "Today's prescription",
     "medicationsCount": "medications",
     "for": "For",

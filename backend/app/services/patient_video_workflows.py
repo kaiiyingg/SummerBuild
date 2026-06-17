@@ -32,7 +32,12 @@ STEP 1 — TRANSCRIBE (this drives the scan results shown to the patient):
 STEP 2 — EXTRACT:
 - Use the text you read to fill medication_name, generic_name, strength, dosage_form, quantity, refills,
   directions_original, warnings_original, and summary_original.
-- Fill in every field you can; leave a field empty only if you truly have nothing for it.
+- GROUNDING RULE: medication_name, generic_name, strength, dosage_form, quantity, refills,
+  directions_original, and warnings_original must be filled only from text actually read off the label —
+  i.e. text that appears in or is directly supported by detected_text_lines. Never infer, complete, or
+  guess any of these fields from prior or general medication knowledge. If the text for a field was not
+  actually read from the label, leave that field empty.
+- Fill in every field that is supported by readable label text; leave a field empty only when you truly have no readable text for it.
 - Do not invent label text that is not actually shown on the medication.
 
 STEP 3 — TRANSLATE:
@@ -42,7 +47,8 @@ STEP 3 — TRANSLATE:
 KNOWLEDGE-BASED FIELDS:
 - medication_overview_translated, how_to_take_points_translated, side_effects_translated,
   precautions_translated, and storage_translated may use general medication knowledge
-  to briefly help the patient understand the medicine when you can identify it.
+  to briefly help the patient understand the medicine — but only when medication_name was
+  actually read from the label. If medication_name is empty, leave these fields empty too.
 - Keep them short, general, and never patient-specific.
 
 CONFIDENCE & REVIEW:
@@ -287,7 +293,7 @@ async def _repair_scan_json(raw_content: str) -> dict:
             model="reka-flash",
             messages=repair_messages,
             temperature=0.0,
-            max_tokens=700,
+            max_tokens=2000,
         )
     except Exception as exc:
         raise PatientVideoWorkflowError(
@@ -473,7 +479,7 @@ async def scan_medication_video_with_reka_chat(
             model="reka-flash",
             messages=messages,
             temperature=0.1,
-            max_tokens=1200,
+            max_tokens=2500,
         )
     except Exception as exc:
         raise PatientVideoWorkflowError(
