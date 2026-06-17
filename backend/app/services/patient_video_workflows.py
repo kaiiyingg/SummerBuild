@@ -12,6 +12,7 @@ from app.schemas.patient_video_workflows import PatientChatWithMediaResponse
 
 
 client = AsyncOpenAI(api_key=settings.REKA_API_KEY, base_url="https://api.reka.ai/v1")
+openai_client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY) if settings.OPENAI_API_KEY else None
 
 SUPPORTED_LOCALES = {
     "en": "English",
@@ -40,21 +41,10 @@ STEP 2 — EXTRACT:
 - Fill in every field that is supported by readable label text; leave a field empty only when you truly have no readable text for it.
 - Do not invent label text that is not actually shown on the medication.
 
-STEP 3 — TRANSLATE:
-- *_translated fields are translations of the corresponding *_original field into the target language only.
-- If the original field is empty, its translation must also be empty.
-
-KNOWLEDGE-BASED FIELDS:
-- medication_overview_translated, how_to_take_points_translated, side_effects_translated,
-  precautions_translated, and storage_translated may use general medication knowledge
-  to briefly help the patient understand the medicine — but only when medication_name was
-  actually read from the label. If medication_name is empty, leave these fields empty too.
-- Keep them short, general, and never patient-specific.
-
 CONFIDENCE & REVIEW:
 - confidence (0–1) reflects how much of the label you could read clearly, not how confident you are about the medication in general.
 - Fill in every field that is supported by readable text — do not leave a field empty when the label clearly shows it.
-- Use needs_review = true only as a gentle flag when part of the label was unclear, and keep review_reason to a short "please double-check with your pharmacist" note. Always return all the information you could read; never refuse or withhold readable fields.
+- Use needs_review = true only as a gentle flag when part of the label was unclear, and keep review_reason to a short English note. Always return all the information you could read; never refuse or withhold readable fields.
 
 OUTPUT:
 - Return strict JSON only, with exactly these keys and no others:
@@ -66,8 +56,38 @@ OUTPUT:
   detected_language, target_language, confidence, needs_review, review_reason,
   detected_text_lines, text_for_speech
 - packaging_type ∈ {bottle, box, blister_pack, pharmacy_label, warning_sticker, packet, unclear}.
+- Leave all *_translated fields (directions_translated, warnings_translated, summary_translated,
+  medication_overview_translated, how_to_take_points_translated, side_effects_translated,
+  precautions_translated, storage_translated, text_for_speech) as "" or [] — translation is handled in a separate step.
 - Strings: medication_name, generic_name, strength, dosage_form, quantity, refills, directions_original, directions_translated, summary_original, summary_translated, medication_overview_translated, detected_language, target_language, review_reason, text_for_speech.
 - Arrays of strings: warnings_original, warnings_translated, detected_text_lines, how_to_take_points_translated, side_effects_translated, precautions_translated, storage_translated.
+"""
+
+TRANSLATE_SYSTEM_PROMPT = """You are a medical translation assistant for a pharmacy app.
+
+Given medication scan data, produce:
+1. Translated versions of the original label fields into the requested target language.
+2. Patient-education summaries (overview, how to take, side effects, precautions, storage) in the target language, drawn from general medication knowledge — but ONLY when medication_name is non-empty. If medication_name is empty, return "" and [] for those fields.
+3. A text_for_speech string: the translated directions plus any translated warnings joined naturally, for text-to-speech playback.
+
+Return only a JSON object with exactly these keys:
+  directions_translated         (string)
+  warnings_translated           (array of strings)
+  summary_translated            (string)
+  medication_overview_translated       (string)
+  how_to_take_points_translated        (array of strings)
+  side_effects_translated              (array of strings)
+  precautions_translated               (array of strings)
+  storage_translated                   (array of strings)
+  text_for_speech               (string)
+  review_reason                 (string)
+
+Rules:
+- If a source field is empty ("" or []), its translation must also be empty ("" or []).
+- Keep medication names, dosages, numbers, and units unchanged.
+- Keep all output patient-friendly, concise, and never patient-specific.
+- review_reason: translate the provided value into the target language; if it is empty, return "".
+- Return strict JSON only — no markdown, no commentary.
 """
 
 SCAN_REPAIR_PROMPT = """Convert the medication scan output below into valid JSON only.
@@ -407,6 +427,90 @@ def _coerce_scan_payload(raw: dict, target_language: str) -> PatientMedicationSc
     )
 
 
+async def _translate_scan_fields(
+    coerced: PatientMedicationScanResponse,
+    target_language: str,
+) -> dict:
+    """Call GPT to translate *_translated fields and produce education fields.
+
+    On any failure (no client, API error, bad JSON) falls back to copying each
+    *_original value into its *_translated counterpart and leaving education
+    fields empty — the scan result is still returned, just untranslated.
+    """
+
+    def _fallback() -> dict:
+        speech = " ".join(
+            p for p in [coerced.directions_original, *coerced.warnings_original] if p
+        ).strip()
+        return {
+            "directions_translated": coerced.directions_original,
+            "warnings_translated": list(coerced.warnings_original),
+            "summary_translated": coerced.summary_original,
+            "medication_overview_translated": "",
+            "how_to_take_points_translated": [],
+            "side_effects_translated": [],
+            "precautions_translated": list(coerced.warnings_original),
+            "storage_translated": [],
+            "text_for_speech": speech or coerced.directions_original,
+            "review_reason": coerced.review_reason,
+        }
+
+    if not openai_client:
+        return _fallback()
+
+    locale_name = SUPPORTED_LOCALES.get(target_language, "English")
+    user_content = json.dumps(
+        {
+            "target_language": locale_name,
+            "medication_name": coerced.medication_name,
+            "directions_original": coerced.directions_original,
+            "warnings_original": list(coerced.warnings_original),
+            "summary_original": coerced.summary_original,
+            "review_reason": coerced.review_reason,
+        },
+        ensure_ascii=False,
+    )
+
+    try:
+        response = await openai_client.chat.completions.create(
+            model=settings.OPENAI_TRANSLATION_MODEL,
+            messages=[
+                {"role": "system", "content": TRANSLATE_SYSTEM_PROMPT},
+                {"role": "user", "content": user_content},
+            ],
+            temperature=0.2,
+            max_tokens=1000,
+            response_format={"type": "json_object"},
+        )
+        raw = (response.choices[0].message.content or "").strip()
+        translated: dict = json.loads(raw) if raw else {}
+    except Exception:
+        return _fallback()
+
+    def _s(key: str, fallback: str = "") -> str:
+        v = translated.get(key, fallback)
+        return v if isinstance(v, str) else fallback
+
+    def _a(key: str, fallback: list | None = None) -> list[str]:
+        v = translated.get(key, fallback or [])
+        if isinstance(v, list):
+            return [str(item).strip() for item in v if str(item).strip()]
+        return list(fallback) if fallback else []
+
+    return {
+        "directions_translated": _s("directions_translated") or coerced.directions_original,
+        "warnings_translated": _a("warnings_translated") or list(coerced.warnings_original),
+        "summary_translated": _s("summary_translated") or coerced.summary_original,
+        "medication_overview_translated": _s("medication_overview_translated"),
+        "how_to_take_points_translated": _a("how_to_take_points_translated"),
+        "side_effects_translated": _a("side_effects_translated"),
+        "precautions_translated": _a("precautions_translated"),
+        "storage_translated": _a("storage_translated"),
+        "text_for_speech": _s("text_for_speech") or coerced.directions_original,
+        "review_reason": _s("review_reason", coerced.review_reason),
+    }
+
+
 def _build_multimodal_content(
     *,
     text: str,
@@ -457,7 +561,6 @@ async def scan_medication_video_with_reka_chat(
 ) -> PatientMedicationScanResponse:
     locale = _normalize_locale(language)
     video_data_url = _as_data_url(video_bytes, filename, content_type)
-    locale_name = SUPPORTED_LOCALES.get(locale, "English")
 
     messages = [
         {"role": "system", "content": SCAN_SYSTEM_PROMPT},
@@ -465,7 +568,6 @@ async def scan_medication_video_with_reka_chat(
             "role": "user",
             "content": _build_multimodal_content(
                 text=(
-                    f"Target language for translated patient-facing fields: {locale_name}.\n"
                     "Analyze the full video and return strict JSON only. "
                     "Detect packaging type accurately from what is visible."
                 ),
@@ -479,7 +581,7 @@ async def scan_medication_video_with_reka_chat(
             model="reka-flash",
             messages=messages,
             temperature=0.1,
-            max_tokens=2500,
+            max_tokens=700,
         )
     except Exception as exc:
         raise PatientVideoWorkflowError(
@@ -495,7 +597,10 @@ async def scan_medication_video_with_reka_chat(
         parsed = _extract_json_object(content)
     except PatientVideoWorkflowError:
         parsed = await _repair_scan_json(content)
-    return _coerce_scan_payload(parsed, locale)
+
+    coerced = _coerce_scan_payload(parsed, locale)
+    translated = await _translate_scan_fields(coerced, locale)
+    return coerced.model_copy(update=translated)
 
 
 async def chat_with_media_using_reka(
