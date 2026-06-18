@@ -38,6 +38,6 @@ settings = Settings(
     OPENAI_TTS_MODEL=os.getenv("OPENAI_TTS_MODEL", "gpt-4o-mini-tts"),
     OPENAI_TTS_VOICE=os.getenv("OPENAI_TTS_VOICE", "marin"),
     OPENAI_TTS_SPEED=max(0.25, min(4.0, openai_tts_speed)),
-    OPENAI_QUANTITY_MODEL=os.getenv("OPENAI_QUANTITY_MODEL", "gpt-4o"),
+    OPENAI_QUANTITY_MODEL=os.getenv("OPENAI_QUANTITY_MODEL", "gpt-4.1"),
     OPENAI_TRANSLATION_MODEL=os.getenv("OPENAI_TRANSLATION_MODEL", "gpt-4.1"),
 )
