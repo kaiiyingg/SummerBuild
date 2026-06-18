@@ -12,37 +12,37 @@ Pharmacists perform multiple layers of manual verification including checking me
 
 **Pilly tackles five concrete pain points:**
 
-| # | Pain Point | How Pilly Solves It |
+| No. | Pain Point | Solution |
 |---|---|---|
-| 1 | Verification fatigue & human error | AI-powered medication & quantity verification as a second check |
-| 2 | Poor visibility into delays | "Put On Hold" notifications explain delays to patients instantly |
-| 3 | Missed queue numbers from long waits | Real-time queue tracking, viewable remotely |
-| 4 | Language barriers & poor adherence | Multilingual scan assistant + automated medication reminders |
-| 5 | High volume of routine enquiries | AI Q&A chatbot handles common questions 24/7 |
+| 1 | **Verification Fatigue & Human Error**: Repetitive medication/quantity checks increase mistakes from fatigue and lost focus. | AI-powered medication & quantity verification acts as an extra checking layer, reducing errors and boosting confidence. |
+| 2 | **Poor Visibility of Delays**: Patients unaware of delays leads to confusion and frustration directed at pharmacists. | **Put On Hold** notifications instantly inform patients of delays and reasons via the app, ensuring transparency. |
+| 3 | **Long Waits & Missed Queue Numbers**: Patients stepping away to rest or eat miss their number and must rejoin. | **Real-Time Queue Tracking** lets patients monitor progress remotely, reducing missed queues and disputes. |
+| 4 | **Language Barriers & Poor Adherence**: Pharmacists struggle to explain instructions, and patients forget dosing later. | **Medication Scan Assistant** delivers info in plain language; **Reminder System** keeps patients on track with treatment. |
+| 5 | **High Enquiry Volume & Limited Staff** : Pharmacists are overwhelmed by routine calls, especially during peak dispensing periods. | **AI Q&A Assistant** gives instant answers on medication and app usage, freeing pharmacists for higher-value clinical work. |
 
 ---
 
 ## Key Features
 
 ### For Pharmacists
-- **Live Queue Dashboard** — real-time view of every patient's status (Pending, On Hold, Ready, Collected), with filtering and search.
-- **AI Medication Verification** — scan a medication label; the AI reads it and cross-checks it against the prescription, flagging mismatches.
-- **AI Pill Counting** — count pills directly from a photo for a fast, accurate second check on quantity.
-- **One-Tap Medication Reminders** — auto-populated from the prescription, controlled by pharmacist and sent to the patient in a single tap.
-- **On-Hold Reason Capture** — requires a reason when an order is paused, encouraging single-session packing and reducing errors.
-
+- **Live Queue Dashboard**: Real-time view of every patient's status (Pending, On Hold, Ready, Collected), with filtering and search.
+- **AI Medication Verification**: Scan a medication label; the AI reads it and cross-checks it against the prescription, flagging mismatches.
+- **AI Pill Counting**: Count pills directly from a photo for a fast, accurate second check on quantity.
+- **One-Tap Medication Reminders**: Auto-populated from the prescription, controlled by pharmacist and sent to the patient in a single tap.
+- **On-Hold Reason Capture**: Requires a reason when an order is paused, encouraging single-session packing and reducing errors.
 
 ### For Patients
-- **QR Code Entry** — patients scan a QR code on arrival at the pharmacy to access Pilly directly in their browser, skipping app store downloads entirely for a frictionless walk-in experience.
-- **Live Registration & Collection Queue** — real-time position, estimated wait time, and people ahead, with one-tap re-registration if a queue number is missed.
-- **Real-Time Push Notifications** — patients are notified the moment their queue is called, their order is delayed, or a reminder is due, even while the app is in the background.
-- **Reschedule Collection** — pick a new date/time slot directly in the app.
-- **Medications Dashboard** — every prescribed medication with dosage, purpose, instructions, and caution labels, with text-to-speech support.
-- **Scan Medication Label** — point the camera at any label, bottle, or sticker to get a plain-language breakdown (name, dosage, side effects, storage).
-- **Personalised Reminders** — pharmacist-initiated, patient-adjustable medication schedules.
-- **Ask Pilly (Chatbot)** — ask about medications, side effects, or pharmacy info via text, voice, photo, or video — available outside pharmacy hours.
-- **4-Language Support** — English, 中文, Bahasa Melayu, and தமிழ், across the entire patient experience, including scan and chatbot results.
-- **Accessible, Senior-Friendly UI** — large fonts, high-contrast layouts, and simple navigation designed for elderly patients, fully responsive across laptop and mobile screens.
+- **QR Code Entry**: Patients scan a QR code on arrival at the pharmacy to access Pilly directly in their browser, skipping app store downloads entirely for a frictionless walk-in experience.
+- **Live Registration & Collection Queue**: Real-time position, estimated wait time, and people ahead, with one-tap re-registration if a queue number is missed.
+- **Real-Time Push Notifications**: Patients are notified the moment their queue is called, their order is delayed, or a reminder is due, even while the app is in the background.
+- **Reschedule Collection**: Pick a new date/time slot directly in the app.
+- **Medications Dashboard**: Every prescribed medication with dosage, purpose, instructions, and caution labels, with text-to-speech support.
+- **Scan Medication Label**: Point the camera at any label, bottle, or sticker to get a plain-language breakdown (name, dosage, side effects, storage).
+- **Personalised Reminders**: Pharmacist-initiated, patient-adjustable medication schedules.
+- **Ask Pilly (Chatbot)**: Ask about medications, side effects, or pharmacy info via text, voice, photo, or video which is available outside pharmacy hours.
+- **Profile & Preferences**: View patient ID, registered hospital, and visit history; set a persistent language preference; toggle notifications for queue updates, reminders, and delay alerts individually.
+- **4-Language Support**: English, 中文, Bahasa Melayu, and தமிழ், across the entire patient experience, including scan and chatbot results.
+- **Accessible, Senior-Friendly UI**: Large fonts, high-contrast layouts, and simple navigation designed for elderly patients, fully responsive across laptop and mobile screens.
 
 ---
 
@@ -70,10 +70,10 @@ Pharmacists perform multiple layers of manual verification including checking me
 
 ## Engineering Challenges We Solved
 
-**1. AI pill counting on reflective blister packs**
-Silver foil packaging caused glare that washed out pocket edges, and the model defaulted to assuming even-numbered layouts which miscounts odd-sized strips (e.g. a pack of 7). Prompt refinement on Reka AI didn't fix it; switching the counting step to **GPT-4.1 vision** resolved both the glare and odd-count issues.
+### 1. Pill Counting with Computer Vision Limitations
+Silver foil packaging caused glare that washed out pocket edges and the model defaulted to assuming even-numbered layouts which miscounts odd-sized strips (e.g. a pack of 7). Prompt refinement on Reka AI didn't fix it; switching the counting step to **GPT-4.1 vision** resolved both the glare and odd-count issues.
 
-**2. Real-time 4-language translation**
+### 2. Real-Time Translation & Reka AI's Language Limitations
 Translating the full patient UI at runtime was slow and costly. Reka AI alone couldn't reliably translate Malay or Tamil. We split the pipeline: **Reka AI extracts text → GPT-4.1 translates it**, giving accurate results across all four supported languages without the runtime cost.
 
 ---
@@ -81,13 +81,13 @@ Translating the full patient UI at runtime was slow and costly. Reka AI alone co
 ## Future Improvements
 
 ### 1. Multilingual & Dialect Voice Translation Support
-We'd like to expand translation beyond our current four languages to cover more languages and local dialects, so patients with limited English proficiency can fully understand medication instructions, reminders, and pharmacist guidance. This would improve accessibility and reduce misunderstandings across an even more diverse patient population.
+Expand support to additional languages and local dialects to further improve accessibility and reduce communication barriers for diverse patient groups.
 
 ### 2. GPS-Based Queue Recall & Navigation Guidance
-To cut down on missed queue numbers, the app would use GPS to detect when a patient has wandered far from the pharmacy and proactively notify them to head back as their turn approaches, factoring in walking distance and travel time. Step-by-step navigation guidance would then help them find their way back quickly, letting patients safely step away without the stress of losing their spot in line.
+Use location awareness to detect when patients are far from the pharmacy and proactively notify them when their turn is approaching. Navigation assistance can also help patients return to the correct location on time.
 
 ### 3. Robot Interaction for Internal Pharmacy Logistics
-Robots could handle internal medication transport, moving items from storage or delivery areas to packing and dispensing stations. Automating this logistics work would cut manual workload and human error, freeing pharmacists to focus more on patient-facing clinical tasks.
+Many hospital pharmacies already utilise autonomous robots for medication transportation. A future enhancement would allow pharmacists to summon robots directly to their workstation or dispensing counter, reducing unnecessary movement and improving workflow efficiency.
 
 ---
 
