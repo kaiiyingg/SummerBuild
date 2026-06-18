@@ -6,7 +6,7 @@ Pilly streamlines hospital pharmacy workflows for both pharmacists and patients 
 
 ---
 
-## 🚀 The Problem
+## The Problem
 
 Pharmacists perform multiple layers of manual verification including checking medication identity, dosage, and quantity for every single patient, all day long. This work is essential for patient safety, but it's repetitive, fatiguing, and leaves little room for error. Meanwhile, patients are often left in the dark. Having no visibility into delays, no way to track their queue remotely, and language barriers that make it hard to understand medication instructions.
 
@@ -22,7 +22,7 @@ Pharmacists perform multiple layers of manual verification including checking me
 
 ---
 
-## ✨ Key Features
+## Key Features
 
 ### For Pharmacists
 - **Live Queue Dashboard** — real-time view of every patient's status (Pending, On Hold, Ready, Collected), with filtering and search.
@@ -46,12 +46,12 @@ Pharmacists perform multiple layers of manual verification including checking me
 
 ---
 
-## 🎥 Demo Video
+## Demo Video
  
 📺 [Watch the Pilly Demo](https://youtu.be/iFPMjVzcIf0)
 
 ---
-## 🏗️ Tech Stack
+## Tech Stack
 
 | Component | Technology |
 |---|---|
@@ -68,21 +68,26 @@ Pharmacists perform multiple layers of manual verification including checking me
 
 ---
 
-## 🧩 Engineering Challenges We Solved
+## Engineering Challenges We Solved
 
 **1. AI pill counting on reflective blister packs**
-Silver foil packaging caused glare that washed out pocket edges, and the model defaulted to assuming even-numbered layouts — miscounting odd-sized strips (e.g. a pack of 7). Prompt refinement on Reka AI didn't fix it; switching the counting step to **GPT-4.1 vision** resolved both the glare and odd-count issues.
+Silver foil packaging caused glare that washed out pocket edges, and the model defaulted to assuming even-numbered layouts which miscounts odd-sized strips (e.g. a pack of 7). Prompt refinement on Reka AI didn't fix it; switching the counting step to **GPT-4.1 vision** resolved both the glare and odd-count issues.
 
 **2. Real-time 4-language translation**
 Translating the full patient UI at runtime was slow and costly. Reka AI alone couldn't reliably translate Malay or Tamil. We split the pipeline: **Reka AI extracts text → GPT-4.1 translates it**, giving accurate results across all four supported languages without the runtime cost.
 
 ---
 
-## 🔮 Future Improvements
+## Future Improvements
 
-- **Dialect-aware voice translation** — expand beyond 4 languages to support local dialects for fuller accessibility.
-- **GPS-based queue recall & navigation** — detect when a patient has stepped away and proactively guide them back before their turn, accounting for walking distance.
-- **Robotics for internal logistics** — automate transport of medications from storage to packing stations to further reduce pharmacist manual workload.
+### 1. Multilingual & Dialect Voice Translation Support
+We'd like to expand translation beyond our current four languages to cover more languages and local dialects, so patients with limited English proficiency can fully understand medication instructions, reminders, and pharmacist guidance. This would improve accessibility and reduce misunderstandings across an even more diverse patient population.
+
+### 2. GPS-Based Queue Recall & Navigation Guidance
+To cut down on missed queue numbers, the app would use GPS to detect when a patient has wandered far from the pharmacy and proactively notify them to head back as their turn approaches, factoring in walking distance and travel time. Step-by-step navigation guidance would then help them find their way back quickly, letting patients safely step away without the stress of losing their spot in line.
+
+### 3. Robot Interaction for Internal Pharmacy Logistics
+Robots could handle internal medication transport, moving items from storage or delivery areas to packing and dispensing stations. Automating this logistics work would cut manual workload and human error, freeing pharmacists to focus more on patient-facing clinical tasks.
 
 ---
 
