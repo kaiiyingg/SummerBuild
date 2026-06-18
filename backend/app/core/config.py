@@ -15,7 +15,7 @@ class Settings(BaseModel):
     OPENAI_TTS_MODEL: str = "gpt-4o-mini-tts"
     OPENAI_TTS_VOICE: str = "marin"
     OPENAI_TTS_SPEED: float = 1.0
-    OPENAI_QUANTITY_MODEL: str = "gpt-4o"
+    OPENAI_QUANTITY_MODEL: str = "gpt-4.1"
     OPENAI_TRANSLATION_MODEL: str = "gpt-4.1"
     
 
