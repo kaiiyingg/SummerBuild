@@ -2,13 +2,13 @@
 
 **Team Sunsetters** · NTU Summer Build
 
-Pilly streamlines hospital pharmacy workflows for both pharmacists and patients — using AI to catch dispensing errors before they happen, and giving patients real-time visibility into their medications and queue status.
+Pilly streamlines hospital pharmacy workflows for both pharmacists and patients using AI to catch dispensing errors before they happen, and giving patients real-time visibility into their medications and queue status.
 
 ---
 
 ## 🚀 The Problem
 
-Pharmacists perform multiple layers of manual verification — checking medication identity, dosage, and quantity — for every single patient, all day long. This work is essential for patient safety, but it's repetitive, fatiguing, and leaves little room for error. Meanwhile, patients are often left in the dark: no visibility into delays, no way to track their queue remotely, and language barriers that make it hard to understand medication instructions.
+Pharmacists perform multiple layers of manual verification including checking medication identity, dosage, and quantity for every single patient, all day long. This work is essential for patient safety, but it's repetitive, fatiguing, and leaves little room for error. Meanwhile, patients are often left in the dark. Having no visibility into delays, no way to track their queue remotely, and language barriers that make it hard to understand medication instructions.
 
 **Pilly tackles five concrete pain points:**
 
@@ -28,20 +28,29 @@ Pharmacists perform multiple layers of manual verification — checking medicati
 - **Live Queue Dashboard** — real-time view of every patient's status (Pending, On Hold, Ready, Collected), with filtering and search.
 - **AI Medication Verification** — scan a medication label; the AI reads it and cross-checks it against the prescription, flagging mismatches.
 - **AI Pill Counting** — count pills directly from a photo for a fast, accurate second check on quantity.
-- **One-Tap Medication Reminders** — auto-populated from the prescription and sent to the patient in a single tap.
+- **One-Tap Medication Reminders** — auto-populated from the prescription, controlled by pharmacist and sent to the patient in a single tap.
 - **On-Hold Reason Capture** — requires a reason when an order is paused, encouraging single-session packing and reducing errors.
 
+
 ### For Patients
+- **QR Code Entry** — patients scan a QR code on arrival at the pharmacy to access Pilly directly in their browser, skipping app store downloads entirely for a frictionless walk-in experience.
 - **Live Registration & Collection Queue** — real-time position, estimated wait time, and people ahead, with one-tap re-registration if a queue number is missed.
+- **Real-Time Push Notifications** — patients are notified the moment their queue is called, their order is delayed, or a reminder is due, even while the app is in the background.
 - **Reschedule Collection** — pick a new date/time slot directly in the app.
 - **Medications Dashboard** — every prescribed medication with dosage, purpose, instructions, and caution labels, with text-to-speech support.
 - **Scan Medication Label** — point the camera at any label, bottle, or sticker to get a plain-language breakdown (name, dosage, side effects, storage).
 - **Personalised Reminders** — pharmacist-initiated, patient-adjustable medication schedules.
 - **Ask Pilly (Chatbot)** — ask about medications, side effects, or pharmacy info via text, voice, photo, or video — available outside pharmacy hours.
 - **4-Language Support** — English, 中文, Bahasa Melayu, and தமிழ், across the entire patient experience, including scan and chatbot results.
+- **Accessible, Senior-Friendly UI** — large fonts, high-contrast layouts, and simple navigation designed for elderly patients, fully responsive across laptop and mobile screens.
 
 ---
 
+## 🎥 Demo Video
+ 
+📺 [Watch the Pilly Demo](https://youtu.be/iFPMjVzcIf0)
+
+---
 ## 🏗️ Tech Stack
 
 | Component | Technology |
