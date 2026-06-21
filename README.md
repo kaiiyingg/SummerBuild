@@ -46,9 +46,11 @@ Pharmacists perform multiple layers of manual verification including checking me
 
 ---
 
-## Demo Video
- 
-📺 [Watch the Pilly Demo](https://youtu.be/iFPMjVzcIf0)
+## 🔗 Demo & Links
+
+📺 [Watch the Pilly Demo](https://youtu.be/iFPMjVzcIf0) 
+🏆 [Devpost Submission](https://devpost.com/software/pilly-689q31)
+🌐 [Live App](https://pilly-hn6n.onrender.com/)  
 
 ---
 ## Tech Stack
